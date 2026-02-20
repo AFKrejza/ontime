@@ -26,7 +26,7 @@ app.get("/trieData", async (req, res) => {
 })
 
 // test endpoint to get one stop's data right now
-app.get("/", async (req, res) => {
+app.get("/bustest", async (req, res) => {
 	//https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U474Z6P"]}&limit=1&routeShortNames=136&minutesAfter=60&minutesBefore=-10
 
 	const url = "https://api.golemio.cz/v2/public/departureboards?" + new URLSearchParams({
@@ -50,7 +50,6 @@ app.get("/", async (req, res) => {
 	res.send(data);
 });
 
-// returns stopDetails as shown in docs/stopDetailsExample.json
 app.get("/stopGroups/:id", async (req, res) => {
 	try {
 		const id = req.params.id;
