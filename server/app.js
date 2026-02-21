@@ -4,8 +4,9 @@ import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import { updateTrieData } from "./src/stop_data/helpers/updateTrieData.js";
-import { jobList } from "./jobs/scheduler.js";
+// import { jobList } from "./jobs/scheduler.js";
 import schedule from 'node-schedule';
+import { scheduler, createJob } from './src/jobs/scheduler.js';
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -19,6 +20,7 @@ app.use(cors({
 
 // TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
+scheduler();
 
 app.get("/trieData", async (req, res) => {
 	const data = JSON.parse(await fs.readFile("./data/trieData.json"));
@@ -97,8 +99,27 @@ app.put("/getStop", async (req, res) => {
 	}
 });
 
-// TODO: add a stop and schedule it
-// app.put("/addStop")
+// adds a stop and schedules it
+app.put("/addStop", async (req, res) => {
+	try {
+		const data = {
+			offset: 10,
+			stopName: "Vysočanská",
+			stopId: "vysocanska",
+			line: {
+				id: 136,
+				name: "136",
+				type: "bus",
+				direction: "Jižní Město",
+				gtfsId: "U474Z6P"
+			}
+		};
+		const msg = await createJob(data);
+		res.send(msg);
+	} catch (err) {
+		console.error(err);
+	}
+})
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);
