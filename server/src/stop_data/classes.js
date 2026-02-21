@@ -8,9 +8,9 @@ export class StopSummary {
 }
 
 export class DetailedStop extends StopSummary {
-	constructor(name, id, stops) {
+	constructor(name, id, lines) {
 		super(name, id);
-		this.stops = stops;
+		this.lines = lines;
 	}
 }
 

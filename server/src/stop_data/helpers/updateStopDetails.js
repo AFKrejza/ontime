@@ -18,7 +18,7 @@ export async function updateStopDetails() {
 
 		let latin = removeDiacritics(stopGroups[i].uniqueName);
 		if (latinNames.has(latin))
-			name = name.concat('_2'); // genius
+			name = name.concat('_2'); // silly
 		latinNames.add(latin);
 
 		let id = removeDiacritics(name.toLowerCase());
@@ -37,7 +37,7 @@ export async function updateStopDetails() {
 	return true;
 }
 
-// gets all unique line stops from a stopGroup, making several stops if a line has more than one direction
+// gets all unique lines from a stopGroup, making several lines if a line has more than one direction
 function getStops(stopGroup) {
 	
 	const stopData = {};

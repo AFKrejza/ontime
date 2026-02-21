@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import fs from 'node:fs/promises';
 
 const path = `./data/myStop.json`;
-const cron = '*1 * * * *'; // 1 minute
+const cron = '1 * * * *'; // 1 minute
 // const cron = '*/1 * * * * *'; // 1 second interval
 
 // only handles 1 stop!
@@ -50,6 +50,7 @@ async function fetchStop(job) {
 			}
 		});
 		const data = await get.json();
+		// console.log(data[0][0]);
 		console.log(`fetched ${name}`);
 		return data;
 	} catch (err) {
@@ -63,7 +64,7 @@ class Job {
 		this.stopName = stopName;
 		this.stopId = stopId;
 		this.line = line;
-		this.offset = offset;
+		this.offset = offset * -1;
 		this.cron = cron;
 	}
 }
