@@ -6,7 +6,6 @@ const path = `./data/myStop.json`;
 const cron = '1 * * * *'; // 1 minute
 // const cron = '*/1 * * * * *'; // 1 second interval
 
-// only handles 1 stop!
 export function scheduler() {
 	const fetchJob = schedule.scheduleJob(cron, async function() {
 		try {
@@ -23,6 +22,7 @@ export function scheduler() {
 	});
 }
 
+// only handles 1 stop! it replaces the current one
 export async function createJob(data) {
 	const {stopName, stopId, line, offset} = data;
 	const job = new Job(stopName, stopId, line, offset, cron);
@@ -64,7 +64,7 @@ class Job {
 		this.stopName = stopName;
 		this.stopId = stopId;
 		this.line = line;
-		this.offset = offset * -1;
+		this.offset = offset * -1; // PID wants a negative
 		this.cron = cron;
 	}
 }

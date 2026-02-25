@@ -4,7 +4,13 @@ import * as fs from 'node:fs';
 import { Trie } from '../src/trie.js';
 import { removeDiacritics } from '../src/utils/removeDiacritics.js';
 
-function showNames() {
+/*
+
+THIS IS A SCRATCHPAD, DON'T EXPORT ANY OF THESE FUNCTIONS
+
+*/
+
+async function showNames() {
 	let data = fs.readFileSync(`./server/data/stops.json`);
 	data = JSON.parse(data);
 	const stops = data.stopGroups;
@@ -76,10 +82,25 @@ function showNames() {
 	// console.log(latinStops.length);
 
 
-	console.log(latinStops.find((name) => name === 'adamov'));
-	const trie = initTrie(latinStops);
-	console.log(trie.contains("adamov"));
-	console.log(trie.find("piskova"));
+	// console.log(latinStops.find((name) => name === 'adamov'));
+	// const trie = initTrie(latinStops);
+	// console.log(trie.contains("adamov"));
+	// console.log(trie.find("piskova"));
+
+	await countLines();
+}
+
+async function countLines() {
+	const stops = JSON.parse(fs.readFileSync(`./server/data/stopDetails.json`));
+	let lineCount = 0;
+	for (const i in stops) {
+		const types = Object.getOwnPropertyNames(stops[i].lines);
+		for (let j = 0; j < types.length; j++) {
+			lineCount += stops[i].lines[types[j]].length;
+		}
+	}
+	console.log(stops[0].lines[0]);
+	console.log(lineCount);
 }
 
 // Písková & Píškova are duplicated in the latin alphabet!

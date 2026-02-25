@@ -99,7 +99,6 @@ app.put("/getStop", async (req, res) => {
 	}
 });
 
-// adds a stop and schedules it
 app.put("/addStop", async (req, res) => {
 	try {
 		const data = {

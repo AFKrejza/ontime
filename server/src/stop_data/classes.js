@@ -1,5 +1,3 @@
-import { removeDiacritics } from "../utils/removeDiacritics.js";
-
 export class StopSummary {
 	constructor(name, id) {
 		this.name = name;

@@ -5,7 +5,6 @@ import { updateTrieData } from "./helpers/updateTrieData.js";
 // TODO: schedule a daily update, retry if it fails, verify on startup
 
 // TODO: check fetchStops notes. Also, it needs to restart depending on specific errors
-// updates stops.json, stopDetails.json, trieData.json in that order!!!
 export async function updateData() {
 	try {
 		console.log("Updating data...");
