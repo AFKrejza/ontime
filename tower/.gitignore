@@ -1,0 +1,16 @@
+obj/
+out/
+.gitmodules
+.DS_Store
+firmware.bin
+.pio/
+.vscode/
+
+build/
+*.elf
+*.bin
+*.map
+CMakeFiles/
+CMakeCache.txt
+
+sdk/
