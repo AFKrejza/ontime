@@ -3,76 +3,27 @@
 // Forum https://forum.hardwario.com/
 
 #include <application.h>
+#include <twr_lis2dh12.h>
 
-// LED instance
-// twr_led_t led;
+void event_handler(twr_lis2dh12_t *accel, twr_lis2dh12_event_t event, void *event_param);
 
-// // Button instance
-// twr_button_t button;
-
-// // Thermometer instance
-// twr_tmp112_t tmp112;
-// uint16_t button_click_count = 0;
-
-// // Button event callback
-// void button_event_handler(twr_button_t *self, twr_button_event_t event, void *event_param)
-// {
-//     // Log button event
-//     twr_log_info("APP: Button event: %i", event);
-
-//     // Check event source
-//     if (event == TWR_BUTTON_EVENT_CLICK)
-//     {
-//         // Toggle LED pin state
-//         twr_led_set_mode(&led, TWR_LED_MODE_TOGGLE);
-
-//          // Publish message on radio
-//         button_click_count++;
-//         twr_radio_pub_push_button(&button_click_count);
-//     }
-// }
-
-// void tmp112_event_handler(twr_tmp112_t *self, twr_tmp112_event_t event, void *event_param)
-// {
-//     if (event == TWR_TMP112_EVENT_UPDATE)
-//     {
-//         float celsius;
-//         // Read temperature
-//         twr_tmp112_get_temperature_celsius(self, &celsius);
-
-//         twr_log_debug("APP: temperature: %.2f °C", celsius);
-
-//         twr_radio_pub_temperature(TWR_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE, &celsius);
-//     }
-// }
+twr_lis2dh12_t accel;
+twr_lis2dh12_result_g_t accel_result;
 
 // Application initialization function which is called once after boot
 void application_init(void)
 {
     // Initialize logging
     twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
-    twr_log_debug("meowmeowmeow");
+    twr_log_debug("FINALLY");
 
-    // // Initialize LED
-    // twr_led_init(&led, TWR_GPIO_LED, false, 0);
-    // twr_led_pulse(&led, 2000);
+    twr_lis2dh12_init(&accel, TWR_I2C_I2C0, 0x19); // where's the 0x19 from
+    twr_lis2dh12_set_event_handler(&accel, event_handler, NULL);
+    twr_lis2dh12_set_update_interval(&accel, 1000);
 
-    // // Initialize button
-    // twr_button_init(&button, TWR_GPIO_BUTTON, TWR_GPIO_PULL_DOWN, 0);
-    // twr_button_set_event_handler(&button, button_event_handler, NULL);
-
-    // // Initialize thermometer on core module
-    // twr_tmp112_init(&tmp112, TWR_I2C_I2C0, 0x49);
-    // twr_tmp112_set_event_handler(&tmp112, tmp112_event_handler, NULL);
-    // twr_tmp112_set_update_interval(&tmp112, 10000);
-
-    // // Initialize radio
-    // twr_radio_init(TWR_RADIO_MODE_NODE_SLEEPING);
-    // // Send radio pairing request
-    // twr_radio_pairing_request("skeleton", FW_VERSION);
 }
 
-// Application task function (optional) which is called peridically if scheduled
+// Application task function (optional) which is called periodically if scheduled
 void application_task(void)
 {
     // static int counter = 0;
@@ -82,4 +33,17 @@ void application_task(void)
 
     // Plan next run of this task in 1000 ms
     twr_scheduler_plan_current_from_now(1000);
+}
+
+void event_handler(twr_lis2dh12_t *accel, twr_lis2dh12_event_t event, void *event_param)
+{
+    (void) accel, (void) event_param;
+
+    if (event == TWR_LIS2DH12_EVENT_UPDATE)
+    {
+        twr_lis2dh12_get_result_g(accel, &accel_result);
+        twr_log_debug("%f, %f, %f\n", accel_result.x_axis, accel_result.y_axis, accel_result.z_axis);
+    }
+    else
+        twr_log_debug("error");
 }
