@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 import fs from 'node:fs/promises';
 
 const path = `./data/myStop.json`;
-const cron = '1 * * * *'; // 1 minute
-// const cron = '*/1 * * * * *'; // 1 second interval
+// const cron = '1 * * * *'; // 1 minute
+const cron = '*/1 * * * * *'; // 1 second interval
 
 export function scheduler() {
 	const fetchJob = schedule.scheduleJob(cron, async function() {
@@ -50,8 +50,11 @@ async function fetchStop(job) {
 			}
 		});
 		const data = await get.json();
-		// console.log(data[0][0]);
-		console.log(`fetched ${name}`);
+		const departure = data[0][0].departure;
+		const delay = departure.delay_seconds;
+		const minutes = departure.minutes;
+		const scheduled = departure.timestamp_scheduled;
+		console.log(`fetched ${name}, scheduled: ${scheduled} delay: ${delay}, minutes: ${minutes}`);
 		return data;
 	} catch (err) {
 		console.error(err);
