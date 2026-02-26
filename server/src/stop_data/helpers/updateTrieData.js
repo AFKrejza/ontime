@@ -4,7 +4,6 @@
 // the client will then create the trie
 
 import * as fs from "node:fs/promises";
-import { removeDiacritics } from "../../utils/removeDiacritics.js";
 import { StopSummary } from "../classes.js";
 
 export async function updateTrieData() {

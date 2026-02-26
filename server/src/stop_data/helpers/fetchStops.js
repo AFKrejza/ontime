@@ -1,5 +1,4 @@
 import * as fs from "node:fs/promises";
-import schedule from "node-schedule";
 
 // fetches PID Open Data's stops.json
 

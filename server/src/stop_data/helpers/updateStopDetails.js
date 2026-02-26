@@ -18,7 +18,7 @@ export async function updateStopDetails() {
 
 		let latin = removeDiacritics(stopGroups[i].uniqueName);
 		if (latinNames.has(latin))
-			name = name.concat('_2'); // TODO: issue: it adds _2 to both the name and id. Only the id should have the _2 appended. Look for piskova, there should be 2 IDS: piskova, piskova_2
+			name = name.concat('_2');
 		latinNames.add(latin);
 
 		let id = removeDiacritics(name.toLowerCase());

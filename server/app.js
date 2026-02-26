@@ -3,9 +3,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
-import { updateTrieData } from "./src/stop_data/helpers/updateTrieData.js";
-// import { jobList } from "./jobs/scheduler.js";
-import schedule from 'node-schedule';
 import { scheduler, createJob } from './src/jobs/scheduler.js';
 
 dotenv.config();
@@ -60,18 +57,17 @@ app.get("/stopGroups/:id", async (req, res) => {
 		const stop = stopGroups.find((stop) => stop.id === id);
 
 		if (!stop)
-			throw new Error(`Stop ${id} not found`); // TODO: add status codes
+			throw new Error(`Stop ${id} not found`);
 
 		res.send(stop);
 	} catch (err) {
 		console.error(err);
-		res.send(err);
+		res.send(err); // TODO: add status codes and proper errors everywhere
 	}
 });
 
 // testing endpoint without saving data
 // https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U474Z6P"]}&limit=1&routeShortNames=136&minutesAfter=60&minutesBefore=-10
-// plus the X-Access-Token
 app.put("/getStop", async (req, res) => {
 	try {
 		const gtfsId = req.body.line.gtfsId;
