@@ -9,14 +9,14 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sample data - in production this would come from an API
+  // Sample data-in production this would come from an API from adam 
   const sampleStops = [
     { id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
     { id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
     { id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
-    { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['902', '910'] },
+    { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
   ];
-
+  // this data will change depending on the users location.
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -73,7 +73,7 @@ export default function ExploreScreen() {
         
         <ThemedView style={styles.infoItem}>
           <ThemedText type="defaultSemiBold">1. Search</ThemedText>
-          <ThemedText>Enter your bus, metro, or tram stop name</ThemedText>
+          <ThemedText>Enter you stop name in the search bar</ThemedText>
         </ThemedView>
         
         <ThemedView style={styles.infoItem}>
@@ -83,8 +83,15 @@ export default function ExploreScreen() {
         
         <ThemedView style={styles.infoItem}>
           <ThemedText type="defaultSemiBold">3. Track</ThemedText>
-          <ThemedText>View real-time departure times</ThemedText>
+          <ThemedText>View and get real-time departure times on your OnTime device </ThemedText>
         </ThemedView>
+
+      <ThemedView style={styles.infoItem}>
+          <ThemedText type="defaultSemiBold">4. Track</ThemedText>
+          <ThemedText>Never be late again.</ThemedText>
+        </ThemedView>
+
+
       </ThemedView>
     </ParallaxScrollView>
   );

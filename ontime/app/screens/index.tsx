@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View, Pressable } from 'react-native';
-
+ 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -22,7 +22,7 @@ export default function HomeScreen() {
       
       <ThemedView style={styles.welcomeContainer}>
         <ThemedText type="subtitle" style={styles.subtitle}>
-          Your companion for public transit
+          Your companion for public transit in the Czech Republic.
         </ThemedText>
         <ThemedText style={styles.description}>
           Track when your bus, metro, or tram is leaving. 
@@ -58,6 +58,7 @@ export default function HomeScreen() {
         </ThemedView>
       </ThemedView>
     </ParallaxScrollView>
+    
   );
 }
 
