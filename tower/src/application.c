@@ -4,14 +4,14 @@
 
 #include <application.h>
 
-void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
-void set_address(uint8_t axis, uint16_t data);
 void command(uint8_t cmd);
-void write_memory();
-void reset_background();
 void display_init();
-
-void outline_screen();
+void draw_cube(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
+void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
+void outline_screen(const uint16_t COLOR);
+void reset_background();
+void set_address(uint8_t axis, uint16_t start, uint16_t end);
+void start_pixel_stream();
 
 const uint16_t width = 320;
 const uint16_t height = 240;
@@ -34,9 +34,11 @@ void application_init(void)
     twr_log_debug("start");
 
 	display_init();
-	reset_background();
+	reset_background(); // disable for faster boot
+	outline_screen(BLUE);
 
-	outline_screen();
+	draw_cube(50, 100, 50, 100, GREEN);
+
 
 
 }
@@ -58,8 +60,8 @@ void draw_pixel(uint16_t row, uint16_t col, uint16_t color)
 {
 	uint8_t cmd;
 
-	set_address(SET_COL, col);
-	set_address(SET_ROW, row);
+	set_address(SET_COL, col, col);
+	set_address(SET_ROW, row, row);
 
     cmd = 0x2C; // write memory
     command(cmd);
@@ -101,36 +103,39 @@ void reset_background()
     twr_spi_transfer(row_data, NULL, 4);
     twr_gpio_set_output(TWR_GPIO_P15, 1);
 
-    cmd = 0x2C; // write memory
-    command(cmd);
+	start_pixel_stream();
 
     // fill pixels with black
-    uint8_t color_data[2] = {0x00, 0x00};
+    uint8_t color_data[2] = {
+		0x00,
+		0x00
+	};
+	
     for(uint32_t i = 0; i < width*height; i++)
-    {
         twr_spi_transfer(color_data, NULL, 2);
-    }
+
     twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
 
-// TODO: document set_address, write_memory, and command
+// TODO: document set_address, start_pixel_stream, and command
 
-// axis is either SET_ROW or SET_COL (0x2B or 0x2A)
-void set_address(uint8_t axis, uint16_t data)
+// axis is either SET_COL or SET_ROW (0x2A or 0x2B)
+void set_address(uint8_t axis, uint16_t start, uint16_t end) // add start and end since right now it only works for one pixel
 {
 	command(axis);
-    uint8_t axis_data[4] =
+    uint8_t axis_range[4] =
     {
-        data >> 8,
-		data & 0xFF,
-        data >> 8,
-		data & 0xFF
+        start >> 8,
+		start & 0xFF,
+        end >> 8,
+		end & 0xFF
     };
-    twr_spi_transfer(axis_data, NULL, 4);
+    twr_spi_transfer(axis_range, NULL, 4);
     twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
 
-void write_memory()
+// every 2 bytes are interpreted as 1 pixel
+void start_pixel_stream()
 {
 	uint8_t cmd = 0x2C;
     command(cmd);
@@ -144,63 +149,17 @@ void command(uint8_t cmd)
     twr_gpio_set_output(TWR_GPIO_P0, 1);
 }
 
-void draw_line(uint16_t row, uint16_t col, uint16_t color)
-{
-	uint8_t cmd;
-
-    // set column address
-	cmd = 0x2A; 
-    command(cmd);
-    uint8_t col_data[4] =
-    {
-        col >> 8,
-		col & 0xFF,
-        col >> 8,
-		col & 0xFF
-    };
-    twr_spi_transfer(col_data, NULL, 4);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
-
-	// set row address
-    cmd = 0x2B; 
-    command(cmd);
-    uint8_t row_data[4] =
-    {
-        row >> 8,
-		row & 0xFF,
-        row >> 8,
-		row & 0xFF
-    };
-    twr_spi_transfer(row_data, NULL, 4);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
-
-
-	// write 1 pixel
-    cmd = 0x2C; 
-    command(cmd);
-
-	// sets color
-    uint8_t color_data[2] = {
-		color >> 8,
-		color & 0xFF
-	};
-
-	twr_spi_transfer(color_data, NULL, 2);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
-
-}
-
-void outline_screen()
+void outline_screen(const uint16_t COLOR)
 {
     for (short i = 0; i < width; i++)
     {
-        draw_pixel(i, height - 1, BLUE);
-        draw_pixel(i, 0,BLUE);
+        draw_pixel(i, height - 1, COLOR);
+        draw_pixel(i, 0, COLOR);
     }
     for (short i = 0; i < height; i++)
     {
-        draw_pixel(width - 1, i, BLUE);
-        draw_pixel(0, i, BLUE);
+        draw_pixel(width - 1, i, COLOR);
+        draw_pixel(0, i, COLOR);
     }
 }
 
@@ -266,7 +225,28 @@ void display_init()
     command(cmd);
 }
 
+// needs draw_line
 // void draw_char(unsigned char c, )
 // {
 
 // }
+
+// TODO: draw_pixel and draw_line could be wrappers for this instead of their own functions
+// draw cube, this is the drawing primitive
+void draw_cube(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
+{
+	set_address(SET_COL, col_start, col_end);
+	set_address(SET_ROW, row_start, row_end);
+    start_pixel_stream();
+
+    uint8_t color_data[2] = {
+		color >> 8,
+		color & 0xFF
+	};
+
+	uint32_t range = (col_start - col_end) * (row_start - row_end);
+	for (uint32_t i = 0; i < range; i++) // TODO: validate the values before messing with it. I need to validate EVERYWHERE
+		twr_spi_transfer(color_data, NULL, 2);
+
+    twr_gpio_set_output(TWR_GPIO_P15, 1);
+}
