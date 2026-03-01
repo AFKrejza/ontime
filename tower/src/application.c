@@ -228,6 +228,7 @@ void display_init()
 
     twr_gpio_set_output(TWR_GPIO_P0, 1);
 
+    // TODO: Add more legible settings, this sucks
     // Memory Data Access Control command for stuff like mirroring or flipping the display
     uint8_t madctl = 0;
     madctl = madctl + 0; // MY
@@ -251,14 +252,14 @@ void display_init()
 }
 
 // TODO: draw_pixel and draw_line could be wrappers for this instead of their own functions
-// draw cube, this is the drawing primitive
+// draw rectangle, this is the drawing primitive
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
 {
 	set_address(SET_COL, col_start, col_end);
 	set_address(SET_ROW, row_start, row_end);
     start_pixel_stream();
 
-    uint8_t color_data[2] = {
+    uint8_t color_data[2] = { // most then least significant
 		color >> 8,
 		color & 0xFF
 	};
@@ -266,8 +267,20 @@ void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
     uint16_t width  = (col_end - col_start + 1);
     uint16_t height = (row_end - row_start + 1);
 	uint32_t pixel_count = width * height;
+    uint32_t byte_count = 2 * width * height;
 
-	for (uint32_t i = 0; i < pixel_count; i++) // TODO: validate the values before messing with it. I need to validate EVERYWHERE
+    uint16_t chunk_count = byte_count / BUFFER_SIZE;
+    uint16_t remainder = byte_count % BUFFER_SIZE;
+    uint8_t buffer[BUFFER_SIZE];
+
+    for (uint16_t i = 0; i < BUFFER_SIZE; i += 2) {
+        buffer[i] = color >> 8;
+        buffer[i + 1] = color & 0xFF;
+    }
+
+    for (uint16_t i = 0; i < chunk_count; i++)
+		twr_spi_transfer(buffer, NULL, BUFFER_SIZE);
+    for (uint16_t i = 0; i < remainder; i += 2)
 		twr_spi_transfer(color_data, NULL, 2);
 
     twr_gpio_set_output(TWR_GPIO_P15, 1);
@@ -279,24 +292,43 @@ void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
 // 	set_address(SET_ROW, row_start, row_end);
 //     start_pixel_stream();
 
-//     uint8_t color_data[2] = {
+//     uint8_t color_data[2] = { // most then least significant
 // 		color >> 8,
 // 		color & 0xFF
 // 	};
 
-// 	uint32_t pixel_count = (col_end - col_start + 1) * (row_end - row_start + 1);
+//     uint16_t width  = (col_end - col_start + 1);
+//     uint16_t height = (row_end - row_start + 1);
+// 	uint32_t pixel_count = width * height;
+//     uint32_t byte_count = 2 * width * height;
 
-//     uint16_t chunk_size = 2;
-//     uint16_t chunk_count = pixel_count / chunk_size;
-//     uint16_t remainder = pixel_count % chunk_size;
+//     uint16_t chunk_count = byte_count / BUFFER_SIZE;
+//     uint16_t remainder = byte_count % BUFFER_SIZE;
+//     uint8_t buffer[BUFFER_SIZE];
+
+//     for (uint16_t i = 0; i < BUFFER_SIZE; i += 2) {
+//         buffer[i] = color >> 8;
+//         buffer[i + 1] = color & 0xFF;
+//     }
+
+// 	twr_spi_transfer(color_data, NULL, 2);
+// 	twr_spi_transfer(color_data, NULL, 2);
+// 	twr_spi_transfer(color_data, NULL, 2);
+// 	twr_spi_transfer(color_data, NULL, 2);
+// 	twr_spi_transfer(color_data, NULL, 2);
+
+//     for (uint16_t i = 0; i < chunk_count; i++)
+// 		twr_spi_transfer(buffer, NULL, BUFFER_SIZE);
+//     for (uint16_t i = 0; i < remainder; i += 2)
+// 		twr_spi_transfer(color_data, NULL, 2);
 
 
-// 	for (uint32_t i = 0; i < chunk_count; i++) // TODO: validate the values before messing with it. I need to validate EVERYWHERE
-// 		twr_spi_transfer(color_data, NULL, chunk_size);
-//     twr_spi_transfer(color_data, NULL, remainder);
+// 	// for (uint32_t i = 0; i < pixel_count; i++)
+// 	// 	twr_spi_transfer(color_data, NULL, 2);
 
 //     twr_gpio_set_output(TWR_GPIO_P15, 1);
 // }
+
 
 // idk if this is any better than draw_rect tbh
 // void draw_line(uint16_t col, uint16_t row, uint8_t axis, uint8_t length, uint16_t color)
