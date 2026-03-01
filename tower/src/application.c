@@ -4,17 +4,12 @@
 
 #include <application.h>
 
-void command(uint8_t cmd);
-void display_init();
-void draw_cube(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
-void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
-void outline_screen(const uint16_t COLOR);
-void reset_background();
-void set_address(uint8_t axis, uint16_t start, uint16_t end);
-void start_pixel_stream();
-
-const uint16_t width = 320;
-const uint16_t height = 240;
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+#define LETTER_SIZE  8
+#define MAX_LETTER_X SCREEN_WIDTH / LETTER_SIZE
+#define MAX_LETTER_Y SCREEN_HEIGHT / LETTER_SIZE
+#define BUFFER_SIZE 64
 
 // commands for command()
 const uint8_t SET_COL = 0x2A;
@@ -25,6 +20,18 @@ const uint8_t SET_ROW = 0x2B;
 const uint16_t RED   = 0xF800;
 const uint16_t GREEN = 0x07E0;
 const uint16_t BLUE  = 0x001F;
+const uint16_t BLACK = 0x0000;
+
+const unsigned char grid[SCREEN_WIDTH / 8][SCREEN_HEIGHT / 8];
+
+void command(uint8_t cmd);
+void display_init();
+void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
+void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
+void outline_screen(const uint16_t COLOR);
+void reset_background();
+void set_address(uint8_t axis, uint16_t start, uint16_t end);
+void start_pixel_stream();
 
 // Application initialization function which is called once after boot
 void application_init(void)
@@ -34,10 +41,14 @@ void application_init(void)
     twr_log_debug("start");
 
 	display_init();
-	reset_background(); // disable for faster boot
-	outline_screen(BLUE);
+	// reset_background(); // disable for faster boot
+    draw_rect(0, SCREEN_WIDTH - 1, 0, SCREEN_HEIGHT - 1, BLACK);
 
-	draw_cube(50, 100, 50, 100, GREEN);
+	// outline_screen(BLUE);
+    draw_rect(0, SCREEN_WIDTH - 1, 0, 0, RED); // bottom
+    draw_rect(0, 0, 0, SCREEN_HEIGHT - 1, BLUE); // left
+
+	draw_rect(50, 100, 50, 200, GREEN);
 
 
 
@@ -76,7 +87,7 @@ void draw_pixel(uint16_t row, uint16_t col, uint16_t color)
     twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
 
-// sets all pixels black NOTE: height and width must be flipped here for some reason
+// sets all pixels black TODO: use draw_rect
 void reset_background()
 {
 	uint8_t cmd;
@@ -86,8 +97,8 @@ void reset_background()
     uint8_t col_data[4] = {
 		0,
 		0,
-		(height-1) >> 8,
-		(height-1) & 0xFF
+		(SCREEN_HEIGHT-1) >> 8,
+		(SCREEN_HEIGHT-1) & 0xFF
 	};
     twr_spi_transfer(col_data, NULL, 4);
     twr_gpio_set_output(TWR_GPIO_P15, 1);
@@ -97,8 +108,8 @@ void reset_background()
     uint8_t row_data[4] = {
 		0,
 		0,
-		(width-1) >> 8,
-		(width-1) & 0xFF
+		(SCREEN_WIDTH-1) >> 8,
+		(SCREEN_WIDTH-1) & 0xFF
 	};
     twr_spi_transfer(row_data, NULL, 4);
     twr_gpio_set_output(TWR_GPIO_P15, 1);
@@ -111,7 +122,7 @@ void reset_background()
 		0x00
 	};
 	
-    for(uint32_t i = 0; i < width*height; i++)
+    for(uint32_t i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
         twr_spi_transfer(color_data, NULL, 2);
 
     twr_gpio_set_output(TWR_GPIO_P15, 1);
@@ -151,19 +162,19 @@ void command(uint8_t cmd)
 
 void outline_screen(const uint16_t COLOR)
 {
-    for (short i = 0; i < width; i++)
+    for (short i = 0; i < SCREEN_WIDTH; i++)
     {
-        draw_pixel(i, height - 1, COLOR);
+        draw_pixel(i, SCREEN_HEIGHT - 1, COLOR);
         draw_pixel(i, 0, COLOR);
     }
-    for (short i = 0; i < height; i++)
+    for (short i = 0; i < SCREEN_HEIGHT; i++)
     {
-        draw_pixel(width - 1, i, COLOR);
+        draw_pixel(SCREEN_WIDTH - 1, i, COLOR);
         draw_pixel(0, i, COLOR);
     }
 }
 
-
+// TODO: add variables for CS, CD etc in case I change the pin layout
 // sets GPIO for SPI and starts the display
 void display_init()
 {
@@ -216,7 +227,21 @@ void display_init()
     twr_spi_transfer(&cmd, NULL, 1);
 
     twr_gpio_set_output(TWR_GPIO_P0, 1);
-    uint8_t madctl = 0x48;   // MX horizontal mirror and BGR colors
+
+    // Memory Data Access Control command for stuff like mirroring or flipping the display
+    uint8_t madctl = 0;
+    madctl = madctl + 0; // MY
+    madctl = madctl << 1;
+    madctl = madctl + 1; // MX
+    madctl = madctl << 1;
+    madctl = madctl + 1; // MV
+    madctl = madctl << 1;
+    madctl = madctl + 0; // ML
+    madctl = madctl << 1;
+    madctl = madctl + 1; // BGR
+    madctl = madctl << 1;
+    madctl = madctl + 0; // MH
+    madctl = madctl << 2; // last 2 bits are unused
     twr_spi_transfer(&madctl, NULL, 1);
     twr_gpio_set_output(TWR_GPIO_P15, 1);
 
@@ -225,15 +250,9 @@ void display_init()
     command(cmd);
 }
 
-// needs draw_line
-// void draw_char(unsigned char c, )
-// {
-
-// }
-
 // TODO: draw_pixel and draw_line could be wrappers for this instead of their own functions
 // draw cube, this is the drawing primitive
-void draw_cube(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
+void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
 {
 	set_address(SET_COL, col_start, col_end);
 	set_address(SET_ROW, row_start, row_end);
@@ -244,9 +263,53 @@ void draw_cube(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
 		color & 0xFF
 	};
 
-	uint32_t range = (col_start - col_end) * (row_start - row_end);
-	for (uint32_t i = 0; i < range; i++) // TODO: validate the values before messing with it. I need to validate EVERYWHERE
+    uint16_t width  = (col_end - col_start + 1);
+    uint16_t height = (row_end - row_start + 1);
+	uint32_t pixel_count = width * height;
+
+	for (uint32_t i = 0; i < pixel_count; i++) // TODO: validate the values before messing with it. I need to validate EVERYWHERE
 		twr_spi_transfer(color_data, NULL, 2);
 
     twr_gpio_set_output(TWR_GPIO_P15, 1);
+}
+
+// void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
+// {
+// 	set_address(SET_COL, col_start, col_end);
+// 	set_address(SET_ROW, row_start, row_end);
+//     start_pixel_stream();
+
+//     uint8_t color_data[2] = {
+// 		color >> 8,
+// 		color & 0xFF
+// 	};
+
+// 	uint32_t pixel_count = (col_end - col_start + 1) * (row_end - row_start + 1);
+
+//     uint16_t chunk_size = 2;
+//     uint16_t chunk_count = pixel_count / chunk_size;
+//     uint16_t remainder = pixel_count % chunk_size;
+
+
+// 	for (uint32_t i = 0; i < chunk_count; i++) // TODO: validate the values before messing with it. I need to validate EVERYWHERE
+// 		twr_spi_transfer(color_data, NULL, chunk_size);
+//     twr_spi_transfer(color_data, NULL, remainder);
+
+//     twr_gpio_set_output(TWR_GPIO_P15, 1);
+// }
+
+// idk if this is any better than draw_rect tbh
+// void draw_line(uint16_t col, uint16_t row, uint8_t axis, uint8_t length, uint16_t color)
+// {
+
+// }
+
+void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y) // x, y of bottom left corner
+{
+    // { 0x0C, 0x1E, 0x33, 0x33, 0x3F, 0x33, 0x33, 0x00},   // U+0041 (A)
+
+    const char *bitmap = font8x8_basic[c];
+
+
+
 }
