@@ -20,3 +20,5 @@ README.md
 .editorconfig
 src/CMakeLists.txt
 .vscode/settings.json
+src/render.c
+src/render.exe
