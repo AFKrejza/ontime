@@ -6,17 +6,13 @@
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
-#define LETTER_SIZE  8 // = width or height; letters are squares. TODO: rename it, it's misleading
-#define MAX_LETTER_X SCREEN_WIDTH / LETTER_SIZE
-#define MAX_LETTER_Y SCREEN_HEIGHT / LETTER_SIZE
+#define LETTER_EDGE  8 // DO NOT CHANGE TODO: it's bloated and changing it can destroy logic
+#define MAX_LETTER_X SCREEN_WIDTH / LETTER_EDGE
+#define MAX_LETTER_Y SCREEN_HEIGHT / LETTER_EDGE
 #define BUFFER_SIZE 64
 
 // Uses RGB 565
 // https://barth-dev.de/online/rgb565-color-picker/
-// const uint16_t RED   = 0xF800;
-// const uint16_t GREEN = 0x07E0;
-// const uint16_t BLUE  = 0x001F;
-// const uint16_t BLACK = 0x0000;
 #define WHITE 0xFFFF
 #define RED   0xF800
 #define GREEN 0x07E0
@@ -27,17 +23,19 @@
 uint16_t BG_COLOR = BLACK;
 uint16_t TEXT_COLOR = WHITE;
 
-// commands for command()
+// commands for set_address()
 const uint8_t SET_COL = 0x2A;
 const uint8_t SET_ROW = 0x2B;
 
 // TODO: check if it's 0 initialized
-const unsigned char grid[SCREEN_WIDTH / LETTER_SIZE][SCREEN_HEIGHT / LETTER_SIZE]; // for letters
+const unsigned char grid[SCREEN_WIDTH / LETTER_EDGE][SCREEN_HEIGHT / LETTER_EDGE]; // for letters
 
 void clear_char(uint16_t grid_x, uint16_t grid_y);
 void command(uint8_t cmd);
 void display_init();
+void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y);
 void draw_char_8(unsigned char c, uint16_t grid_x, uint16_t grid_y);
+void draw_char_wide(unsigned char c, uint16_t grid_x, uint16_t grid_y);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
 void outline_screen(const uint16_t COLOR);
@@ -62,11 +60,23 @@ void application_init(void)
 
 	// draw_rect(50, 100, 50, 200, GREEN);
 
-	for (int i = 65; i <= 70; i++)
-	{
-		draw_char_8(i, 2 - 65 + i, 4);
-	}
-	draw_char_8('A', 20, 4);
+	// char *s = "combustible";
+	// for (size_t i = 0; i < strlen(s); i++) {
+	// 	draw_char_8(s[i], i + 18, 27);
+    //     draw_char(s[i], i + 18, 15);
+
+    // }
+
+    char *s1 = "Platypus";
+    char *s2 = "Dire Straits";
+    char *s3 = "Tungsten Cube";
+    for (size_t i = 0; i < strlen(s1); i++)
+        draw_char(s1[i], 3 + i, 4);
+    for (size_t i = 0; i < strlen(s2); i++)
+        draw_char_wide(s2[i], 4 + i, 1);
+    for (size_t i = 0; i < strlen(s3); i++)
+        draw_char_8(s3[i], 20 + i, 15);
+
 
 }
 
@@ -297,12 +307,14 @@ void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
 // TODO: add draw_char which uses 16x16 letters and draw_char_8 for 8x8
 void draw_char_8(unsigned char c, uint16_t grid_x, uint16_t grid_y) // x, y of bottom left corner
 {
-    // reads the bitmap backwards and puts color bytes into the buffer in reverse order because the display refreshes from bottom to top.
+    // reads the bitmap backwards and puts color bytes into the buffer in
+	// reverse order because the display refreshes from bottom to top,
+	// which keeps x0, y0 in the bottom left.
 
-    char *bitmap = font8x8_basic[c]; // defines rows from top to bottom
+    char *bitmap = font8x8_basic[c];
 
-	uint32_t byte_count = 2 * LETTER_SIZE * LETTER_SIZE;
-	uint8_t buffer[2 * LETTER_SIZE * LETTER_SIZE];
+	uint32_t byte_count = 2 * LETTER_EDGE * LETTER_EDGE;
+	uint8_t buffer[2 * LETTER_EDGE * LETTER_EDGE];
 	uint32_t buffer_index = byte_count - 1;
 
     for (uint8_t i = 0; i < 8; i++)
@@ -322,12 +334,11 @@ void draw_char_8(unsigned char c, uint16_t grid_x, uint16_t grid_y) // x, y of b
 		}
     }
 
-	const uint16_t col_start = grid_x * LETTER_SIZE;
-	const uint16_t col_end   = col_start + LETTER_SIZE - 1;
-	const uint16_t row_start = grid_y * LETTER_SIZE;
-	const uint16_t row_end   = row_start + LETTER_SIZE - 1;
+	const uint16_t col_start = grid_x * LETTER_EDGE;
+	const uint16_t col_end   = col_start + LETTER_EDGE - 1;
+	const uint16_t row_start = grid_y * LETTER_EDGE;
+	const uint16_t row_end   = row_start + LETTER_EDGE - 1;
 
-	clear_char(grid_x, grid_y);
 	set_address(SET_COL, col_start, col_end);
 	set_address(SET_ROW, row_start, row_end);
 	start_pixel_stream();
@@ -336,13 +347,104 @@ void draw_char_8(unsigned char c, uint16_t grid_x, uint16_t grid_y) // x, y of b
 	twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
 
-void clear_char(uint16_t grid_x, uint16_t grid_y)
+void clear_char_8(uint16_t grid_x, uint16_t grid_y) // only needed when deleting, not for overwriting
 {
 	draw_rect(
-		grid_x * LETTER_SIZE,
-		grid_x * LETTER_SIZE + LETTER_SIZE - 1,
-		grid_y * LETTER_SIZE,
-		grid_y * LETTER_SIZE + LETTER_SIZE - 1,
+		grid_x * LETTER_EDGE,
+		grid_x * LETTER_EDGE + LETTER_EDGE - 1,
+		grid_y * LETTER_EDGE,
+		grid_y * LETTER_EDGE + LETTER_EDGE - 1,
 		BG_COLOR
 	);
+}
+
+// TODO: Merge this with draw_char_8
+// prints 16x16 characters, use draw_char_8 for 8x8
+void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y)
+{
+    char *bitmap = font8x8_basic[c];
+
+	uint32_t byte_count = 8 * LETTER_EDGE * LETTER_EDGE;
+	uint8_t buffer[8 * LETTER_EDGE * LETTER_EDGE];
+	uint32_t buffer_index = byte_count - 1;
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        for (uint8_t k = 0; k < 2; k++) // remove this for wide text
+        {
+            for (int j = 7; j >= 0; j--)
+            {
+                uint16_t color;
+                bool bit = bitmap[i] >> j & 1;
+                if (bit)
+                    color = TEXT_COLOR;
+                else
+                    color = BG_COLOR;
+    
+                buffer[buffer_index]     = color >> 8;
+                buffer[buffer_index - 1] = color & 0xFF;
+                buffer[buffer_index - 2] = color >> 8;
+                buffer[buffer_index - 3] = color & 0xFF;
+                buffer_index -= 4;
+            }
+        }
+    }
+
+    // TODO: Verify that this works correctly.
+	const uint16_t col_start = 2 * grid_x * LETTER_EDGE;
+	const uint16_t col_end   = col_start - 1 + 2 * LETTER_EDGE;
+	const uint16_t row_start = 2 * grid_y * LETTER_EDGE;
+	const uint16_t row_end   = row_start - 1 + 2 * LETTER_EDGE;
+
+	set_address(SET_COL, col_start, col_end);
+	set_address(SET_ROW, row_start, row_end);
+	start_pixel_stream();
+	twr_spi_transfer(buffer, NULL, byte_count);
+
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
+}
+
+// TODO: merge with draw_char
+void draw_char_wide(unsigned char c, uint16_t grid_x, uint16_t grid_y)
+{
+    char *bitmap = font8x8_basic[c];
+
+	uint32_t byte_count = 8 * LETTER_EDGE * LETTER_EDGE;
+	uint8_t buffer[8 * LETTER_EDGE * LETTER_EDGE];
+	uint32_t buffer_index = byte_count - 1;
+
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        // for (uint8_t k = 0; k < 2; k++) // remove this for wide text
+        // {
+            for (int j = 7; j >= 0; j--)
+            {
+                uint16_t color;
+                bool bit = bitmap[i] >> j & 1;
+                if (bit)
+                    color = TEXT_COLOR;
+                else
+                    color = BG_COLOR;
+    
+                buffer[buffer_index]     = color >> 8;
+                buffer[buffer_index - 1] = color & 0xFF;
+                buffer[buffer_index - 2] = color >> 8;
+                buffer[buffer_index - 3] = color & 0xFF;
+                buffer_index -= 4;
+            }
+        // }
+    }
+
+    // TODO: Verify that this works correctly.
+	const uint16_t col_start = 2 * grid_x * LETTER_EDGE;
+	const uint16_t col_end   = col_start - 1 + 2 * LETTER_EDGE;
+	const uint16_t row_start = 2 * grid_y * LETTER_EDGE;
+	const uint16_t row_end   = row_start - 1 + LETTER_EDGE;
+
+	set_address(SET_COL, col_start, col_end);
+	set_address(SET_ROW, row_start, row_end);
+	start_pixel_stream();
+	twr_spi_transfer(buffer, NULL, byte_count);
+
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
