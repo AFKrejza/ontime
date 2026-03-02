@@ -14,3 +14,9 @@ CMakeFiles/
 CMakeCache.txt
 
 sdk/
+CMakeLists.txt
+LICENSE
+README.md
+.editorconfig
+src/CMakeLists.txt
+.vscode/settings.json
