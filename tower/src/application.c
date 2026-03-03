@@ -30,7 +30,7 @@ const uint8_t SET_ROW = 0x2B;
 // TODO: check if it's 0 initialized
 const unsigned char grid[SCREEN_WIDTH / LETTER_EDGE][SCREEN_HEIGHT / LETTER_EDGE]; // for letters
 
-void clear_char(uint16_t grid_x, uint16_t grid_y);
+void clear_char_8(uint16_t grid_x, uint16_t grid_y);
 void command(uint8_t cmd);
 void display_init();
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y);
@@ -55,7 +55,7 @@ void application_init(void)
     draw_rect(0, SCREEN_WIDTH - 1, 0, SCREEN_HEIGHT - 1, BLACK);
 
 	// outline_screen(BLUE);
-    draw_rect(0, SCREEN_WIDTH - 1, 0, 0, RED); // bottom
+    draw_rect(0, SCREEN_WIDTH - 1, 0, 0, RED); // top
     draw_rect(0, 0, 0, SCREEN_HEIGHT - 1, BLUE); // left
 
 	// draw_rect(50, 100, 50, 200, GREEN);
@@ -68,12 +68,12 @@ void application_init(void)
     // }
 
     char *s1 = "Platypus";
-    char *s2 = "Dire Straits";
+    // char *s2 = "Dire Straits";
     char *s3 = "Tungsten Cube";
     for (size_t i = 0; i < strlen(s1); i++)
         draw_char(s1[i], 3 + i, 4);
-    for (size_t i = 0; i < strlen(s2); i++)
-        draw_char_wide(s2[i], 4 + i, 1);
+    // for (size_t i = 0; i < strlen(s2); i++)
+    //     draw_char_wide(s2[i], 4 + i, 1);
     for (size_t i = 0; i < strlen(s3); i++)
         draw_char_8(s3[i], 20 + i, 15);
 
@@ -253,7 +253,7 @@ void display_init()
     uint8_t madctl = 0;
     madctl = madctl + 0; // MY
     madctl = madctl << 1;
-    madctl = madctl + 1; // MX
+    madctl = madctl + 0; // MX
     madctl = madctl << 1;
     madctl = madctl + 1; // MV
     madctl = madctl << 1;
@@ -307,19 +307,15 @@ void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
 // TODO: add draw_char which uses 16x16 letters and draw_char_8 for 8x8
 void draw_char_8(unsigned char c, uint16_t grid_x, uint16_t grid_y) // x, y of bottom left corner
 {
-    // reads the bitmap backwards and puts color bytes into the buffer in
-	// reverse order because the display refreshes from bottom to top,
-	// which keeps x0, y0 in the bottom left.
-
     char *bitmap = font8x8_basic[c];
 
 	uint32_t byte_count = 2 * LETTER_EDGE * LETTER_EDGE;
 	uint8_t buffer[2 * LETTER_EDGE * LETTER_EDGE];
-	uint32_t buffer_index = byte_count - 1;
+	uint32_t buffer_index = 0;
 
     for (uint8_t i = 0; i < 8; i++)
     {
-		for (int j = 7; j >= 0; j--)
+		for (int j = 0; j < 8; j++)
 		{
 			uint16_t color;
 			bool bit = bitmap[i] >> j & 1;
@@ -329,8 +325,8 @@ void draw_char_8(unsigned char c, uint16_t grid_x, uint16_t grid_y) // x, y of b
 				color = BG_COLOR;
 
 			buffer[buffer_index]     = color >> 8;
-			buffer[buffer_index - 1] = color & 0xFF;
-			buffer_index -= 2;
+			buffer[buffer_index + 1] = color & 0xFF;
+			buffer_index += 2;
 		}
     }
 
@@ -366,27 +362,22 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y)
 
 	uint32_t byte_count = 8 * LETTER_EDGE * LETTER_EDGE;
 	uint8_t buffer[8 * LETTER_EDGE * LETTER_EDGE];
-	uint32_t buffer_index = byte_count - 1;
+	uint32_t buffer_index = 0;
 
-    for (uint8_t i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 16; i++)
     {
-        for (uint8_t k = 0; k < 2; k++) // remove this for wide text
+        for (int j = 0; j < 16; j++)
         {
-            for (int j = 7; j >= 0; j--)
-            {
-                uint16_t color;
-                bool bit = bitmap[i] >> j & 1;
-                if (bit)
-                    color = TEXT_COLOR;
-                else
-                    color = BG_COLOR;
-    
-                buffer[buffer_index]     = color >> 8;
-                buffer[buffer_index - 1] = color & 0xFF;
-                buffer[buffer_index - 2] = color >> 8;
-                buffer[buffer_index - 3] = color & 0xFF;
-                buffer_index -= 4;
-            }
+            uint16_t color;
+            bool bit = bitmap[i / 2] >> (j / 2) & 1;
+            if (bit)
+                color = TEXT_COLOR;
+            else
+                color = BG_COLOR;
+
+            buffer[buffer_index]     = color >> 8;
+            buffer[buffer_index + 1] = color & 0xFF;
+            buffer_index += 2;
         }
     }
 
@@ -411,26 +402,26 @@ void draw_char_wide(unsigned char c, uint16_t grid_x, uint16_t grid_y)
 
 	uint32_t byte_count = 8 * LETTER_EDGE * LETTER_EDGE;
 	uint8_t buffer[8 * LETTER_EDGE * LETTER_EDGE];
-	uint32_t buffer_index = byte_count - 1;
+	uint32_t buffer_index = 0;
 
-    for (uint8_t i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 16; i++)
     {
         // for (uint8_t k = 0; k < 2; k++) // remove this for wide text
         // {
-            for (int j = 7; j >= 0; j--)
+            for (int j = 0; j < 16; j++)
             {
                 uint16_t color;
-                bool bit = bitmap[i] >> j & 1;
+                bool bit = bitmap[i / 2] >> (j / 2) & 1;
                 if (bit)
                     color = TEXT_COLOR;
                 else
                     color = BG_COLOR;
     
                 buffer[buffer_index]     = color >> 8;
-                buffer[buffer_index - 1] = color & 0xFF;
-                buffer[buffer_index - 2] = color >> 8;
-                buffer[buffer_index - 3] = color & 0xFF;
-                buffer_index -= 4;
+                buffer[buffer_index + 1] = color & 0xFF;
+                buffer[buffer_index + 2] = color >> 8;
+                buffer[buffer_index + 3] = color & 0xFF;
+                buffer_index += 4;
             }
         // }
     }
