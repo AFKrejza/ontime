@@ -1,22 +1,67 @@
-import { useState } from 'react';
-import { StyleSheet, View, TextInput, Pressable, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
+// Server API configuration
+const API_URL = 'http://10.0.2.2:3000'; // Android emulator localhost,does not work probably
+// Use 'http://localhost:3000' for iOS simulator or web,works and tested
+
+interface Stop {
+  id: string;
+  name: string;
+  type: string;
+  lines: string[];
+}
+
 export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [stops, setStops] = useState<Stop[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample data-in production this would come from an API from adam 
-  const sampleStops = [
-    { id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
-    { id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
-    { id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
-    { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
-  ];
-  // this data will change depending on the users location.
+  // Fetch stops from server on mount
+  useEffect(() => {
+    fetchStops();
+  }, []);
+
+  const fetchStops = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/trieData`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch stops');
+      }
+      const data = await response.json();
+      
+      // Transform trie data to stops format
+      // The server returns trie data, we'll use a sample for now (adam finish this please,stop gooning)
+      // In production, you'd parse the trie structure
+      const sampleStops: Stop[] = [
+        { id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
+        { id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
+        { id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
+        { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
+      ];
+      setStops(sampleStops);
+    } catch (err) {
+      console.error('Error fetching stops:', err);
+      setError('Could not connect to server. Using offline data.');
+      // Fallback to sample data if server is not available (will delete later when the server is 100% done)
+      setStops([
+        { id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
+        { id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
+        { id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
+        { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -45,10 +90,24 @@ export default function ExploreScreen() {
         </View>
       </ThemedView>
 
-      <ThemedView style={styles.resultsContainer}>
-        <ThemedText type="subtitle">Nearby Stops</ThemedText>
-        
-        {sampleStops.map((stop) => (
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0a84ff" />
+          <ThemedText style={styles.loadingText}>Connecting to server...</ThemedText>
+        </View>
+      )}
+
+      {error && (
+        <ThemedView style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+        </ThemedView>
+      )}
+
+      {!loading && (
+        <ThemedView style={styles.resultsContainer}>
+          <ThemedText type="subtitle">Nearby Stops</ThemedText>
+          
+          {stops.map((stop) => (
           <Pressable key={stop.id} style={styles.stopItem}>
             <View style={styles.stopIcon}>
               <ThemedText>
@@ -67,6 +126,7 @@ export default function ExploreScreen() {
           </Pressable>
         ))}
       </ThemedView>
+      )}
 
       <ThemedView style={styles.infoContainer}>
         <ThemedText type="title" style={styles.infoTitle}>How It Works</ThemedText>
@@ -159,6 +219,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#0a84ff',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#888',
+  },
+  errorContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: 'rgba(255, 100, 100, 0.1)',
+    borderRadius: 8,
+  },
+  errorText: {
+    color: '#ff6464',
+    textAlign: 'center',
   },
   infoContainer: {
     padding: 20,
