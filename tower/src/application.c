@@ -6,6 +6,7 @@
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
+#define SCREEN_AREA SCREEN_WIDTH * SCREEN_HEIGHT
 #define LETTER_EDGE  8 // DO NOT CHANGE TODO: it's bloated and changing it can destroy logic. GRID_EDGE would be better.
 #define MAX_LETTER_X SCREEN_WIDTH / LETTER_EDGE
 #define MAX_LETTER_Y SCREEN_HEIGHT / LETTER_EDGE
@@ -32,176 +33,110 @@ const uint8_t SET_ROW = 0x2B;
 
 // multiplier for draw_char
 enum Text_Type {
-    SIZE_S = 1,
-    SIZE_M = 2,
-    SIZE_L = 3,
-    SIZE_XL = 4
+	SIZE_S = 1,
+	SIZE_M = 2,
+	SIZE_L = 3,
+	SIZE_XL = 4
 };
 
 // TODO: check if it's 0 initialized
-const unsigned char grid[SCREEN_WIDTH / LETTER_EDGE][SCREEN_HEIGHT / LETTER_EDGE]; // for letters
+const unsigned char grid[SCREEN_WIDTH / LETTER_EDGE][SCREEN_HEIGHT / LETTER_EDGE]; // framebuffer
 
 void clear_char_8(uint16_t grid_x, uint16_t grid_y);
 void command(uint8_t cmd);
 void display_init();
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_type);
-void draw_char_wide(unsigned char c, uint16_t grid_x, uint16_t grid_y);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
-void outline_screen(const uint16_t COLOR);
-void reset_background();
+void outline_screen(const uint16_t color);
+void paint_screen(uint16_t color);
 void set_address(uint8_t axis, uint16_t start, uint16_t end);
 void start_pixel_stream();
 
 // Application initialization function which is called once after boot
 void application_init(void)
 {
-    // Initialize logging
-    twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
-    twr_log_debug("start");
+	// Initialize logging
+	twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
+	twr_log_debug("start");
 
 	display_init();
-	// reset_background(); // disable for faster boot
-    draw_rect(0, SCREEN_WIDTH - 1, 0, SCREEN_HEIGHT - 1, BLACK);
 
-	// outline_screen(BLUE);
-    draw_rect(0, SCREEN_WIDTH - 1, 0, 0, RED); // top
-    draw_rect(0, 0, 0, SCREEN_HEIGHT - 1, BLUE); // left
+	paint_screen(BLACK);
+	outline_screen(GREEN);
 
-    char *s1 = "Tungsten Cube";
-    char *s2 = "Platypus";
-    char *s3 = "Obsidian";
-    char *s4 = "Dire Straits";
-    for (size_t i = 0; i < strlen(s1); i++)
-        draw_char(s1[i], 0 + i, 1, SIZE_S);
-    for (size_t i = 0; i < strlen(s2); i++)
-        draw_char(s2[i], 0 + i, 2, SIZE_M);
-    for (size_t i = 0; i < strlen(s3); i++)
-        draw_char(s3[i], 0 + i, 3, SIZE_L);
-    for (size_t i = 0; i < strlen(s4); i++)
-        draw_char(s4[i], 0 + i, 1, SIZE_XL);
-    // for (size_t i = 0; i < strlen(s4); i++)
-    //     draw_char_wide(s4[i], 4 + i, 1);
+	char *s1 = "Tungsten Cube";
+	char *s2 = "Platypus";
+	char *s3 = "Dire Straits";
+	char *s4 = "Tortilla";
+	for (size_t i = 0; i < strlen(s1); i++)
+		draw_char(s1[i], 5 + i, 26, SIZE_S);
+	for (size_t i = 0; i < strlen(s2); i++)
+		draw_char(s2[i], 4 + i, 6, SIZE_M);
+	for (size_t i = 0; i < strlen(s3); i++)
+		draw_char(s3[i], 1 + i, 2, SIZE_L);
+	for (size_t i = 0; i < strlen(s4); i++)
+		draw_char(s4[i], 1 + i, 5, SIZE_XL);
 }
 
 // Application task function (optional) which is called periodically if scheduled
 void application_task(void)
 {
-    // static int counter = 0;
+	// static int counter = 0;
 
-    // Log task run and increment counter
-    // twr_log_debug("APP: Task run (count: %d)", ++counter);
+	// Log task run and increment counter
+	// twr_log_debug("APP: Task run (count: %d)", ++counter);
 
-    twr_scheduler_plan_current_from_now(1000);
+	twr_scheduler_plan_current_from_now(1000);
 }
 
-// TODO: make this a draw_rect wrapper
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color)
 {
-	uint8_t cmd;
-
-	set_address(SET_COL, col, col);
-	set_address(SET_ROW, row, row);
-
-    cmd = 0x2C;
-    command(cmd);
-
-	// sets color
-    uint8_t color_data[2] = {
-		color >> 8,
-		color & 0xFF
-	};
-
-	twr_spi_transfer(color_data, NULL, 2);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
+	draw_rect(col, col, row, row, color);
 }
 
-// sets all pixels black TODO: use draw_rect
-void reset_background()
+// sets all pixels black
+void paint_screen(uint16_t color)
 {
-	uint8_t cmd;
-
-	cmd = 0x2A; // address column
-    command(cmd);
-    uint8_t col_data[4] = {
-		0,
-		0,
-		(SCREEN_HEIGHT-1) >> 8,
-		(SCREEN_HEIGHT-1) & 0xFF
-	};
-    twr_spi_transfer(col_data, NULL, 4);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
-
-	cmd = 0x2B; // address row
-    command(cmd);
-    uint8_t row_data[4] = {
-		0,
-		0,
-		(SCREEN_WIDTH-1) >> 8,
-		(SCREEN_WIDTH-1) & 0xFF
-	};
-    twr_spi_transfer(row_data, NULL, 4);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
-
-	start_pixel_stream();
-
-    // fill pixels with black
-    uint8_t color_data[2] = {
-		0x00,
-		0x00
-	};
-	
-    for(uint32_t i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
-        twr_spi_transfer(color_data, NULL, 2);
-
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
+	draw_rect(0, SCREEN_WIDTH - 1, 0 , SCREEN_HEIGHT - 1, color);
 }
-
-// TODO: document set_address, start_pixel_stream, and command
 
 // axis is either SET_COL or SET_ROW (0x2A or 0x2B)
 // defines the memory region it'll write to
 void set_address(uint8_t axis, uint16_t start, uint16_t end)
 {
 	command(axis);
-    uint8_t axis_range[4] =
-    {
-        start >> 8,
+	uint8_t axis_range[4] =
+	{
+		start >> 8,
 		start & 0xFF,
-        end >> 8,
+		end >> 8,
 		end & 0xFF
-    };
-    twr_spi_transfer(axis_range, NULL, 4);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
+	};
+	twr_spi_transfer(axis_range, NULL, 4);
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
 
 void start_pixel_stream()
 {
 	uint8_t cmd = 0x2C;
-    command(cmd);
+	command(cmd);
 }
 
 void command(uint8_t cmd)
 {
 	twr_gpio_set_output(TWR_GPIO_P15, 0);
-    twr_gpio_set_output(TWR_GPIO_P0, 0);
-    twr_spi_transfer(&cmd, NULL, 1);
-    twr_gpio_set_output(TWR_GPIO_P0, 1);
+	twr_gpio_set_output(TWR_GPIO_P0, 0);
+	twr_spi_transfer(&cmd, NULL, 1);
+	twr_gpio_set_output(TWR_GPIO_P0, 1);
 }
 
-// TODO: use draw_rect
-void outline_screen(const uint16_t COLOR)
+void outline_screen(const uint16_t color)
 {
-    for (short i = 0; i < SCREEN_WIDTH; i++)
-    {
-        draw_pixel(i, SCREEN_HEIGHT - 1, COLOR);
-        draw_pixel(i, 0, COLOR);
-    }
-    for (short i = 0; i < SCREEN_HEIGHT; i++)
-    {
-        draw_pixel(SCREEN_WIDTH - 1, i, COLOR);
-        draw_pixel(0, i, COLOR);
-    }
+		draw_rect(0, SCREEN_WIDTH - 1, 0, 0, color);
+		draw_rect(0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, SCREEN_HEIGHT - 1, color);
+		draw_rect(0, 0, 0, SCREEN_WIDTH -1, color);
+		draw_rect(SCREEN_WIDTH - 1, SCREEN_WIDTH - 1, 0, SCREEN_HEIGHT -1, color);
 }
 
 // TODO: add variables for CS, CD etc in case I change the pin layout
@@ -209,104 +144,103 @@ void outline_screen(const uint16_t COLOR)
 void display_init()
 {
 	twr_gpio_init(TWR_GPIO_P15); // CS
-    twr_gpio_init(TWR_GPIO_P0);  // DC
-    twr_gpio_init(TWR_GPIO_P1);  // RST
-    twr_gpio_init(TWR_GPIO_P13); // SPI MOSI
-    twr_gpio_init(TWR_GPIO_P14); // CLK
-    
-    twr_gpio_set_mode(TWR_GPIO_P0, TWR_GPIO_MODE_OUTPUT);
-    twr_gpio_set_mode(TWR_GPIO_P15, TWR_GPIO_MODE_OUTPUT);
-    twr_gpio_set_mode(TWR_GPIO_P1, TWR_GPIO_MODE_OUTPUT);
+	twr_gpio_init(TWR_GPIO_P0);  // DC
+	twr_gpio_init(TWR_GPIO_P1);  // RST
+	twr_gpio_init(TWR_GPIO_P13); // SPI MOSI
+	twr_gpio_init(TWR_GPIO_P14); // CLK
+	
+	twr_gpio_set_mode(TWR_GPIO_P0, TWR_GPIO_MODE_OUTPUT);
+	twr_gpio_set_mode(TWR_GPIO_P15, TWR_GPIO_MODE_OUTPUT);
+	twr_gpio_set_mode(TWR_GPIO_P1, TWR_GPIO_MODE_OUTPUT);
 
-    // DC default DATA
-    // set CS pin to output HIGH (idle)
-    // set RST HIGH
-    twr_gpio_set_output(TWR_GPIO_P0, 1);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
-    twr_gpio_set_output(TWR_GPIO_P1, 1);
-    
-    twr_spi_init(TWR_SPI_SPEED_8_MHZ, TWR_SPI_MODE_0); // Worked at 1 MHZ as well
+	// DC default DATA
+	// set CS pin to output HIGH (idle)
+	// set RST HIGH
+	twr_gpio_set_output(TWR_GPIO_P0, 1);
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
+	twr_gpio_set_output(TWR_GPIO_P1, 1);
+	
+	twr_spi_init(TWR_SPI_SPEED_8_MHZ, TWR_SPI_MODE_0); // Worked at 1 MHZ as well
 
-    // reset display
-    twr_gpio_set_output(TWR_GPIO_P1, 0);
-    twr_delay_us(10000);
-    twr_gpio_set_output(TWR_GPIO_P1, 1);
-    twr_delay_us(60000); twr_delay_us(60000);
+	// reset display
+	twr_gpio_set_output(TWR_GPIO_P1, 0);
+	twr_delay_us(10000);
+	twr_gpio_set_output(TWR_GPIO_P1, 1);
+	twr_delay_us(60000); twr_delay_us(60000);
 
-    // sleep out
-    uint8_t cmd = 0x11;
-    command(cmd);
+	// sleep out
+	uint8_t cmd = 0x11;
+	command(cmd);
 
-    twr_delay_us(62000); twr_delay_us(62000); // minimum 120ms for display start
+	twr_delay_us(62000); twr_delay_us(62000); // minimum 120ms for display start
 
-    // set it to 16-bit color mode
-    cmd = 0x3A;
-    twr_gpio_set_output(TWR_GPIO_P15, 0);
-    twr_gpio_set_output(TWR_GPIO_P0, 0);
-    twr_spi_transfer(&cmd, NULL, 1);
-    uint8_t data = 0x55;
-    twr_gpio_set_output(TWR_GPIO_P0, 1);
-    twr_spi_transfer(&data, NULL, 1);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
+	// set it to 16-bit color mode
+	cmd = 0x3A;
+	twr_gpio_set_output(TWR_GPIO_P15, 0);
+	twr_gpio_set_output(TWR_GPIO_P0, 0);
+	twr_spi_transfer(&cmd, NULL, 1);
+	uint8_t data = 0x55;
+	twr_gpio_set_output(TWR_GPIO_P0, 1);
+	twr_spi_transfer(&data, NULL, 1);
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
 
-    // set memory access control
-    cmd = 0x36;   // MADCTL
-    command(cmd);
+	// set memory access control
+	cmd = 0x36;   // MADCTL
+	command(cmd);
 
-    // TODO: Add more legible settings, this sucks
-    // Memory Data Access Control command for stuff like mirroring or flipping the display
-    uint8_t madctl = 0;
-    madctl = madctl + 0; // MY
-    madctl = madctl << 1;
-    madctl = madctl + 0; // MX
-    madctl = madctl << 1;
-    madctl = madctl + 1; // MV
-    madctl = madctl << 1;
-    madctl = madctl + 0; // ML
-    madctl = madctl << 1;
-    madctl = madctl + 1; // BGR
-    madctl = madctl << 1;
-    madctl = madctl + 0; // MH
-    madctl = madctl << 2; // last 2 bits are unused
-    twr_spi_transfer(&madctl, NULL, 1);
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
+	// TODO: Add more legible settings, this sucks
+	// Memory Data Access Control command for stuff like mirroring or flipping the display
+	uint8_t madctl = 0;
+	madctl = madctl + 0; // MY
+	madctl = madctl << 1;
+	madctl = madctl + 0; // MX
+	madctl = madctl << 1;
+	madctl = madctl + 1; // MV
+	madctl = madctl << 1;
+	madctl = madctl + 0; // ML
+	madctl = madctl << 1;
+	madctl = madctl + 1; // BGR
+	madctl = madctl << 1;
+	madctl = madctl + 0; // MH
+	madctl = madctl << 2; // last 2 bits are unused
+	twr_spi_transfer(&madctl, NULL, 1);
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
 
-    // turn display on (it flickers)
-    cmd = 0x29;
-    command(cmd);
+	// turn display on (it flickers)
+	cmd = 0x29;
+	command(cmd);
 }
 
-// TODO: draw_pixel and draw_line could be wrappers for this instead of their own functions
-// draw rectangle, this is the drawing primitive
+// draw rectangle, this is the shape drawing primitive
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
 {
-    uint8_t color_data[2] = { // most then least significant
+	uint8_t color_data[2] = { // most then least significant
 		color >> 8,
 		color & 0xFF
 	};
 
-    uint16_t width  = (col_end - col_start + 1);
-    uint16_t height = (row_end - row_start + 1);
-    uint32_t byte_count = 2 * width * height; // 16 bit colors
+	uint16_t width  = (col_end - col_start + 1);
+	uint16_t height = (row_end - row_start + 1);
+	uint32_t byte_count = 2 * width * height; // 16 bit colors
 
-    uint16_t chunk_count = byte_count / BUFFER_SIZE;
-    uint16_t remainder = byte_count % BUFFER_SIZE;
-    uint8_t buffer[BUFFER_SIZE];
+	uint16_t chunk_count = byte_count / BUFFER_SIZE;
+	uint16_t remainder = byte_count % BUFFER_SIZE;
+	uint8_t buffer[BUFFER_SIZE];
 
-    for (uint16_t i = 0; i < BUFFER_SIZE; i += 2) {
-        buffer[i] = color >> 8;
-        buffer[i + 1] = color & 0xFF;
-    }
+	for (uint16_t i = 0; i < BUFFER_SIZE; i += 2) {
+		buffer[i] = color >> 8;
+		buffer[i + 1] = color & 0xFF;
+	}
 
 	set_address(SET_COL, col_start, col_end);
 	set_address(SET_ROW, row_start, row_end);
 	start_pixel_stream();
-    for (uint16_t i = 0; i < chunk_count; i++)
+	for (uint16_t i = 0; i < chunk_count; i++)
 		twr_spi_transfer(buffer, NULL, BUFFER_SIZE);
-    for (uint16_t i = 0; i < remainder; i += 2)
+	for (uint16_t i = 0; i < remainder; i += 2)
 		twr_spi_transfer(color_data, NULL, 2);
 
-    twr_gpio_set_output(TWR_GPIO_P15, 1);
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
 }
 
 void clear_char_8(uint16_t grid_x, uint16_t grid_y) // only needed when deleting, not for overwriting
@@ -320,75 +254,30 @@ void clear_char_8(uint16_t grid_x, uint16_t grid_y) // only needed when deleting
 	);
 }
 
-// TODO: merge with draw_char
-void draw_char_wide(unsigned char c, uint16_t grid_x, uint16_t grid_y)
-{
-    char *bitmap = font8x8_basic[c];
-
-	uint32_t byte_count = 8 * LETTER_EDGE * LETTER_EDGE;
-	uint8_t buffer[8 * LETTER_EDGE * LETTER_EDGE];
-	uint32_t buffer_index = 0;
-
-    for (uint8_t i = 0; i < 16; i++)
-    {
-        // for (uint8_t k = 0; k < 2; k++) // remove this for wide text
-        // {
-            for (int j = 0; j < 16; j++)
-            {
-                uint16_t color;
-                bool bit = bitmap[i / 2] >> (j / 2) & 1;
-                if (bit)
-                    color = TEXT_COLOR;
-                else
-                    color = BG_COLOR;
-    
-                buffer[buffer_index]     = color >> 8;
-                buffer[buffer_index + 1] = color & 0xFF;
-                buffer[buffer_index + 2] = color >> 8;
-                buffer[buffer_index + 3] = color & 0xFF;
-                buffer_index += 4;
-            }
-        // }
-    }
-
-    // TODO: Verify that this works correctly.
-	const uint16_t col_start = 2 * grid_x * LETTER_EDGE;
-	const uint16_t col_end   = col_start - 1 + 2 * LETTER_EDGE;
-	const uint16_t row_start = 2 * grid_y * LETTER_EDGE;
-	const uint16_t row_end   = row_start - 1 + LETTER_EDGE;
-
-	set_address(SET_COL, col_start, col_end);
-	set_address(SET_ROW, row_start, row_end);
-	start_pixel_stream();
-	twr_spi_transfer(buffer, NULL, byte_count);
-	twr_gpio_set_output(TWR_GPIO_P15, 1);
-}
-
-
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_type)
 {
-    char *bitmap = font8x8_basic[c];
+	char *bitmap = font8x8_basic[c];
 
 	uint32_t byte_count = (text_type * text_type) * 2 * LETTER_EDGE * LETTER_EDGE;
 	uint8_t buffer[2 * MAX_GLYPH_AREA];
 	uint32_t buffer_index = 0;
 
-    for (uint8_t i = 0; i < 8 * text_type; i++)
-    {
-        for (int j = 0; j < 8 * text_type; j++)
-        {
-            uint16_t color;
-            bool bit = bitmap[i / text_type] >> (j / text_type) & 1;
-            if (bit)
-                color = TEXT_COLOR;
-            else
-                color = BG_COLOR;
+	for (uint8_t i = 0; i < 8 * text_type; i++)
+	{
+		for (int j = 0; j < 8 * text_type; j++)
+		{
+			uint16_t color;
+			bool bit = bitmap[i / text_type] >> (j / text_type) & 1;
+			if (bit)
+				color = TEXT_COLOR;
+			else
+				color = BG_COLOR;
 
-            buffer[buffer_index]     = color >> 8;
-            buffer[buffer_index + 1] = color & 0xFF;
-            buffer_index += 2;
-        }
-    }
+			buffer[buffer_index]     = color >> 8;
+			buffer[buffer_index + 1] = color & 0xFF;
+			buffer_index += 2;
+		}
+	}
 
 	const uint16_t col_start = text_type * grid_x * LETTER_EDGE;
 	const uint16_t col_end   = col_start + (text_type * LETTER_EDGE) - 1;
