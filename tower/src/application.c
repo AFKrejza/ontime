@@ -39,6 +39,12 @@ enum Text_Type {
 	SIZE_XL = 4
 };
 
+enum Transport_Type {
+	BUS,
+	METRO,
+	TRAM
+};
+
 // TODO: check if it's 0 initialized
 const unsigned char grid[SCREEN_WIDTH / LETTER_EDGE][SCREEN_HEIGHT / LETTER_EDGE]; // framebuffer
 
@@ -46,6 +52,7 @@ void clear_char_8(uint16_t grid_x, uint16_t grid_y);
 void command(uint8_t cmd);
 void display_init();
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_type);
+void draw_image(uint16_t col, uint16_t row , uint8_t type);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
 void outline_screen(const uint16_t color);
@@ -77,6 +84,9 @@ void application_init(void)
 		draw_char(s3[i], 1 + i, 2, SIZE_L);
 	for (size_t i = 0; i < strlen(s4); i++)
 		draw_char(s4[i], 1 + i, 5, SIZE_XL);
+
+	// draw_rect(SCREEN_WIDTH - 144, SCREEN_WIDTH - 80, SCREEN_HEIGHT - 144, SCREEN_HEIGHT - 80, GREEN);
+	draw_image(350, 20, BUS);
 }
 
 // Application task function (optional) which is called periodically if scheduled
@@ -95,7 +105,7 @@ void draw_pixel(uint16_t row, uint16_t col, uint16_t color)
 	draw_rect(col, col, row, row, color);
 }
 
-// sets all pixels black
+// sets all pixels
 void paint_screen(uint16_t color)
 {
 	draw_rect(0, SCREEN_WIDTH - 1, 0 , SCREEN_HEIGHT - 1, color);
@@ -283,6 +293,47 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_t
 	const uint16_t col_end   = col_start + (text_type * LETTER_EDGE) - 1;
 	const uint16_t row_start = text_type * grid_y * LETTER_EDGE;
 	const uint16_t row_end   = row_start + (text_type * LETTER_EDGE) - 1;
+
+	set_address(SET_COL, col_start, col_end);
+	set_address(SET_ROW, row_start, row_end);
+	start_pixel_stream();
+	twr_spi_transfer(buffer, NULL, byte_count);
+	twr_gpio_set_output(TWR_GPIO_P15, 1);
+}
+
+// only draws 64x64 squares 
+void draw_image(uint16_t col, uint16_t row , uint8_t type)
+{
+
+	// DOESN'T WORK YET
+
+	const unsigned char *bitmap = images[type];
+
+	uint16_t byte_count = 2 * 16 * 16;
+	uint8_t buffer[2 * 16 * 16];
+	uint16_t buffer_index = 0;
+
+	for (int16_t i = 0; i < 512; i++)
+	{
+		// for (int16_t j = 0; j < 16; j++)
+		// {
+			uint16_t color;
+			bool bit = bitmap[i] >> 8 & 1;
+			if (bit)
+				color = TEXT_COLOR;
+			else
+				color = BG_COLOR;
+			
+			buffer[buffer_index] = color >> 8;
+			buffer[buffer_index + 1] = color & 0xFF;
+			buffer_index += 2;
+		// }
+	}
+
+	const uint16_t col_start = col;
+	const uint16_t col_end   = col + 4 * 16 - 1;
+	const uint16_t row_start = row;
+	const uint16_t row_end   = row + 4 * 16 - 1;
 
 	set_address(SET_COL, col_start, col_end);
 	set_address(SET_ROW, row_start, row_end);
