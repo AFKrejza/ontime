@@ -4,8 +4,8 @@
 
 #include <application.h>
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 240
+#define SCREEN_WIDTH 480 // 2.4" 320
+#define SCREEN_HEIGHT 320 // 2.4" 240
 #define SCREEN_AREA SCREEN_WIDTH * SCREEN_HEIGHT
 #define LETTER_EDGE  8 // DO NOT CHANGE TODO: it's bloated and changing it can destroy logic. GRID_EDGE would be better.
 #define MAX_LETTER_X SCREEN_WIDTH / LETTER_EDGE
