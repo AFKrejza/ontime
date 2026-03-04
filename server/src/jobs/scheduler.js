@@ -35,12 +35,15 @@ async function fetchStop(job) {
 		const gtfsId = job.line.gtfsId;
 		const name = job.line.name;
 		const offset = job.offset;
+		
+		const limit = 1; // default 1
+		const minutesAfter = 60; // default 60
 		const url = `
 			https://api.golemio.cz/v2/public/departureboards?
 			stopIds={"0": ["${gtfsId}"]}&
-			limit=5&
+			limit=${limit}&
 			routeShortNames=${name}&
-			minutesAfter=60&
+			minutesAfter=${minutesAfter}&
 			minutesBefore=${offset}
 		`;
 		const get = await fetch(url, {

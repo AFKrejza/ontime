@@ -87,7 +87,26 @@ async function showNames() {
 	// console.log(trie.contains("adamov"));
 	// console.log(trie.find("piskova"));
 
-	await countLines();
+	// await countLines();
+
+	longestName(latinStops);
+}
+
+// check the maximum request size that needs to be transmitted
+function maxSize(stops) {
+
+}
+
+// 37
+function longestName(latinStops) {
+	let longest = "";
+	for (const i in latinStops) {
+		const name = latinStops[i];
+		if (name.length > longest.length) {
+			longest = name;
+			console.log(name.length);
+		}
+	}
 }
 
 async function countLines() {

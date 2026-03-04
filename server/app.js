@@ -95,21 +95,34 @@ app.put("/getStop", async (req, res) => {
 	}
 });
 
+// TODO: needs type validation and a check to verify that the stop actually exists
+// replaces the currently tracked stop.
 app.put("/addStop", async (req, res) => {
 	try {
-		const data = {
-			offset: 10,
-			stopName: "Vysočanská",
-			stopId: "vysocanska",
-			line: {
-				id: 136,
-				name: "136",
-				type: "bus",
-				direction: "Jižní Město",
-				gtfsId: "U474Z6P"
+		// const example = { // send all of this. Later on we'll only need the offset, stopId, lineId/name and gtfsId
+		// 	offset: 10,
+		// 	stopName: "Vysočanská",
+		// 	stopId: "vysocanska",
+		// 	line: {
+		// 		id: 136,
+		// 		name: "136",
+		// 		type: "bus",
+		// 		direction: "Jižní Město",
+		// 		gtfsId: "U474Z6P"
+		// 	}
+		// };
+		
+		class Stop {
+			constructor(offset, stopName, stopId, line) {
+				this.offset = offset;
+				this.stopName = stopName;
+				this.stopId = stopId;
+				this.line = line;
 			}
-		};
-		const msg = await createJob(data);
+		}
+		const newStop = new Stop(req.body.offset, req.body.stopName, req.body.stopId, req.body.line);
+
+		const msg = await createJob(newStop);
 		res.send(msg);
 	} catch (err) {
 		console.error(err);
