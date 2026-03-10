@@ -4,7 +4,4 @@
 #include <twr.h>
 #include <bcl.h>
 
-#include "font8x8_basic.h"
-#include "images.h"
-
 #endif
