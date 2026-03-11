@@ -2,8 +2,6 @@
 #include "font8x8_basic.h"
 #include "display.h"
 
-#define SCREEN_WIDTH 480 // 2.4" 320
-#define SCREEN_HEIGHT 320 // 2.4" 240
 #define LETTER_EDGE  8 // DO NOT CHANGE TODO: it's bloated and changing it can destroy logic. GRID_EDGE would be better.
 #define BUFFER_SIZE 2048
 
@@ -22,6 +20,7 @@ void clear_char(uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
 void display_init();
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
 void draw_image(uint16_t col, uint16_t row , uint8_t type);
+void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 static inline void lcd_command(uint8_t cmd);
@@ -237,6 +236,15 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 void clear_char(uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
 {
 	draw_char(0, grid_x, grid_y, text_size);
+}
+
+// like a hollow rectangle
+void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
+{
+	draw_rect(col_start, col_end, row_start, row_start, color); // top
+	draw_rect(col_start, col_end, row_end, row_end, color); // bottom
+	draw_rect(col_start, col_start, row_start, row_end, color); // left
+	draw_rect(col_end, col_end, row_start, row_end, color); // right
 }
 
 // void draw_string(unsigned char *s, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
