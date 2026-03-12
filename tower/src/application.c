@@ -20,7 +20,7 @@ void application_init(void)
 	// draw_rect(8, 72, 8, 72, RED);
 
 	// char *s1 = "Tungsten Cube";
-	// char *s2 = "Platypus";
+	char *s2 = "Platypus";
 	// char *s3 = "Dire Straits";
 	// char *s4 = "Tortilla";
 	// for (size_t i = 0; i < strlen(s1); i++)
@@ -37,20 +37,26 @@ void application_init(void)
 	// draw_rect(8, SCREEN_WIDTH, 8, SCREEN_HEIGHT / 4, RED);
 	// draw_rect(8, SCREEN_WIDTH, 8, SCREEN_HEIGHT / 4, RED);
 
-	for (uint8_t i = 0; i < 2; i++)
-	{
-		const uint16_t col_start = 16;
-		const uint16_t col_end = SCREEN_WIDTH - 16;
-		const uint16_t row_start = 16 + i * 90;
-		const uint16_t row_end = 106 + i * 90;
-		draw_outline(col_start, col_end, row_start, row_end, WHITE);
-		draw_rect(col_start + 2, col_start + 2 + 90, row_start + 2, row_end - 2, GREEN);
+	// for (uint8_t i = 0; i < 2; i++)
+	// {
+	// 	const uint16_t col_start = 16;
+	// 	const uint16_t col_end = SCREEN_WIDTH - 16;
+	// 	const uint16_t row_start = 16 + i * 90;
+	// 	const uint16_t row_end = 106 + i * 90;
+		
+	// 	draw_outline(col_start, col_end, row_start, row_end, WHITE);
+	// 	draw_rect(col_start + 2, col_start + 2 + 90, row_start + 2, row_end - 2, GREEN);
 
-		const char *s = "Palmovka";
-		for (uint8_t j = 0; j < strlen(s); j++)
-		{
-			draw_char(s[j], 5 + j, i * 4 + 1, SIZE_L); // TODO: change draw_char to use absolute positioning and more variables
-		}
+	// 	const char *s = "Palmovka";
+	// 	for (uint8_t j = 0; j < strlen(s); j++)
+	// 	{
+	// 		draw_char(s[j], 5 + j, i * 4 + 1, SIZE_L);
+	// 	}
+	// }
+
+	for (uint16_t i = 0; i < strlen(s2); i++)
+	{
+		draw_char_a(s2[i], 5 + i * SIZE_L * 8, 5, SIZE_L);
 	}
 
 	
