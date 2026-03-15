@@ -4,7 +4,7 @@ import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import { scheduler, createJob } from './src/jobs/scheduler.js';
-
+// 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
 const CLIENT_URL = process.env.CLIENT_URL;
