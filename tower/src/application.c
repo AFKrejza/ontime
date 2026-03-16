@@ -17,47 +17,74 @@ void application_init(void)
 	paint_screen(BLACK);
 	outline_screen(GREEN);
 
-	// draw_rect(8, 72, 8, 72, RED);
 
-	// char *s1 = "Tungsten Cube";
-	char *s2 = "Platypus";
-	// char *s3 = "Dire Straits";
-	// char *s4 = "Tortilla";
-	// for (size_t i = 0; i < strlen(s1); i++)
-	// 	draw_char(s1[i], 5 + i, 26, SIZE_S);
-	// for (size_t i = 0; i < strlen(s2); i++)
-	// 	draw_char(s2[i], 4 + i, 6, SIZE_M);
-	// for (size_t i = 0; i < strlen(s3); i++)
-	// 	draw_char(s3[i], 5 + i, 2, SIZE_L);
-	// for (size_t i = 0; i < strlen(s4); i++)
-	// 	draw_char(s4[i], 1 + i, 5, SIZE_XL);
-	// clear_char(1, 5, SIZE_XL);
+	typedef struct line_data {
+		char headsign[64];
+		char time[64];
+		char leave_in[64];
+		char stop_name[64];
+		uint8_t type; // enum
+	} Line_Data;
 
-	// draw_rect(8, SCREEN_WIDTH, 8, (SCREEN_HEIGHT / 4) - 8, RED);
-	// draw_rect(8, SCREEN_WIDTH, 8, SCREEN_HEIGHT / 4, RED);
-	// draw_rect(8, SCREEN_WIDTH, 8, SCREEN_HEIGHT / 4, RED);
+	Line_Data cesko;
+	char s[] = "151 Ceskomoravska";
+	strncpy(cesko.headsign, s, sizeof(cesko.headsign));
+	char c[] = "15:50";
+	strncpy(cesko.time, c, sizeof(cesko.time));
+	char l[] = "5 minutes";
+	strncpy(cesko.leave_in, l, sizeof(cesko.leave_in));
+	char sn[] = "Klicov";
+	strncpy(cesko.stop_name, sn, sizeof(cesko.stop_name));
+	cesko.type = 1;
+	
+	
+	Line_Data vyso;
+	char s2[] = "136 Jizni Mesto";
+	strncpy(vyso.headsign, s2, sizeof(vyso.headsign));
+	char c2[] = "15:50";
+	strncpy(vyso.time, c2, sizeof(vyso.time));
+	char l2[] = "5 minutes";
+	strncpy(vyso.leave_in, l2, sizeof(vyso.leave_in));
+	char sn2[] = "Novovysocanska";
+	strncpy(vyso.stop_name, sn2, sizeof(vyso.stop_name));
+	vyso.type = 1;
 
-	// for (uint8_t i = 0; i < 2; i++)
-	// {
-	// 	const uint16_t col_start = 16;
-	// 	const uint16_t col_end = SCREEN_WIDTH - 16;
-	// 	const uint16_t row_start = 16 + i * 90;
-	// 	const uint16_t row_end = 106 + i * 90;
-		
-	// 	draw_outline(col_start, col_end, row_start, row_end, WHITE);
-	// 	draw_rect(col_start + 2, col_start + 2 + 90, row_start + 2, row_end - 2, GREEN);
+	Line_Data *stops[] = { &cesko, &vyso };
 
-	// 	const char *s = "Palmovka";
-	// 	for (uint8_t j = 0; j < strlen(s); j++)
-	// 	{
-	// 		draw_char(s[j], 5 + j, i * 4 + 1, SIZE_L);
-	// 	}
-	// }
-
-	for (uint16_t i = 0; i < strlen(s2); i++)
+	for (uint8_t i = 0; i < 2; i++)
 	{
-		draw_char_a(s2[i], 5 + i * SIZE_L * 8, 5, SIZE_L);
+		const uint16_t col_start = 0;
+		const uint16_t col_end = SCREEN_WIDTH - 0;
+		const uint16_t row_start = 0 + i * 90;
+		const uint16_t row_end = 90 + i * 90;
+		
+		draw_outline(col_start, col_end, row_start, row_end, WHITE);
+		draw_rect(col_start + 2, col_start + 92, row_start + 2, row_end - 2, GREEN);
+
+		for (uint8_t j = 0; j < 2; j++)
+		{
+			for (uint16_t k = 0; k < strlen(stops[i]->headsign); k++)
+			{
+				uint8_t size = SIZE_L;
+				draw_char_a(stops[i]->headsign[k], col_start + 100 + k * size * LETTER_EDGE, row_start + 6, size);
+			}
+			for (uint16_t k = 0; k < strlen(stops[i]->stop_name); k++)
+			{
+				uint8_t size = SIZE_L;
+				draw_char_a(stops[i]->stop_name[k], col_start + 100 + k * size * LETTER_EDGE, row_start + 6 + LETTER_EDGE * size, size);
+			}
+			for (uint16_t k = 0; k < strlen(stops[i]->time); k++)
+			{
+				uint8_t size = SIZE_L;
+				draw_char_a(stops[i]->time[k], col_start + 150 + k * size * LETTER_EDGE, row_start + 6 + 2 * LETTER_EDGE * size, size);
+			}
+		}
 	}
+
+	// for (uint16_t i = 0; i < strlen(s2); i++)
+	// {
+	// 	draw_char_a(s2[i], 5 + i * SIZE_L * 8, 5, SIZE_L);
+	// }
 
 	
 

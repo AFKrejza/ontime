@@ -3,6 +3,8 @@
 #define SCREEN_WIDTH 480 // 2.4" 320
 #define SCREEN_HEIGHT 320 // 2.4" 240
 
+#define LETTER_EDGE  8 // DO NOT CHANGE TODO: it's bloated and changing it can destroy logic. GRID_EDGE would be better.
+
 // Uses RGB 565
 // https://barth-dev.de/online/rgb565-color-picker/
 #define WHITE 0xFFFF

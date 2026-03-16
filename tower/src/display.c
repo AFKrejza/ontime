@@ -1,8 +1,8 @@
 #include <twr.h>
 #include "font8x8_basic.h"
 #include "display.h"
+#include "images.h"
 
-#define LETTER_EDGE  8 // DO NOT CHANGE TODO: it's bloated and changing it can destroy logic. GRID_EDGE would be better.
 #define BUFFER_SIZE 2048
 
 #define PIN_CS TWR_GPIO_P15
@@ -24,52 +24,52 @@ void draw_image(uint16_t col, uint16_t row , uint8_t type);
 void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
-static inline void lcd_command(uint8_t cmd);
-static inline void lcd_pixel_stream();
-static inline void lcd_set_address(uint8_t axis, uint16_t start, uint16_t end);
-static inline void lcd_set_col(uint16_t start, uint16_t end);
-static inline void lcd_set_row(uint16_t start, uint16_t end);
-static inline void lcd_send_data(void *source, void *destination, size_t length);
+static inline void command(uint8_t cmd);
+static inline void start_pixel_stream();
+static inline void set_address(uint8_t axis, uint16_t start, uint16_t end);
+static inline void set_col(uint16_t start, uint16_t end);
+static inline void set_row(uint16_t start, uint16_t end);
+static inline void send_data(void *source, void *destination, size_t length);
 void outline_screen(const uint16_t color);
 void paint_screen(uint16_t color);
 
 // defines the memory region it'll write to
-static inline void lcd_set_address(uint8_t axis, uint16_t start, uint16_t end)
+static inline void set_address(uint8_t axis, uint16_t start, uint16_t end)
 {
-	lcd_command(axis);
+	command(axis);
 	uint8_t axis_range[4] = {
 		start >> 8,
 		start & 0xFF,
 		end >> 8,
 		end & 0xFF
 	};
-	lcd_send_data(axis_range, NULL, 4);
+	send_data(axis_range, NULL, 4);
 }
 
-static inline void lcd_set_col(uint16_t start, uint16_t end)
+static inline void set_col(uint16_t start, uint16_t end)
 {
-	lcd_set_address(0x2A, start, end);
+	set_address(0x2A, start, end);
 }
 
-static inline void lcd_set_row(uint16_t start, uint16_t end)
+static inline void set_row(uint16_t start, uint16_t end)
 {
-	lcd_set_address(0x2B, start, end);
+	set_address(0x2B, start, end);
 }
 
-static inline void lcd_send_data(void *source, void *destination, size_t length)
+static inline void send_data(void *source, void *destination, size_t length)
 {
 	twr_gpio_set_output(PIN_CS, 0);
 	twr_gpio_set_output(PIN_DC, 1);
 	twr_spi_transfer(source, destination, length);
 }
 
-static inline void lcd_pixel_stream()
+static inline void start_pixel_stream()
 {
 	uint8_t cmd = 0x2C;
-	lcd_command(cmd);
+	command(cmd);
 }
 
-static inline void lcd_command(uint8_t cmd)
+static inline void command(uint8_t cmd)
 {
 	twr_gpio_set_output(PIN_CS, 0);
 	twr_gpio_set_output(PIN_DC, 0);
@@ -103,19 +103,19 @@ void display_init()
 
 	// sleep out
 	uint8_t cmd = 0x11;
-	lcd_command(cmd);
+	command(cmd);
 
 	twr_delay_us(62000); twr_delay_us(62000); // minimum 120ms for display start
 
 	// set it to 16-bit color mode
 	cmd = 0x3A;
-	lcd_command(cmd);
+	command(cmd);
 	uint8_t data = 0x55;
-	lcd_send_data(&data, NULL, 1);
+	send_data(&data, NULL, 1);
 
 	// set memory access control
 	cmd = 0x36;   // MADCTL
-	lcd_command(cmd);
+	command(cmd);
 
 	// Memory Data Access Control command for stuff like mirroring or flipping the display
 	uint8_t madctl = 0;
@@ -131,16 +131,17 @@ void display_init()
 	madctl = madctl << 1;
 	madctl = madctl + 0; // MH
 	madctl = madctl << 2; // last 2 bits are unused
-	lcd_send_data(&madctl, NULL, 1);
+	send_data(&madctl, NULL, 1);
 
 	// turn display on
 	cmd = 0x29;
-	lcd_command(cmd);
+	command(cmd);
 }
 
 // draw rectangle, shape drawing primitive
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
 {
+	// TODO: We don't really need bounds checking imo since the screen regions will be calculated in advance.
 	if (col_start > SCREEN_WIDTH  || 
 		col_end   > SCREEN_WIDTH  || 
 		row_start > SCREEN_HEIGHT || 
@@ -150,7 +151,7 @@ void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
 		return;
 	}
 	if (col_start > col_end || row_start > row_end) {
-		twr_log_debug("Error in draw_rect: start greater than end"); // TODO: do bounds checking everywhere?
+		twr_log_debug("Error in draw_rect: start greater than end"); // TODO: do bounds checking everywhere? Not really needed.
 		return;
 	}
 
@@ -168,13 +169,13 @@ void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_
 		buffer[i + 1] = color & 0xFF;
 	}
 
-	lcd_set_col(col_start, col_end);
-	lcd_set_row(row_start, row_end);
-	lcd_pixel_stream();
+	set_col(col_start, col_end);
+	set_row(row_start, row_end);
+	start_pixel_stream();
 
 	for (uint16_t i = 0; i < chunk_count; i++)
-		lcd_send_data(buffer, NULL, BUFFER_SIZE);
-	lcd_send_data(buffer, NULL, remainder);
+		send_data(buffer, NULL, BUFFER_SIZE);
+	send_data(buffer, NULL, remainder);
 }
 
 void outline_screen(const uint16_t color)
@@ -227,10 +228,10 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 	const uint16_t row_start = text_size * grid_y * LETTER_EDGE;
 	const uint16_t row_end   = row_start + (text_size * LETTER_EDGE) - 1;
 
-	lcd_set_col(col_start, col_end);
-	lcd_set_row(row_start, row_end);
-	lcd_pixel_stream();
-	lcd_send_data(buffer, NULL, byte_count);
+	set_col(col_start, col_end);
+	set_row(row_start, row_end);
+	start_pixel_stream();
+	send_data(buffer, NULL, byte_count);
 }
 
 // absolute positioning TODO: merge with draw_char
@@ -263,10 +264,10 @@ void draw_char_a(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text
 	const uint16_t row_start = grid_y;
 	const uint16_t row_end   = row_start + (text_size * LETTER_EDGE) - 1;
 
-	lcd_set_col(col_start, col_end);
-	lcd_set_row(row_start, row_end);
-	lcd_pixel_stream();
-	lcd_send_data(buffer, NULL, byte_count);
+	set_col(col_start, col_end);
+	set_row(row_start, row_end);
+	start_pixel_stream();
+	send_data(buffer, NULL, byte_count);
 }
 
 // only needed when deleting, not for overwriting
@@ -293,11 +294,29 @@ void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint
 // 	}
 // }
 
-// TODO: make this a draw_char wrapper and make all images collections of 8x8 bitmaps
-// used for drawing the bus/metro/tram icon
-void draw_image(uint16_t col, uint16_t row , uint8_t type)
+// TODO: use 32 cols (bits) per row
+// used for drawing the bus/metro/tram icons
+void draw_image(uint16_t col, uint16_t row , uint8_t type) // needs chunking for increasing image size
 {
+	const uint8_t *bitmap = images[type];
+	uint32_t buffer_index = 0;
 
+	for (uint16_t i = 0; i < 128; i++)
+	{
+		for (uint16_t j = 0; j < 8; j++)
+		{
+				bool bit = bitmap[i] >> j & 1;
+				uint16_t color = bit ? TEXT_COLOR : BG_COLOR;
+				buffer[buffer_index] = color >> 8;
+				buffer[buffer_index + 1] = color & 0xFF;
+				buffer_index += 2;
+		}
+	}
+
+	set_col(col, col + 31);
+	set_row(row, row + 31);
+	start_pixel_stream();
+	send_data(buffer, NULL, buffer_index + 1);
 }
 
 // e.g. 136 Jizni Mesto; TODO: define memory regions for each part
