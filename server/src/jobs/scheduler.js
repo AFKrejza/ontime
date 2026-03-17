@@ -52,7 +52,12 @@ async function fetchStop(job) {
 				"X-Access-Token": process.env.API_KEY
 			}
 		});
+		
 		const data = await get.json();
+		if (!data.departures || data.departures.length === 0) {
+    		console.log(`No departures found for line ${name}`);
+    		return;
+		}
 		const departure = data[0][0].departure;
 		const delay = departure.delay_seconds;
 		const minutes = departure.minutes;

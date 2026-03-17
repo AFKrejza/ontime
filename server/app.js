@@ -4,7 +4,9 @@ import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import { scheduler, createJob } from './src/jobs/scheduler.js';
+import db from "./db.js";
 // 
+import router from "./testing_db.js"; 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
 const CLIENT_URL = process.env.CLIENT_URL;
@@ -14,7 +16,8 @@ app.use(express.json());
 app.use(cors({
 	origin: CLIENT_URL
 }));
-
+//
+app.use("/api/tower", router);
 // TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
 scheduler();
