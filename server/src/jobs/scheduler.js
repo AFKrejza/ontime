@@ -3,8 +3,7 @@ import dotenv from 'dotenv';
 import fs from 'node:fs/promises';
 
 const path = `./data/myStop.json`;
-const cron = '1 * * * *'; // 1 minute
-// const cron = '*/1 * * * * *'; // 1 second interval
+const cron = '*/30 * * * * *'; // 30 second interval - adjust for production needs
 
 // only handles 1 stop!
 export function scheduler() {

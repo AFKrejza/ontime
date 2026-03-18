@@ -50,7 +50,7 @@ export default function HomeScreen() {
       {/* App Title */}
       <ThemedView style={styles.titleSection}>
         <ThemedText type="title" style={styles.appTitle}>OnTime</ThemedText>
-        <ThemedText style={styles.appSubtitle}></ThemedText> Your real-time transit companion for Prague's public transport.
+        <ThemedText style={styles.appSubtitle}>Your real-time transit companion for Prague&apos;s public transport.</ThemedText>
       </ThemedView>
 
       {/* Search Bar */}

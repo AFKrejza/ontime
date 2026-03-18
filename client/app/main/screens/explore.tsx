@@ -7,14 +7,15 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 // Server API configuration
-const API_URL = 'http://10.0.2.2:3000'; // Android emulator localhost,does not work probably
-// Use 'http://localhost:3000' for iOS simulator or web,works and tested
+const API_URL = 'http://10.0.2.2:3000'; // Android emulator localhost
+// Use 'http://localhost:3000' for iOS simulator or web
 
 interface Stop {
   id: string;
   name: string;
   type: string;
   lines: string[];
+  gtfsId?: string;
 }
 
 export default function ExploreScreen() {
@@ -25,39 +26,60 @@ export default function ExploreScreen() {
 
   // Fetch stops from server on mount
   useEffect(() => {
-    fetchStops();
+    fetchAllStops();
   }, []);
 
-  const fetchStops = async () => {
+  // Search when query changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.length > 0) {
+        searchStops(searchQuery);
+      } else if (searchQuery.length === 0) {
+        fetchAllStops();
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const fetchAllStops = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/trieData`);
+      const response = await fetch(`${API_URL}/api/stops`);
       if (!response.ok) {
         throw new Error('Failed to fetch stops');
       }
       const data = await response.json();
-      
-      // Transform trie data to stops format
-      // The server returns trie data, we'll use a sample for now (adam finish this please,stop gooning)
-      // In production, you'd parse the trie structure
-      const sampleStops: Stop[] = [
-        { id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
-        { id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
-        { id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
-        { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
-      ];
-      setStops(sampleStops);
+      setStops(data);
     } catch (err) {
       console.error('Error fetching stops:', err);
       setError('Could not connect to server. Using offline data.');
-      // Fallback to sample data if server is not available (will delete later when the server is 100% done)
+      // Fallback to sample data if server is not available
       setStops([
         { id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
         { id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
         { id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
         { id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
       ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchStops = async (query: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/api/stops/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error('Failed to search stops');
+      }
+      const data = await response.json();
+      setStops(data);
+    } catch (err) {
+      console.error('Error searching stops:', err);
+      setError('Search failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -117,7 +139,7 @@ export default function ExploreScreen() {
             <View style={styles.stopInfo}>
               <ThemedText type="defaultSemiBold">{stop.name}</ThemedText>
               <ThemedText style={styles.stopLines}>
-                Lines: {stop.lines.join(', ')}
+                Lines: {(stop.lines || []).join(', ') || 'N/A'}
               </ThemedText>
             </View>
             <View style={styles.arrivalInfo}>
@@ -133,7 +155,7 @@ export default function ExploreScreen() {
         
         <ThemedView style={styles.infoItem}>
           <ThemedText type="defaultSemiBold">1. Search</ThemedText>
-          <ThemedText>Enter you stop name in the search bar</ThemedText>
+          <ThemedText>Enter your stop name in the search bar</ThemedText>
         </ThemedView>
         
         <ThemedView style={styles.infoItem}>
@@ -146,8 +168,8 @@ export default function ExploreScreen() {
           <ThemedText>View and get real-time departure times on your OnTime device </ThemedText>
         </ThemedView>
 
-      <ThemedView style={styles.infoItem}>
-          <ThemedText type="defaultSemiBold">4. Track</ThemedText>
+        <ThemedView style={styles.infoItem}>
+          <ThemedText type="defaultSemiBold">4. Save</ThemedText>
           <ThemedText>Never be late again.</ThemedText>
         </ThemedView>
 
