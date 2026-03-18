@@ -50,14 +50,14 @@ export default function HomeScreen() {
       {/* App Title */}
       <ThemedView style={styles.titleSection}>
         <ThemedText type="title" style={styles.appTitle}>OnTime</ThemedText>
-        <ThemedText style={styles.appSubtitle}></ThemedText>    *//will add later
+        <ThemedText style={styles.appSubtitle}></ThemedText> Your real-time transit companion for Prague's public transport.
       </ThemedView>
 
       {/* Search Bar */}
       <ThemedView style={styles.searchContainer}>
         <Pressable 
           style={styles.searchBar}
-          onPress={() => router.push('/screens/explore')}
+          onPress={() => router.push('/main/screens/explore')}
         >
           <IconSymbol size={20} color={colors.textSecondary} name="magnifyingglass" />
           <ThemedText style={styles.searchPlaceholder}>Search for stops...</ThemedText>
@@ -102,7 +102,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.favoritesContainer}>
         <View style={styles.favoritesHeader}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Recent Stops</ThemedText>
-          <Pressable onPress={() => router.push('/screens/explore')}>
+          <Pressable onPress={() => router.push('/main/screens/explore')}>
             <ThemedText style={styles.seeAllText}>See All</ThemedText>
           </Pressable>
         </View>
@@ -191,7 +191,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.buttonContainer}>
         <Pressable 
           style={styles.startButton}
-          onPress={() => router.push('/screens/explore')}
+          onPress={() => router.push('/main/screens/explore')}
         >
           <ThemedText style={styles.startButtonText}>Find Your Stop</ThemedText>
           <IconSymbol size={20} color="#ffffff" name="arrow.right" />
