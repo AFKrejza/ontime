@@ -5,12 +5,21 @@
 #include <application.h>
 #include "display.h"
 
+twr_led_t led;
+
 // Application initialization function which is called once after boot
 void application_init(void)
 {
 	// Initialize logging
 	twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
 	twr_log_debug("start");
+
+	twr_led_init(&led, TWR_GPIO_LED, false, false);
+	twr_module_battery_init(); // TODO: use to check battery module voltage
+	
+	twr_radio_init(TWR_RADIO_MODE_NODE_SLEEPING);
+	twr_radio_pairing_request("tower-ontime", FW_VERSION);
+	twr_led_pulse(&led, 2000);
 
 	display_init();
 
