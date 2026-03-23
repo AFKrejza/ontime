@@ -56,23 +56,25 @@ Response (partial):
 }
 ```
 
-## Add a stop to a gateway NOT IMPLEMENTED
+## Add an assignment to a tower NOT IMPLEMENTED
 This needs to be stored in the db.  
 Endpoint: PUT `/gateway/:gatewayId/addStop`  
-Response:  
+Request Body:  
 ```
 {
-	"gatewayId": 20,
+	"towerId": "tower-667", // string
 	"offset": -10, // must be a negative number
-	"stopName": "Vysočanská",
-	"stopId": "vysocanska",
-	"line": {
-		"id": 136,
-		"name": "136",
-		"type": "bus",
-		"direction": "Jižní Město",
-		"gtfsId": "U474Z6P"
-	}
+	"assignments": [
+		{
+			"stopName": "Vysočanská",
+			"stopId": "vysocanska",
+			"id": 136,
+			"name": "136",
+			"type": "bus",
+			"direction": "Jižní Město",
+			"gtfsId": "U474Z6P"
+		}
+	]
 }
 ```
 
