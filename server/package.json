@@ -1,15 +1,13 @@
 {
-  "name": "ontime",
+  "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "OnTime server application",
+  "type": "module",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
+    "start": "node app.js",
+    "dev": "node --watch app.js"
   },
-  "author": "",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
