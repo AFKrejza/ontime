@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TextInput, Pressable, ActivityIndicator, Platform } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -7,8 +7,19 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 // Server API configuration
-const API_URL = 'http://10.0.2.2:3000'; // Android emulator localhost
-// Use 'http://localhost:3000' for iOS simulator or web
+type ApiConfig = {
+  url: string;
+};
+
+const getApiUrl = (): ApiConfig => {
+  if (Platform.OS === 'android') {
+    return { url: 'http://10.0.2.2:3000' };
+  }
+  // iOS and Web can use local host when running server locally
+  return { url: 'http://localhost:3000' };
+};
+
+const API_URL = getApiUrl().url;
 
 interface Stop {
   id: string;

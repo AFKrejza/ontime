@@ -4,7 +4,7 @@ import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import { updateTrieData } from "./src/stop_data/helpers/updateTrieData.js";
-// import { jobList } from "./jobs/scheduler.js";
+import { scheduler } from "./src/jobs/scheduler.js";
 import schedule from 'node-schedule';
 
 dotenv.config();
