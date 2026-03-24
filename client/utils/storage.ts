@@ -1,17 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-
-// Detect if we're in a browser environment
-const isWeb = typeof window !== 'undefined' && Platform.OS !== 'ios' && Platform.OS !== 'android';
 
 // Platform-aware storage: uses localStorage on web, AsyncStorage on native
 const storage = {
   getItem: async (key: string): Promise<string | null> => {
     try {
-      if (isWeb) {
+      // Use AsyncStorage for iOS/Android native apps
+      if (AsyncStorage) {
+        return await AsyncStorage.getItem(key);
+      }
+      // Fallback for web or when AsyncStorage is not available
+      if (typeof localStorage !== 'undefined') {
         return localStorage.getItem(key);
       }
-      return await AsyncStorage.getItem(key);
+      return null;
     } catch (error) {
       console.error(`Storage error reading ${key}:`, error);
       return null;
@@ -20,10 +21,10 @@ const storage = {
 
   setItem: async (key: string, value: string): Promise<void> => {
     try {
-      if (isWeb) {
-        localStorage.setItem(key, value);
-      } else {
+      if (AsyncStorage) {
         await AsyncStorage.setItem(key, value);
+      } else if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
       }
     } catch (error) {
       console.error(`Storage error writing ${key}:`, error);
@@ -32,10 +33,10 @@ const storage = {
 
   removeItem: async (key: string): Promise<void> => {
     try {
-      if (isWeb) {
-        localStorage.removeItem(key);
-      } else {
+      if (AsyncStorage) {
         await AsyncStorage.removeItem(key);
+      } else if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(key);
       }
     } catch (error) {
       console.error(`Storage error removing ${key}:`, error);

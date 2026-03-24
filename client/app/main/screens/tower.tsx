@@ -1,310 +1,255 @@
-import { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Pressable, TextInput, Alert, FlatList, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, Pressable, TextInput, Alert, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { router } from 'expo-router';
 import { useTowerConfig } from '@/contexts/TowerConfigContext';
-import { 
-  fetchTrieData, 
-  fetchStopLines, 
-  searchStops, 
-  type StopSummary, 
-  type StopDetails, 
-  type Line,
-  type SelectedStop
-} from '@/utils/api';
+import { fetchTrieData, StopSummary } from '@/utils/api';
 
-// Server endpoint for saving stop (prepared but not sent yet)
-const SERVER_URL = 'http://localhost:3000';
+const lineOptions = ['A', 'B', 'C'];
+const typeOptions = ['bus', 'tram', 'metro', 'train'];
+
+// Fallback stops in case API is not available
+const fallbackStops: StopSummary[] = [
+  { name: 'Vysocanska', id: '001' },
+  { name: 'Hlavni nadrazi', id: '002' },
+  { name: 'Narodni trida', id: '003' },
+  { name: 'Wenceslas Square', id: '004' },
+  { name: 'Old Town Square', id: '005' },
+  { name: 'Charles Bridge', id: '006' },
+  { name: 'Mustek', id: '007' },
+  { name: 'Muzeum', id: '008' },
+  { name: 'Florenc', id: '009' },
+  { name: 'Andel', id: '010' },
+];
+
+const lineColors: Record<string, string> = {
+  A: '#4CAF50', 
+  B: '#FFEB3B', 
+  C: '#F44336',
+};
 
 export default function TowerConfigScreen() {
   const { saveTowerConfig } = useTowerConfig();
-  
-  // Search state
-  const [query, setQuery] = useState('');
   const [allStops, setAllStops] = useState<StopSummary[]>([]);
-  const [searchResults, setSearchResults] = useState<StopSummary[]>([]);
-  const [isLoadingStops, setIsLoadingStops] = useState(true);
-  const [showResults, setShowResults] = useState(false);
-  
-  // Selected stop state
+  const [filteredStops, setFilteredStops] = useState<StopSummary[]>([]);
+  const [query, setQuery] = useState('');
   const [selectedStop, setSelectedStop] = useState<StopSummary | null>(null);
-  const [stopLines, setStopLines] = useState<StopDetails | null>(null);
-  const [isLoadingLines, setIsLoadingLines] = useState(false);
-  
-  // Line selection state
-  const [selectedLine, setSelectedLine] = useState<Line | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [selectedLine, setSelectedLine] = useState('A');
+  const [selectedType, setSelectedType] = useState('bus');
   const [walkingOffset, setWalkingOffset] = useState(5);
-  
-  // Fetch trieData on mount
+
+  // Fetch all stops on mount
+  // remve the alert debug statements if you have a working API and want to avoid the popups every time
   useEffect(() => {
-    async function loadStops() {
+    const loadStops = async () => {
       try {
-        const data = await fetchTrieData();
-        setAllStops(data);
+        setLoading(true);
+        //Alert.alert('Debug', 'Connecting to http://localhost:3000/trieData...');
+        const stops = await fetchTrieData();
+       // Alert.alert('API Result', `Got ${stops.length} stops`);
+        if (stops && stops.length > 0) {
+          setAllStops(stops);
+          setFilteredStops(stops.slice(0, 20));
+        } else {
+          // Use fallback if API returns empty
+          setAllStops(fallbackStops);
+          setFilteredStops(fallbackStops);
+        }
       } catch (error) {
-        console.error('Failed to load stops:', error);
-        Alert.alert('Error', 'Failed to load stops from server');
+        //Alert.alert('API Error', 'Failed to fetch stops: ' + error);
+        // Use fallback stops if API fails
+        setAllStops(fallbackStops);
+        setFilteredStops(fallbackStops);
       } finally {
-        setIsLoadingStops(false);
+        setLoading(false);
       }
-    }
+    };
     loadStops();
   }, []);
-  
-  // Handle search input change
-  const handleQueryChange = useCallback((text: string) => {
-    setQuery(text);
-    if (text.trim()) {
-      const results = searchStops(allStops, text);
-      setSearchResults(results);
-      setShowResults(true);
+
+  // Filter stops when query changes
+  useEffect(() => {
+    if (query.trim()) {
+      const filtered = allStops.filter(stop =>
+        stop.name.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 20);
+      setFilteredStops(filtered);
+      setShowDropdown(true);
     } else {
-      setSearchResults([]);
-      setShowResults(false);
+      setFilteredStops([]);
+      setShowDropdown(false); // Don't show dropdown when query is empty
     }
-  }, [allStops]);
-  
-  // Handle selecting a stop from search results
-  const handleSelectStop = async (stop: StopSummary) => {
-    setQuery(stop.name);
+  }, [query, allStops]);
+
+  const handleSelectStop = (stop: StopSummary) => {
     setSelectedStop(stop);
-    setShowResults(false);
-    setSearchResults([]);
-    
-    // Fetch lines for this stop
-    setIsLoadingLines(true);
-    try {
-      const lines = await fetchStopLines(stop.id);
-      setStopLines(lines);
-      setSelectedLine(null); // Reset line selection
-    } catch (error) {
-      console.error('Failed to load lines:', error);
-      Alert.alert('Error', 'Failed to load stop lines');
-    } finally {
-      setIsLoadingLines(false);
-    }
+    setQuery(stop.name);
+    setShowDropdown(false);
   };
-  
-  // Get lines grouped by type for display
-  const getLinesByType = () => {
-    if (!stopLines) return [];
-    
-    const types: Array<{ type: string; lines: Line[] }> = [];
-    
-    if (stopLines.lines.tram) {
-      types.push({ type: 'tram', lines: stopLines.lines.tram });
-    }
-    if (stopLines.lines.bus) {
-      types.push({ type: 'bus', lines: stopLines.lines.bus });
-    }
-    if (stopLines.lines.metro) {
-      types.push({ type: 'metro', lines: stopLines.lines.metro });
-    }
-    if (stopLines.lines.train) {
-      types.push({ type: 'train', lines: stopLines.lines.train });
-    }
-    
-    return types;
-  };
-  
-  // Prepare the final config object (ready to send to server)
-  const prepareStopConfig = (): SelectedStop | null => {
-    if (!selectedStop || !selectedLine) return null;
-    
-    return {
-      stopName: selectedStop.name,
-      stopId: selectedStop.id,
-      line: {
-        id: selectedLine.id,
-        name: selectedLine.name,
-        type: selectedLine.type,
-        direction: selectedLine.direction,
-        gtfsId: selectedLine.gtfsId,
-      },
-      offset: walkingOffset,
-    };
-  };
-  
-  // Handle save - prepare format but only save locally for now
+
   const handleSave = async () => {
-    const config = prepareStopConfig();
-    
-    if (!config) {
-      Alert.alert('Please select a stop and line first');
+    if (!selectedStop) {
+      Alert.alert('Please select a stop first');
       return;
     }
-    
     try {
-      // Save to local storage (as per request - don't send to server yet)
       await saveTowerConfig({
-        stop: config.stopName,
-        line: config.line.name,
-        type: config.line.type,
-        walkingOffset: config.offset,
+        stop: selectedStop.name,
+        line: selectedLine,
+        type: selectedType,
+        walkingOffset,
       });
-      
-      // Log the prepared format (ready to send)
-      console.log('Prepared stop config (ready to send to server):', JSON.stringify(config, null, 2));
-      
-      Alert.alert('Saved', `Tower configured for ${config.stopName} - ${config.line.name}`);
+      Alert.alert('Saved', `Tower configured for ${selectedStop.name} (${selectedLine} ${selectedType})`);
       router.replace('/');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to save tower configuration');
     }
-  };
-  
-  // Render search result item
-  const renderSearchResult = ({ item }: { item: StopSummary }) => (
-    <Pressable 
-      style={styles.searchResultItem}
-      onPress={() => handleSelectStop(item)}
-    >
-      <ThemedText style={styles.searchResultText}>{item.name}</ThemedText>
-    </Pressable>
-  );
-  
-  // Render line item
-  const renderLineItem = (line: Line) => {
-    const isSelected = selectedLine?.gtfsId === line.gtfsId;
-    
-    return (
-      <Pressable
-        key={line.gtfsId}
-        style={[styles.lineItem, isSelected && styles.lineItemSelected]}
-        onPress={() => setSelectedLine(line)}
-      >
-        <View style={styles.lineInfo}>
-          <ThemedText style={[styles.lineName, isSelected && styles.lineTextSelected]}>
-            {line.name}
-          </ThemedText>
-          <ThemedText style={styles.lineDirection}>{line.direction}</ThemedText>
-        </View>
-        <ThemedText style={[styles.lineType, isSelected && styles.lineTextSelected]}>
-          {line.type}
-        </ThemedText>
-      </Pressable>
-    );
   };
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText style={styles.stepIndicator}>Step 4 of 4</ThemedText>
-      <ThemedText type="title" style={styles.title}>Tower configuration</ThemedText>
-      <ThemedText style={styles.subtitle}>configure your tower to display public transport departures</ThemedText>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ThemedText type="title" style={styles.title}>
+          Configure Tower
+        </ThemedText>
 
-      <View style={styles.form}>
-        {/* Stop Search */}
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Search for stops...</ThemedText>
-          <TextInput
-            style={styles.input}
-            placeholder="Type stop name..."
-            value={query}
-            onChangeText={handleQueryChange}
-            onFocus={() => query.trim() && setShowResults(true)}
-            placeholderTextColor="#999"
-          />
+        {/* Stop Search Input */}
+        <View style={styles.section}>
+          <ThemedText type="subtitle">Select Stop</ThemedText>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Search for a stop..."
+              placeholderTextColor="#888"
+              value={query}
+              onChangeText={setQuery}
+              onFocus={() => {
+                if (query.trim()) {
+                  setShowDropdown(true);
+                }
+              }}
+              onBlur={() => {
+                // Delay hiding to allow selection
+                setTimeout(() => setShowDropdown(false), 200);
+              }}
+            />
+            {loading && <ThemedText style={styles.loadingText}>Loading...</ThemedText>}
+          </View>
           
-          {/* Search Results Dropdown */}
-          {showResults && searchResults.length > 0 && (
-            <View style={styles.searchResults}>
+          {/* Dropdown showing filtered stops */}
+          {showDropdown && filteredStops.length > 0 && (
+            <View style={styles.dropdown}>
               <FlatList
-                data={searchResults}
-                renderItem={renderSearchResult}
+                data={filteredStops}
                 keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.stopItem}
+                    onPress={() => handleSelectStop(item)}
+                  >
+                    <ThemedText style={styles.stopName}>{item.name}</ThemedText>
+                  </TouchableOpacity>
+                )}
+                keyboardShouldPersistTaps="handled"
+                style={styles.dropdownList}
               />
             </View>
           )}
         </View>
 
-        {/* Loading indicator for stops */}
-        {isLoadingStops && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#D32F2F" />
-            <ThemedText style={styles.loadingText}>Loading stops...</ThemedText>
+        {/* Selected Stop Display */}
+        {selectedStop && (
+          <View style={styles.selectedSection}>
+            <ThemedText type="subtitle">Selected Stop</ThemedText>
+            <ThemedText style={styles.selectedText}>
+              {selectedStop.name}
+            </ThemedText>
           </View>
         )}
 
-        {/* Stop Lines */}
-        {selectedStop && !isLoadingLines && stopLines && (
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Select a line at {selectedStop.name}:</ThemedText>
-            
-            {getLinesByType().map(({ type, lines }) => (
-              <View key={type} style={styles.typeGroup}>
-                <ThemedText style={styles.typeLabel}>{type.toUpperCase()}</ThemedText>
-                {lines.map(line => renderLineItem(line))}
-              </View>
+        {/* Transport Type Selection */}
+        <View style={styles.section}>
+          <ThemedText type="subtitle">Transport Type</ThemedText>
+          <View style={styles.optionsRow}>
+            {typeOptions.map((type) => (
+              <Pressable
+                key={type}
+                style={[
+                  styles.optionButton,
+                  selectedType === type && styles.optionButtonSelected,
+                ]}
+                onPress={() => setSelectedType(type)}
+              >
+                <ThemedText
+                  style={[
+                    styles.optionText,
+                    selectedType === type && styles.optionTextSelected,
+                  ]}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </ThemedText>
+              </Pressable>
             ))}
           </View>
-        )}
+        </View>
 
-        {/* Loading indicator for lines */}
-        {isLoadingLines && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#D32F2F" />
-            <ThemedText style={styles.loadingText}>Loading lines...</ThemedText>
+        {/* Line Selection */}
+        <View style={styles.section}>
+          <ThemedText type="subtitle">Line</ThemedText>
+          <View style={styles.optionsRow}>
+            {lineOptions.map((line) => (
+              <Pressable
+                key={line}
+                style={[
+                  styles.lineButton,
+                  { backgroundColor: lineColors[line] },
+                  selectedLine === line && styles.lineButtonSelected,
+                ]}
+                onPress={() => setSelectedLine(line)}
+              >
+                <ThemedText
+                  style={[
+                    styles.lineButtonText,
+                    selectedLine === line && styles.lineButtonTextSelected,
+                  ]}
+                >
+                  {line}
+                </ThemedText>
+              </Pressable>
+            ))}
           </View>
-        )}
+        </View>
 
         {/* Walking Offset */}
-        {selectedLine && (
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Walking time to stop (minutes):</ThemedText>
-            <View style={styles.offsetRow}>
-              <Pressable
-                style={styles.offsetButton}
-                onPress={() => setWalkingOffset((prev) => Math.max(0, prev - 1))}
-              >
-                <ThemedText style={styles.offsetBtnText}>-</ThemedText>
-              </Pressable>
-              <ThemedText style={styles.offsetValue}>{walkingOffset}</ThemedText>
-              <Pressable
-                style={styles.offsetButton}
-                onPress={() => setWalkingOffset((prev) => Math.min(30, prev + 1))}
-              >
-                <ThemedText style={styles.offsetBtnText}>+</ThemedText>
-              </Pressable>
+        <View style={styles.section}>
+          <ThemedText type="subtitle">Walking Offset: mins</ThemedText>
+          <View style={styles.offsetRow}>
+            <Pressable
+              style={styles.offsetButton}
+              onPress={() => setWalkingOffset(Math.max(0, walkingOffset - 1))}
+            >
+              <ThemedText style={styles.offsetButtonText}>-</ThemedText>
+            </Pressable>
+            <View style={styles.offsetValue}>
+              <ThemedText style={styles.offsetText}>{walkingOffset}</ThemedText>
             </View>
+            <Pressable
+              style={styles.offsetButton}
+              onPress={() => setWalkingOffset(Math.min(30, walkingOffset + 1))}
+            >
+              <ThemedText style={styles.offsetButtonText}>+</ThemedText>
+            </Pressable>
           </View>
-        )}
-
-        {/* Selected Configuration Summary */}
-        {selectedLine && (
-          <View style={styles.summary}>
-            <ThemedText style={styles.summaryTitle}>Selected:</ThemedText>
-            <ThemedText style={styles.summaryText}>
-              {selectedStop?.name} → {selectedLine.name} ({selectedLine.direction})
-            </ThemedText>
-            <ThemedText style={styles.summaryText}>
-              Walking time: {walkingOffset} minutes
-            </ThemedText>
-          </View>
-        )}
-
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <Pressable 
-            style={[
-              styles.actionButton, 
-              styles.saveButton,
-              !selectedLine && styles.buttonDisabled
-            ]} 
-            onPress={handleSave}
-            disabled={!selectedLine}
-          >
-            <ThemedText style={styles.saveText}>Save</ThemedText>
-          </Pressable>
-          <Pressable 
-            style={[styles.actionButton, styles.cancelButton]}
-            onPress={() => router.back()}
-          >
-            <ThemedText style={styles.cancelText}>Cancel</ThemedText>
-          </Pressable>
         </View>
-      </View>
+
+        {/* Save Button */} 
+        <Pressable style={styles.saveButton} onPress={handleSave}>
+          <ThemedText style={styles.saveButtonText}>Add Configuration</ThemedText>
+        </Pressable>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -312,195 +257,161 @@ export default function TowerConfigScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 20,
+  },
+  scrollContent: {
+    padding: 25,
+    paddingTop: 60,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 4,
+    textAlign: 'center',
+    marginBottom: 30,
+    marginTop: 10,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#616161',
+  section: {
     marginBottom: 20,
   },
-  stepIndicator: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 12,
-    fontWeight: '600',
-  },
-  form: {
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
+  inputContainer: {
     position: 'relative',
-    zIndex: 1,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#333',
   },
   input: {
-    backgroundColor: '#f4f5f8',
-    borderColor: '#d8dbe1',
     borderWidth: 1,
-    borderRadius: 10,
+    borderColor: '#ccc',
+    borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#222',
+    marginTop: 8,
   },
-  searchResults: {
+  loadingText: {
     position: 'absolute',
-    top: 70,
+    right: 12,
+    top: 20,
+    color: '#888',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 50,
     left: 0,
     right: 0,
     backgroundColor: '#fff',
-    borderColor: '#d8dbe1',
     borderWidth: 1,
-    borderRadius: 10,
+    borderColor: '#ccc',
+    borderRadius: 8,
     maxHeight: 200,
-    zIndex: 100,
+    zIndex: 1000,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  searchResultItem: {
+  dropdownList: {
+    maxHeight: 200,
+  },
+  stopItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#eee',
   },
-  searchResultText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
+  stopName: {
     fontSize: 14,
-    color: '#666',
   },
-  typeGroup: {
-    marginTop: 8,
-    gap: 4,
+  selectedSection: {
+    backgroundColor: '#e8f5e9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
   },
-  typeLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#999',
-    letterSpacing: 1,
+  selectedText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginTop: 4,
   },
-  lineItem: {
+  optionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 10,
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 10,
+  },
+  optionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d8dbe1',
-    backgroundColor: '#fafafa',
-    marginBottom: 4,
+    borderColor: '#ccc',
+    backgroundColor: '#f5f5f5',
   },
-  lineItemSelected: {
-    borderColor: '#D32F2F',
-    backgroundColor: '#D32F2F',
+  optionButtonSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
   },
-  lineInfo: {
-    flex: 1,
-  },
-  lineName: {
-    fontSize: 16,
-    fontWeight: '700',
+  optionText: {
+    fontSize: 14,
     color: '#333',
   },
-  lineDirection: {
-    fontSize: 12,
-    color: '#666',
+  optionTextSelected: {
+    color: '#fff',
   },
-  lineType: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
-    textTransform: 'uppercase',
+  lineButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.6,
   },
-  lineTextSelected: {
+  lineButtonSelected: {
+    opacity: 1,
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  lineButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  lineButtonTextSelected: {
     color: '#fff',
   },
   offsetRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    marginTop: 8,
+    gap: 10,
   },
   offsetButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 40,
+    height: 35,
+    borderRadius: 15,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  offsetButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  offsetValue: {
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  offsetText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  saveButton: {
+    backgroundColor: '#ffffff',
+    padding: 15,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: '#D32F2F',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 10,
   },
-  offsetBtnText: {
-    fontSize: 22,
+  saveButtonText: {
     color: '#D32F2F',
-    fontWeight: '800',
-  },
-  offsetValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    minWidth: 30,
-    textAlign: 'center',
-  },
-  summary: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    gap: 4,
-  },
-  summaryTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#999',
-  },
-  summaryText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 18,
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#2e7d32',
-  },
-  cancelButton: {
-    backgroundColor: '#c62828',
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  saveText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  cancelText: {
-    color: '#fff',
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

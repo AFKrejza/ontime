@@ -18,6 +18,6 @@ export default function Index() {
     return <Redirect href="/main/screens/welcome" />;
   }
 
-  // Logged in → go to onboarding flow or main app (handled by _layout conditional)
+  // Logged in → go to main app
   return <Redirect href="/main/screens" />;
 }

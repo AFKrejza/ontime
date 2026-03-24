@@ -1,65 +1,51 @@
-import { Stack, Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { View, StyleSheet } from 'react-native';
+import { usePathname } from 'expo-router';
+import { CustomTabBar } from '@/components/custom-tab-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 import { useTowerConfig } from '@/contexts/TowerConfigContext';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Screens that should show the custom tab bar (main app screens)
+const mainAppScreens = ['/main/screens', '/main/screens/tower', '/main/screens/settings'];
+
 export default function ScreensLayout() {
+  const pathname = usePathname();
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
   const { isOnboardingComplete } = useTowerConfig();
   const { isLogged } = useAuth();
 
-  // Show onboarding flow (stack) only when onboarding is not complete AND user is not logged in
-  // This ensures logged-in users always see the tabs, never the onboarding stack
-  if (!isOnboardingComplete && !isLogged) {
-    return (
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}>
-        <Stack.Screen name="welcome" />
-        <Stack.Screen name="signup" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="scan" />
-        <Stack.Screen name="tower" />
-      </Stack>
-    );
-  }
+  // Show tab bar only when onboarding is complete AND user is logged in
+  // This hides the tab bar during onboarding/login flow
+  const showTabBar = isOnboardingComplete && isLogged;
 
-  // Show main app tabs after onboarding complete or when logged in
-  // Only show Home, Settings, and Tower tabs
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="tower"
-        options={{
-          title: 'Tower',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="antenna.radiowaves.left.and.right" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
-        }}
-      />
-    </Tabs>
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="tower" />
+          <Stack.Screen name="settings" />
+        </Stack>
+      </View>
+      {showTabBar && <CustomTabBar />}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+  },
+});

@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     marginBottom: 24,
+    paddingTop: 45,
     color: '#000',
   },
   section: {

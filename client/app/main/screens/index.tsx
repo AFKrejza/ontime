@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 interface DeviceInfo {
   id: string;
   label: string;
-  status: 'online' | 'offline';
+  status: 'online' | 'offline' | 'unknown';
   battery: number;
   lastSeen: string;
 }
@@ -66,12 +66,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     paddingBottom: 12,
     marginBottom: 10,
+    paddingTop: 30,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
     color: '#D32F2F',
     textTransform: 'lowercase',
+    marginTop: 15,
   },
   subtitle: {
     fontSize: 18,
@@ -121,7 +123,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginTop: 'auto',
-    borderRadius: 14,
+    borderRadius: 15,
     borderColor: '#D32F2F',
     borderWidth: 1,
     backgroundColor: '#FFFFFF',

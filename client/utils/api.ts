@@ -1,7 +1,13 @@
 import storage from './storage';
+import { Platform } from 'react-native';
 
 // Server URL - configurable via environment or storage
-const SERVER_URL = 'http://localhost:3000';
+// Use 10.0.2.2 for Android emulator
+// Use your computer's local IP address for physical devices
+// Default to local IP 10.0.0.72 for physical device development
+const SERVER_URL = 'http://10.0.0.72:3000';
+
+console.log('API Server URL:', SERVER_URL, 'Platform:', Platform.OS);
 
 // Types for API responses
 export interface StopSummary {
