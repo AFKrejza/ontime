@@ -10,6 +10,15 @@ import schedule from 'node-schedule';
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
 const CLIENT_URL = process.env.CLIENT_URL;
+const API_KEY = process.env.API_KEY;
+
+// Demo data - used as fallback when real data is not available
+const DEMO_STOPS = [
+	{ id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
+	{ id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
+	{ id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
+	{ id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
+];
 
 const app = express();
 app.use(express.json());
@@ -166,12 +175,7 @@ app.get("/api/stops", async (req, res) => {
 			}));
 		} catch (e) {
 			// If no trie data, return sample stops for demo
-			stops = [
-				{ id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
-				{ id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
-				{ id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
-				{ id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
-			];
+			stops = [...DEMO_STOPS];
 		}
 		res.json(stops);
 	} catch (err) {
@@ -209,14 +213,8 @@ app.get("/api/stops/search", async (req, res) => {
 				}));
 		} catch (e) {
 			// Fallback: return demo results
-			const demoStops = [
-				{ id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
-				{ id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
-				{ id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
-				{ id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
-			];
 			const lowerQuery = query.toLowerCase();
-			results = demoStops.filter(stop => 
+			results = DEMO_STOPS.filter(stop => 
 				stop.name.toLowerCase().includes(lowerQuery)
 			);
 		}
@@ -281,6 +279,12 @@ app.get("/api/stops/:id", async (req, res) => {
  */
 app.post("/api/departures", async (req, res) => {
 	try {
+		// Validate API key is configured
+		if (!API_KEY) {
+			console.error('API_KEY environment variable is not set');
+			return res.status(500).json({ error: 'Server configuration error: API key not configured' });
+		}
+
 		const { gtfsId, lineName, minutesBefore = -10, minutesAfter = 60 } = req.body;
 
 		if (!gtfsId || !lineName) {
@@ -303,7 +307,7 @@ app.post("/api/departures", async (req, res) => {
 		const response = await fetch(url, {
 			method: "GET",
 			headers: {
-				"X-Access-Token": process.env.API_KEY
+				"X-Access-Token": API_KEY
 			}
 		});
 
