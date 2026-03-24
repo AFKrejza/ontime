@@ -132,6 +132,51 @@ app.put("/addStop", async (req, res) => {
 	}
 })
 
+
+// Mock endpoint for gateway departures
+app.get("/gateway/:gatewayId/departures", async (req, res) => {
+	try {
+		const gatewayId = req.params.gatewayId;
+		
+		// Mock response data as per API docs
+		const mockResponse = {
+			timestamp: new Date().toISOString(),
+			displayData: [
+				{
+					towerId: "tower_001",
+					departures: [
+						{
+							headsign: "136 Jizni Mesto",
+							stopName: "Vysocanska",
+							type: "0",
+							leaveIn: "10m",
+							nextTime: "15:50"
+						}
+					]
+				}
+			]
+		};
+
+		// Optional: You can vary the response based on gatewayId if needed
+		// For example, if gatewayId === "2", return different mock data
+		if (gatewayId === "2") {
+			mockResponse.displayData[0].towerId = "tower_002";
+			mockResponse.displayData[0].departures[0] = {
+				headsign: "152 Ceskomoravska",
+				stopName: "Klicov",
+				type: "0",
+				leaveIn: "5m",
+				nextTime: "15:45"
+			};
+		}
+
+		res.json(mockResponse);
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: "Internal server error" });
+	}
+});
+
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);
 });
