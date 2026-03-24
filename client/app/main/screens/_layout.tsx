@@ -34,6 +34,7 @@ export default function ScreensLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="tower" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="scan" />
         </Stack>
       </View>
       {showTabBar && <CustomTabBar />}

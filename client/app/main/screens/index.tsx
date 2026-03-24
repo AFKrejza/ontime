@@ -48,7 +48,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      <Pressable style={styles.addButton} onPress={() => router.push('/main/screens/tower')}>
+      <Pressable style={styles.addButton} onPress={() => router.push('/main/screens/scan')}>
         <ThemedText style={styles.addButtonText}>+ Add Gateway</ThemedText>
       </Pressable>
     </ThemedView>
