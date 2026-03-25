@@ -3,6 +3,7 @@ import storage from '@/utils/storage';
 
 interface TowerConfig {
   stop: string;
+  stopId: string;
   line: string;
   type: string;
   walkingOffset: number;

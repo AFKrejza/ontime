@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { router } from 'expo-router';
 import { useTowerConfig } from '@/contexts/TowerConfigContext';
-import { fetchTrieData, StopSummary } from '@/utils/api';
+import { fetchTrieData, StopSummary, SERVER_URL } from '@/utils/api';
 
 const lineOptions = ['A', 'B', 'C'];
 const typeOptions = ['bus', 'tram', 'metro', 'train'];
@@ -96,12 +96,47 @@ export default function TowerConfigScreen() {
       return;
     }
     try {
+      // First save locally via context
       await saveTowerConfig({
         stop: selectedStop.name,
+        stopId: selectedStop.id,
         line: selectedLine,
         type: selectedType,
         walkingOffset,
       });
+
+      // Then try to save to server
+      try {
+        const response = await fetch(`${SERVER_URL}/addStop`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            offset: walkingOffset,
+            stopName: selectedStop.name,
+            stopId: selectedStop.id,
+            line: {
+              id: selectedLine,
+              name: selectedLine,
+              type: selectedType,
+              direction: '',
+              gtfsId: '',
+            },
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Server response:', result);
+        } else {
+          console.log('Server save failed, but saved locally');
+        }
+      } catch (serverError) {
+        // Continue even if server fails - data is saved locally
+        console.log('Server not available, saved locally only');
+      }
+
       Alert.alert('Saved', `Tower configured for ${selectedStop.name} (${selectedLine} ${selectedType})`);
       router.replace('/');
     } catch {
