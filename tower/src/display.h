@@ -34,13 +34,15 @@ enum Transport_Type {
 };
 
 // TODO: define max sizes, ensure the server doesn't send too much data, figure out how to fit stuff if it's too long (see what PID does with the headsigns! Maybe it's not even a problem!)
-#define HEADSIGN_SIZE 64
+#define LINE_NUMBER_SIZE 4 // assuming only 3 digits. TODO: verify this!
+#define LINE_DIRECTION_SIZE 16 // 15 wide fits nicely
 #define NEXT_TIME_SIZE 6 // 14:25 + \0
-#define LEAVE_IN_SIZE 64
-#define STOP_NAME_SIZE 64
+#define LEAVE_IN_SIZE 4 // 15m
+#define STOP_NAME_SIZE 23 // whole screen
 
 typedef struct line_data {
-	char headsign[HEADSIGN_SIZE];
+	char line_number[LINE_NUMBER_SIZE];
+	char line_direction[LINE_DIRECTION_SIZE];
 	char next_time[NEXT_TIME_SIZE];
 	char leave_in[LEAVE_IN_SIZE];
 	char stop_name[STOP_NAME_SIZE];
@@ -55,6 +57,6 @@ void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t size);
 void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
-void draw_stops(Line_Data *lines[]);
+void draw_assignments(Line_Data *lines[]);
 void outline_screen(const uint16_t color);
 void paint_screen(uint16_t color);

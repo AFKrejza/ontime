@@ -23,7 +23,8 @@ static inline void set_col(uint16_t start, uint16_t end);
 static inline void set_row(uint16_t start, uint16_t end);
 static inline void send_data(void *source, void *destination, size_t length);
 
-static void draw_headsign(char headsign[HEADSIGN_SIZE], uint16_t box_col_start, uint16_t box_row_start);
+static void draw_line_direction(char direction[LINE_DIRECTION_SIZE], uint16_t box_col_start, uint16_t box_row_start);
+static void draw_line_number(char line_number[LINE_NUMBER_SIZE], uint16_t box_col_start, uint16_t box_row_start);
 static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start);
 static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start);
 static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_start, uint16_t box_row_start);
@@ -230,11 +231,12 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 }
 
 // absolute positioning
+// only supports up to text size 4 without chunked transfer
 void draw_char_a(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
 {
 	const uint8_t *bitmap = font8x8_basic[c];
 
-	uint32_t byte_count = text_size * text_size * 2 * LETTER_EDGE * LETTER_EDGE; // only supports up to text size 4 without chunked transfer
+	uint32_t byte_count = text_size * text_size * 2 * LETTER_EDGE * LETTER_EDGE;
 	uint32_t buffer_index = 0;
 
 	for (uint8_t i = 0; i < 8 * text_size; i++)
@@ -336,64 +338,83 @@ void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_s
 }
 
 // does both stops. TODO: decide behavior when only one stop was updated, or when there are no stops.
-// Backend must support this too: Always send an array with 2 elements. If !lines[i]->headsign, then just print the default (waiting etc)
-void draw_stops(Line_Data *lines[]) // TODO: make them bigger so that the icon fits.
+// Backend must support this too: Always send an array with 2 elements. If !lines[i]->headsign, then 
+// just print the default (waiting etc)
+void draw_assignments(Line_Data *lines[]) // TODO: make them bigger so that the icon fits.
 {
+	const uint16_t box_height = 128;
 	for (uint8_t i = 0; i < 2; i++)
 	{
 		const uint16_t box_col_start = 8;
-		const uint16_t box_col_end = SCREEN_WIDTH - 0;
-		const uint16_t box_row_start = 0 + i * 90;
-		const uint16_t box_row_end = 90 + i * 90;
+		const uint16_t box_col_end = SCREEN_WIDTH - 1;
+		const uint16_t box_row_start = 0 + i * box_height;
+		const uint16_t box_row_end = box_height + i * box_height;
 		
 		draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
-		draw_image(box_col_start - 6, box_row_start + 28, lines[i]->type, 2);
+		draw_image(box_col_start, box_row_start + 40, lines[i]->type, 2);
 
-		draw_headsign(lines[i]->headsign,   box_col_start, box_row_start);
+		draw_line_direction(lines[i]->line_direction, box_col_start, box_row_start);
+		draw_line_number(lines[i]->line_number, box_col_start, box_row_start);
 		draw_stop_name(lines[i]->stop_name, box_col_start, box_row_start);
 		draw_next_time(lines[i]->next_time, box_col_start, box_row_start);
 		draw_leave_in(lines[i]->leave_in,   box_col_start, box_row_start);
 	}
 }
 
-// e.g. 136 Jizni Mesto
-static void draw_headsign(char headsign[HEADSIGN_SIZE], uint16_t box_col_start, uint16_t box_row_start)
+// e.g. Jizni Mesto
+static void draw_line_direction(char direction[LINE_DIRECTION_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
 	uint8_t size = SIZE_L;
-	uint16_t col_start = box_col_start + 10;
-	uint16_t row_start = box_row_start + 2;
-	draw_string(headsign, col_start, row_start, size);
+	uint16_t col_start = box_col_start + 96;
+	uint16_t row_start = box_row_start + 8;
+	draw_string(direction, col_start, row_start, size);
+}
+
+// e.g. 136
+static void draw_line_number(char line_number[LINE_NUMBER_SIZE], uint16_t box_col_start, uint16_t box_row_start)
+{
+	uint8_t size = SIZE_L;
+	uint16_t col_start = box_col_start;
+	uint16_t row_start = box_row_start + 8;
+	draw_string(line_number, col_start, row_start, size);
 }
 
 // e.g. Zlicin
 static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
-	uint8_t size = SIZE_S;
-	uint16_t row_start = box_row_start + 16 + LETTER_EDGE * size;
-	uint16_t col_start = box_col_start + 102;
+	uint8_t size = SIZE_M;
+	uint16_t row_start = box_row_start + 36;
+	uint16_t col_start = box_col_start + 96;
 	draw_string(stop_name, col_start, row_start, size);
 }
 
 // e.g. leave in x minutes
 static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
-	char *text = "Leave in:";
+	char *text = "Leave in";
 	uint8_t size = SIZE_M;
-	uint16_t text_col_start = box_col_start + 250;
-	uint16_t text_col_end = text_col_start + strlen(text) * size * LETTER_EDGE;
-	uint16_t row_start = box_row_start + 12 + 2 * size * LETTER_EDGE;
+	uint16_t col_start = box_col_start + 328;
+	uint16_t row_start = box_row_start + 60;
 
-	draw_string(text, text_col_start, row_start, size);
+	draw_string(text, col_start, row_start, size);
 
 	size = SIZE_XL;
-	draw_string(leave_in, text_col_end, row_start, size);
+	row_start = row_start + 24;
+
+	draw_string(leave_in, col_start, row_start, size);
 }
 
 // e.g. 16:24
 static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
-	uint8_t size = SIZE_L;
 	uint16_t col_start = box_col_start + 100;
-	uint16_t row_start = box_row_start + 12 + 2 * LETTER_EDGE * size;
+	uint16_t row_start = box_row_start + 60;
+	uint8_t size = SIZE_M;
+	
+	char *text = "Departure";
+	draw_string(text, col_start, row_start, size);
+
+	row_start = row_start + 24;
+	size = SIZE_XL;
 	draw_string(next_time, col_start, row_start, size);
 }

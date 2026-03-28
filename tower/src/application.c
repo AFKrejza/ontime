@@ -30,42 +30,37 @@ void application_init(void)
 	
 	display_init();
 	paint_screen(BLACK);
-	// outline_screen(GREEN);
 
 	Line_Data cesko;
-	char s[] = "151 Ceskomoravska";
-	char c[] = "15:50";
-	char l[] = "5m";
-	char sn[] = "Klicov";
-	strncpy(cesko.headsign, s, sizeof(cesko.headsign));
-	strncpy(cesko.next_time, c, sizeof(cesko.next_time));
-	strncpy(cesko.leave_in, l, sizeof(cesko.leave_in));
-	strncpy(cesko.stop_name, sn, sizeof(cesko.stop_name));
+	char c_ln[] = "151";
+	char c_ld[] = "Ceskomoravska";
+	char c_nt[] = "15:50";
+	char c_li[] = "5m";
+	char c_sn[] = "Klicov";
+	strncpy(cesko.line_number, c_ln, sizeof(cesko.line_number));
+	strncpy(cesko.next_time, c_nt, sizeof(cesko.next_time));
+	strncpy(cesko.line_direction, c_ld, sizeof(cesko.line_direction));
+	strncpy(cesko.leave_in, c_li, sizeof(cesko.leave_in));
+	strncpy(cesko.stop_name, c_sn, sizeof(cesko.stop_name));
 	cesko.type = 0;
 	
 	Line_Data vyso;
-	char s2[] = "136 Jizni Mesto";
-	char c2[] = "15:50";
-	char l2[] = "5m";
-	char sn2[] = "Novovysocanska";
-	strncpy(vyso.headsign, s2, sizeof(vyso.headsign));
-	strncpy(vyso.next_time, c2, sizeof(vyso.next_time));
-	strncpy(vyso.leave_in, l2, sizeof(vyso.leave_in));
-	strncpy(vyso.stop_name, sn2, sizeof(vyso.stop_name));
+	char v_ln[] = "136";
+	char v_ld[] = "Jizni Mesto";
+	char v_nt[] = "15:50";
+	char v_li[] = "5m";
+	char v_sn[] = "Novovysocanska";
+	strncpy(vyso.line_number, v_ln, sizeof(vyso.line_number));
+	strncpy(vyso.next_time, v_nt, sizeof(vyso.next_time));
+	strncpy(vyso.line_direction, v_ld, sizeof(vyso.line_direction));
+	strncpy(vyso.leave_in, v_li, sizeof(vyso.leave_in));
+	strncpy(vyso.stop_name, v_sn, sizeof(vyso.stop_name));
 	vyso.type = 0;
 
 	Line_Data *lines[] = { &cesko, &vyso };
 
-	draw_stops(lines);
+	draw_assignments(lines);
 
-	twr_log_debug("end text");
-	draw_image(0, 240, 1, 1);
-	draw_image(40, 240, 1, 2);
-	draw_image(130, 240, BUS, 1);
-	draw_image(180, 240, BUS, 2);
-
-	draw_image(290, 240, 2, 1);
-	draw_image(360, 240, 2, 2);
 
 	twr_log_debug("end");
 }
