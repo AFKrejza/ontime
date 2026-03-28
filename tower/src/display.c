@@ -23,10 +23,10 @@ static inline void set_col(uint16_t start, uint16_t end);
 static inline void set_row(uint16_t start, uint16_t end);
 static inline void send_data(void *source, void *destination, size_t length);
 
-static void draw_headsign(char headsign[HEADSIGN_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start);
-static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start);
-static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start);
-static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start);
+static void draw_headsign(char headsign[HEADSIGN_SIZE], uint16_t box_col_start, uint16_t box_row_start);
+static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start);
+static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start);
+static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_start, uint16_t box_row_start);
 
 // defines the memory region it'll write to
 static inline void set_address(uint8_t axis, uint16_t start, uint16_t end)
@@ -229,7 +229,7 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 	send_data(buffer, NULL, byte_count);
 }
 
-// absolute positioning TODO: merge with draw_char
+// absolute positioning
 void draw_char_a(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
 {
 	const uint8_t *bitmap = font8x8_basic[c];
@@ -266,12 +266,12 @@ void draw_char_a(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text
 }
 
 // only needed when deleting, not for overwriting
-void clear_char(uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
+void clear_char(uint16_t col_start, uint16_t row_start, uint8_t text_size)
 {
-	draw_char(0, grid_x, grid_y, text_size);
+	draw_char(0, col_start, row_start, text_size);
 }
 
-// like a hollow rectangle
+// hollow rectangle
 void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
 {
 	draw_rect(col_start, col_end, row_start, row_start, color); // top
@@ -280,142 +280,120 @@ void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint
 	draw_rect(col_end, col_end, row_start, row_end, color); // right
 }
 
-// void draw_string(unsigned char *s, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
-// {
-// 	for (uint16_t i = 0; i < strlen(s); i++)
-// 	{
-// 		uint16_t x = grid_x + text_size * i > SCREEN_WIDTH / text_size ? 
-// 		draw_char(s[i], x, grid_y + text_size * i, text_size);
-// 	}
-// }
-
-// TODO: use 32 cols (bits) per row
-// used for drawing the bus/metro/tram icons
-void draw_image(uint16_t col, uint16_t row , uint8_t type) // needs chunking for increasing image size
+// used for drawing the 32x32 bus/metro/tram icons
+// TODO: add color options such as for metros
+void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t img_size)
 {
-	const uint8_t *bitmap = images[type];
+	const uint8_t (*bitmap)[4] = images_32x32[type];
 	uint32_t buffer_index = 0;
 
-	for (uint16_t i = 0; i < 128; i++)
+	set_col(col, col + 32 * img_size - 1);
+	set_row(row, row + 32 * img_size - 1);
+	start_pixel_stream();
+
+	for (uint16_t i = 0; i < 32; i++)
 	{
-		for (uint16_t j = 0; j < 8; j++)
+		for (uint16_t s = 0; s < img_size; s++)
 		{
-				bool bit = bitmap[i] >> j & 1;
-				uint16_t color = bit ? TEXT_COLOR : BG_COLOR;
-				buffer[buffer_index] = color >> 8;
-				buffer[buffer_index + 1] = color & 0xFF;
-				buffer_index += 2;
+			for (uint16_t j = 0; j < 4; j++)
+			{
+				for (int16_t p = 7; p >= 0; p--)
+				{
+					bool bit = bitmap[i][j] >> p & 1;
+					uint16_t color = bit ? BG_COLOR : TEXT_COLOR;
+					for (uint16_t b = 0; b < img_size; b++)
+					{
+						buffer[buffer_index] = color >> 8;
+						buffer[buffer_index + 1] = color & 0xFF;
+						buffer_index += 2;
+						if (buffer_index == BUFFER_SIZE)
+						{
+							send_data(buffer, NULL, BUFFER_SIZE);
+							buffer_index = 0;
+						}
+					}
+				}
+			}
 		}
 	}
-
-	set_col(col, col + 31);
-	set_row(row, row + 31);
-	start_pixel_stream();
-	send_data(buffer, NULL, buffer_index + 1);
 }
 
-// does both stops. TODO: decide behavior when only one stop was updated. Backend must support this too: Always send an array with 2 elements. If !lines[i]->headsign, then just print the default (waiting etc)
+void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_size)
+{
+	uint16_t char_col_start;
+	uint16_t letter_width = text_size * LETTER_EDGE;
+
+	for (uint16_t i = 0; i < strlen(s); i++)
+	{
+		char_col_start = col_start + i * letter_width;
+		draw_char_a( 
+			s[i],
+			char_col_start,
+			row_start,
+			text_size
+		);
+	}
+}
+
+// does both stops. TODO: decide behavior when only one stop was updated, or when there are no stops.
+// Backend must support this too: Always send an array with 2 elements. If !lines[i]->headsign, then just print the default (waiting etc)
 void draw_stops(Line_Data *lines[]) // TODO: make them bigger so that the icon fits.
 {
 	for (uint8_t i = 0; i < 2; i++)
 	{
-		uint16_t box_col_start = 0;
+		const uint16_t box_col_start = 8;
 		const uint16_t box_col_end = SCREEN_WIDTH - 0;
 		const uint16_t box_row_start = 0 + i * 90;
 		const uint16_t box_row_end = 90 + i * 90;
 		
-		draw_outline(box_col_start, box_col_end, box_row_start, box_row_end, WHITE);
-		draw_rect(box_col_start + 2, box_col_start + 66, box_row_start + 25, box_row_start + 89, GREEN);
+		draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
+		draw_image(box_col_start - 6, box_row_start + 28, lines[i]->type, 2);
 
-		box_col_start += 8;
-
-		// TODO: hardcode regions to prevent overflow. On backend as well
-		// TODO: make draw_string and add start variables to simplify all these calculations, this kinda sucks
-		draw_headsign(lines[i]->headsign, i, box_col_start, box_row_start);
-		draw_stop_name(lines[i]->stop_name, i, box_col_start, box_row_start);
-		draw_next_time(lines[i]->next_time, i, box_col_start, box_row_start);
-		draw_leave_in(lines[i]->leave_in, i, box_col_start, box_row_start);
+		draw_headsign(lines[i]->headsign,   box_col_start, box_row_start);
+		draw_stop_name(lines[i]->stop_name, box_col_start, box_row_start);
+		draw_next_time(lines[i]->next_time, box_col_start, box_row_start);
+		draw_leave_in(lines[i]->leave_in,   box_col_start, box_row_start);
 	}
 }
 
-// e.g. 136 Jizni Mesto; TODO: define screen regions for each part
-static void draw_headsign(char headsign[HEADSIGN_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start)
+// e.g. 136 Jizni Mesto
+static void draw_headsign(char headsign[HEADSIGN_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
 	uint8_t size = SIZE_L;
+	uint16_t col_start = box_col_start + 10;
 	uint16_t row_start = box_row_start + 2;
-	for (uint16_t j = 0; j < strlen(headsign); j++) 
-	{
-		uint16_t col_start = box_col_start + 10 + j * size * LETTER_EDGE;
-		draw_char_a( 
-			headsign[j],
-			col_start,
-			row_start,
-			size
-		);
-	}
+	draw_string(headsign, col_start, row_start, size);
 }
 
-static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start)
+// e.g. Zlicin
+static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
 	uint8_t size = SIZE_S;
 	uint16_t row_start = box_row_start + 16 + LETTER_EDGE * size;
-	for (uint16_t j = 0; j < strlen(stop_name); j++)
-	{
-		uint16_t col_start = box_col_start + 102 + j * size * LETTER_EDGE;
-		draw_char_a(
-			stop_name[j],
-			col_start,
-			row_start,
-			size
-		);
-	}
+	uint16_t col_start = box_col_start + 102;
+	draw_string(stop_name, col_start, row_start, size);
 }
 
 // e.g. leave in x minutes
-static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start)
+static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
-	draw_rect(400, 410, 300, 310, RED);
-	const char *text = "Leave in:";
+	char *text = "Leave in:";
 	uint8_t size = SIZE_M;
 	uint16_t text_col_start = box_col_start + 250;
 	uint16_t text_col_end = text_col_start + strlen(text) * size * LETTER_EDGE;
 	uint16_t row_start = box_row_start + 12 + 2 * size * LETTER_EDGE;
 
-	for (uint16_t j = 0; j < strlen(text); j++)
-	{
-		draw_char_a(
-			text[j],
-			text_col_start + j * size * LETTER_EDGE,
-			row_start,
-			size
-		);
-	}
+	draw_string(text, text_col_start, row_start, size);
 
 	size = SIZE_XL;
-	for (uint16_t j = 0; j < strlen(leave_in); j++)
-	{
-		draw_char_a(
-			leave_in[j],
-			text_col_end + j * size * LETTER_EDGE,
-			row_start,
-			size
-		);
-	}
+	draw_string(leave_in, text_col_end, row_start, size);
 }
 
-// e.g. next bus at 16:24
-static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint8_t i, uint16_t box_col_start, uint16_t box_row_start)
+// e.g. 16:24
+static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start)
 {
 	uint8_t size = SIZE_L;
+	uint16_t col_start = box_col_start + 100;
 	uint16_t row_start = box_row_start + 12 + 2 * LETTER_EDGE * size;
-	for (uint16_t j = 0; j < strlen(next_time); j++)
-	{
-		uint16_t col_start = box_col_start + 100 + j * size * LETTER_EDGE;
-		draw_char_a(
-			next_time[j],
-			col_start,
-			row_start,
-			size
-		);
-	}
+	draw_string(next_time, col_start, row_start, size);
 }

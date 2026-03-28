@@ -6,6 +6,9 @@
 #include "display.h"
 
 twr_led_t led;
+twr_button_t button;
+
+void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 
 // Application initialization function which is called once after boot
 void application_init(void)
@@ -20,12 +23,14 @@ void application_init(void)
 	twr_radio_init(TWR_RADIO_MODE_NODE_SLEEPING);
 	twr_radio_pairing_request("tower-ontime", FW_VERSION);
 	twr_led_pulse(&led, 2000);
+	twr_radio_pub_string("/general", "it works");
 
+	twr_button_init(&button, TWR_GPIO_BUTTON, TWR_GPIO_PULL_DOWN, 0);
+	twr_button_set_event_handler(&button, button_event_handler, NULL);
+	
 	display_init();
-
 	paint_screen(BLACK);
 	// outline_screen(GREEN);
-
 
 	Line_Data cesko;
 	char s[] = "151 Ceskomoravska";
@@ -36,7 +41,7 @@ void application_init(void)
 	strncpy(cesko.next_time, c, sizeof(cesko.next_time));
 	strncpy(cesko.leave_in, l, sizeof(cesko.leave_in));
 	strncpy(cesko.stop_name, sn, sizeof(cesko.stop_name));
-	cesko.type = 1;
+	cesko.type = 0;
 	
 	Line_Data vyso;
 	char s2[] = "136 Jizni Mesto";
@@ -47,21 +52,21 @@ void application_init(void)
 	strncpy(vyso.next_time, c2, sizeof(vyso.next_time));
 	strncpy(vyso.leave_in, l2, sizeof(vyso.leave_in));
 	strncpy(vyso.stop_name, sn2, sizeof(vyso.stop_name));
-	vyso.type = 1;
+	vyso.type = 0;
 
 	Line_Data *lines[] = { &cesko, &vyso };
 
 	draw_stops(lines);
 
-	// for (uint16_t i = 0; i < strlen(s2); i++)
-	// {
-	// 	draw_char_a(s2[i], 5 + i * SIZE_L * 8, 5, SIZE_L);
-	// }
-
-	
-
 	twr_log_debug("end text");
-	draw_image(350, 240, BUS);
+	draw_image(0, 240, 1, 1);
+	draw_image(40, 240, 1, 2);
+	draw_image(130, 240, BUS, 1);
+	draw_image(180, 240, BUS, 2);
+
+	draw_image(290, 240, 2, 1);
+	draw_image(360, 240, 2, 2);
+
 	twr_log_debug("end");
 }
 
@@ -76,3 +81,11 @@ void application_task(void)
 	twr_scheduler_plan_current_from_now(1000);
 }
 
+void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param)
+{
+	if (event == TWR_BUTTON_EVENT_CLICK)
+	{
+		twr_log_debug("click");
+		NVIC_SystemReset();
+	}
+}
