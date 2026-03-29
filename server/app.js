@@ -146,11 +146,12 @@ app.get("/gateway/:gatewayId/departures", async (req, res) => {
 					towerId: "tower_001",
 					departures: [
 						{
-							headsign: "136 Jizni Mesto",
+							lineNumber: "136",
+							lineDirection: "Jizni Mesto",
 							stopName: "Vysocanska",
-							type: "0",
+							nextTime: "15:50",
 							leaveIn: "10m",
-							nextTime: "15:50"
+							type: 0
 						}
 					]
 				}
@@ -162,11 +163,12 @@ app.get("/gateway/:gatewayId/departures", async (req, res) => {
 		if (gatewayId === "2") {
 			mockResponse.displayData[0].towerId = "tower_002";
 			mockResponse.displayData[0].departures[0] = {
-				headsign: "152 Ceskomoravska",
+				lineNumber: "152",
+				lineDirection: "Ceskomoravska",
 				stopName: "Klicov",
-				type: "0",
+				nextTime: "15:45",
 				leaveIn: "5m",
-				nextTime: "15:45"
+				type: 0
 			};
 		}
 
