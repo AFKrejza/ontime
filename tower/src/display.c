@@ -193,46 +193,9 @@ void draw_pixel(uint16_t row, uint16_t col, uint16_t color)
 	draw_rect(col, col, row, row, color);
 }
 
+// only supports up to text size 4 without chunked transfer
 // draws any 8 byte bitmap where each byte is a line
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
-{
-	// TODO: use bounds checking like draw_rect, implement chunked transfer, use absolute grid + decide on overflow or using another function to use the relative grid.	
-	const uint8_t *bitmap = font8x8_basic[c];
-
-	uint32_t byte_count = text_size * text_size * 2 * LETTER_EDGE * LETTER_EDGE; // only supports up to text size 4 without chunked transfer
-	uint32_t buffer_index = 0;
-
-	for (uint8_t i = 0; i < 8 * text_size; i++)
-	{
-		for (uint16_t j = 0; j < 8 * text_size; j++)
-		{
-			uint16_t color;
-			bool bit = bitmap[i / text_size] >> (j / text_size) & 1;
-			if (bit)
-				color = TEXT_COLOR;
-			else
-				color = BG_COLOR;
-
-			buffer[buffer_index]     = color >> 8;
-			buffer[buffer_index + 1] = color & 0xFF;
-			buffer_index += 2;
-		}
-	}
-
-	const uint16_t col_start = text_size * grid_x * LETTER_EDGE;
-	const uint16_t col_end   = col_start + (text_size * LETTER_EDGE) - 1;
-	const uint16_t row_start = text_size * grid_y * LETTER_EDGE;
-	const uint16_t row_end   = row_start + (text_size * LETTER_EDGE) - 1;
-
-	set_col(col_start, col_end);
-	set_row(row_start, row_end);
-	start_pixel_stream();
-	send_data(buffer, NULL, byte_count);
-}
-
-// absolute positioning
-// only supports up to text size 4 without chunked transfer
-void draw_char_a(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
 {
 	const uint8_t *bitmap = font8x8_basic[c];
 
@@ -328,7 +291,7 @@ void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_s
 	for (uint16_t i = 0; i < strlen(s); i++)
 	{
 		char_col_start = col_start + i * letter_width;
-		draw_char_a( 
+		draw_char( 
 			s[i],
 			char_col_start,
 			row_start,

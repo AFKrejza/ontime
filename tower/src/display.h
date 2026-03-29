@@ -52,7 +52,6 @@ typedef struct line_data {
 void clear_char(uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
 void display_init();
 void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
-void draw_char_a(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
 void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t size);
 void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
