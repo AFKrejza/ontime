@@ -1,6 +1,4 @@
 {
-  "cron": "1 * * * *",
-  "offset": 10,
   "stopName": "Vysočanská",
   "stopId": "vysocanska",
   "line": {
@@ -9,5 +7,7 @@
     "type": "bus",
     "direction": "Jižní Město",
     "gtfsId": "U474Z6P"
-  }
+  },
+  "offset": -10,
+  "cron": "*/1 * * * * *"
 }

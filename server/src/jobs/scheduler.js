@@ -3,10 +3,9 @@ import dotenv from 'dotenv';
 import fs from 'node:fs/promises';
 
 const path = `./data/myStop.json`;
-const cron = '1 * * * *'; // 1 minute
-// const cron = '*/1 * * * * *'; // 1 second interval
+// const cron = '1 * * * *'; // 1 minute
+const cron = '*/1 * * * * *'; // 1 second interval
 
-// only handles 1 stop!
 export function scheduler() {
 	const fetchJob = schedule.scheduleJob(cron, async function() {
 		try {
@@ -23,6 +22,7 @@ export function scheduler() {
 	});
 }
 
+// only handles 1 stop! it replaces the current one
 export async function createJob(data) {
 	const {stopName, stopId, line, offset} = data;
 	const job = new Job(stopName, stopId, line, offset, cron);
@@ -35,12 +35,15 @@ async function fetchStop(job) {
 		const gtfsId = job.line.gtfsId;
 		const name = job.line.name;
 		const offset = job.offset;
+		
+		const limit = 1; // default 1
+		const minutesAfter = 60; // default 60
 		const url = `
 			https://api.golemio.cz/v2/public/departureboards?
 			stopIds={"0": ["${gtfsId}"]}&
-			limit=5&
+			limit=${limit}&
 			routeShortNames=${name}&
-			minutesAfter=60&
+			minutesAfter=${minutesAfter}&
 			minutesBefore=${offset}
 		`;
 		const get = await fetch(url, {
@@ -49,9 +52,17 @@ async function fetchStop(job) {
 				"X-Access-Token": process.env.API_KEY
 			}
 		});
+		
 		const data = await get.json();
-		// console.log(data[0][0]);
-		console.log(`fetched ${name}`);
+		if (!data.departures || data.departures.length === 0) {
+    		console.log(`No departures found for line ${name}`);
+    		return;
+		}
+		const departure = data[0][0].departure;
+		const delay = departure.delay_seconds;
+		const minutes = departure.minutes;
+		const scheduled = departure.timestamp_scheduled;
+		console.log(`fetched ${name}, scheduled: ${scheduled} delay: ${delay}, minutes: ${minutes}`);
 		return data;
 	} catch (err) {
 		console.error(err);
@@ -64,7 +75,7 @@ class Job {
 		this.stopName = stopName;
 		this.stopId = stopId;
 		this.line = line;
-		this.offset = offset * -1;
+		this.offset = offset * -1; // PID wants a negative
 		this.cron = cron;
 	}
 }

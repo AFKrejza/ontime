@@ -4,10 +4,8 @@
 // the client will then create the trie
 
 import * as fs from "node:fs/promises";
-import { removeDiacritics } from "../../utils/removeDiacritics.js";
 import { StopSummary } from "../classes.js";
 
-// replaces diacritics with Latin letters
 export async function updateTrieData() {
 	const stopGroups = JSON.parse(await fs.readFile("./data/stopDetails.json"));
 

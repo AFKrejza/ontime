@@ -3,11 +3,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
-import { updateTrieData } from "./src/stop_data/helpers/updateTrieData.js";
-// import { jobList } from "./jobs/scheduler.js";
-import schedule from 'node-schedule';
 import { scheduler, createJob } from './src/jobs/scheduler.js';
-
+import db from "./db.js";
+// 
+import router from "./testing_db.js"; 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
 const CLIENT_URL = process.env.CLIENT_URL;
@@ -17,7 +16,8 @@ app.use(express.json());
 app.use(cors({
 	origin: CLIENT_URL
 }));
-
+//
+app.use("/api/tower", router);
 // TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
 scheduler();
@@ -60,18 +60,17 @@ app.get("/stopGroups/:id", async (req, res) => {
 		const stop = stopGroups.find((stop) => stop.id === id);
 
 		if (!stop)
-			throw new Error(`Stop ${id} not found`); // TODO: add status codes
+			throw new Error(`Stop ${id} not found`);
 
 		res.send(stop);
 	} catch (err) {
 		console.error(err);
-		res.send(err);
+		res.send(err); // TODO: add status codes and proper errors everywhere
 	}
 });
 
 // testing endpoint without saving data
 // https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U474Z6P"]}&limit=1&routeShortNames=136&minutesAfter=60&minutesBefore=-10
-// plus the X-Access-Token
 app.put("/getStop", async (req, res) => {
 	try {
 		const gtfsId = req.body.line.gtfsId;
@@ -99,27 +98,84 @@ app.put("/getStop", async (req, res) => {
 	}
 });
 
-// adds a stop and schedules it
+// TODO: needs type validation and a check to verify that the stop actually exists
+// replaces the currently tracked stop.
 app.put("/addStop", async (req, res) => {
 	try {
-		const data = {
-			offset: 10,
-			stopName: "Vysočanská",
-			stopId: "vysocanska",
-			line: {
-				id: 136,
-				name: "136",
-				type: "bus",
-				direction: "Jižní Město",
-				gtfsId: "U474Z6P"
+		// const example = { // send all of this. Later on we'll only need the offset, stopId, lineId/name and gtfsId
+		// 	offset: 10,
+		// 	stopName: "Vysočanská",
+		// 	stopId: "vysocanska",
+		// 	line: {
+		// 		id: 136,
+		// 		name: "136",
+		// 		type: "bus",
+		// 		direction: "Jižní Město",
+		// 		gtfsId: "U474Z6P"
+		// 	}
+		// };
+		
+		class Stop {
+			constructor(offset, stopName, stopId, line) {
+				this.offset = offset;
+				this.stopName = stopName;
+				this.stopId = stopId;
+				this.line = line;
 			}
-		};
-		const msg = await createJob(data);
+		}
+		const newStop = new Stop(req.body.offset, req.body.stopName, req.body.stopId, req.body.line);
+
+		const msg = await createJob(newStop);
 		res.send(msg);
 	} catch (err) {
 		console.error(err);
 	}
 })
+
+
+// Mock endpoint for gateway departures
+app.get("/gateway/:gatewayId/departures", async (req, res) => {
+	try {
+		const gatewayId = req.params.gatewayId;
+		
+		// Mock response data as per API docs
+		const mockResponse = {
+			timestamp: new Date().toISOString(),
+			displayData: [
+				{
+					towerId: "tower_001",
+					departures: [
+						{
+							headsign: "136 Jizni Mesto",
+							stopName: "Vysocanska",
+							type: "0",
+							leaveIn: "10m",
+							nextTime: "15:50"
+						}
+					]
+				}
+			]
+		};
+
+		// Optional: You can vary the response based on gatewayId if needed
+		// For example, if gatewayId === "2", return different mock data
+		if (gatewayId === "2") {
+			mockResponse.displayData[0].towerId = "tower_002";
+			mockResponse.displayData[0].departures[0] = {
+				headsign: "152 Ceskomoravska",
+				stopName: "Klicov",
+				type: "0",
+				leaveIn: "5m",
+				nextTime: "15:45"
+			};
+		}
+
+		res.json(mockResponse);
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: "Internal server error" });
+	}
+});
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);
