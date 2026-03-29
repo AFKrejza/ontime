@@ -6,7 +6,7 @@ This API specification covers user authentication, stop configuration, and syste
 ## Get all stops for autocomplete DONE
 Returns every stop's name and id.
 Endpoint: GET `/trieData` 
-Headers: Authorization: Bearer <jwt-token> 
+Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
 [ 
@@ -20,7 +20,7 @@ Response:
 ## Get stop details with lines DONE
 Returns all the stop's lines grouped by type. The stopId is the `id` from `/trieData`.  
 Endpoint: GET `/stopGroups/:stopId`  
-Headers: Authorization: Bearer <jwt-token>   
+Headers: Authorization: Bearer `jwt-token`  
 Response (partial):  
 ```
 { 
@@ -59,11 +59,12 @@ Response (partial):
 ## Add an assignment to a tower NOT IMPLEMENTED
 This needs to be stored in the db.  
 Endpoint: PUT `/gateway/:gatewayId/addStop`  
+Headers: Authorization: Bearer `jwt-token`  
 Request Body:  
 ```
 {
 	"towerId": "tower-667", // string
-	"offset": -10, // must be a negative number
+	"offset": -10, // must be <= 0
 	"assignments": [
 		{
 			"stopName": "Vysočanská",
@@ -78,7 +79,6 @@ Request Body:
 }
 ```
 
-# Ignore authentication for now
 ## Authentication NOT IMPLEMENTED
 Endpoint: POST /api/auth/login  
 Request body:  

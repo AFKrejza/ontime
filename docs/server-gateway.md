@@ -1,4 +1,4 @@
-23/03/2026
+29/03/2026
 
 # Server - Gateway
 This API specification covers Tower registration, status updates, and stop data distribution.
@@ -9,7 +9,7 @@ This must support multiple towers, and each tower can have up to 2 departures.
 If it has only one departure, set the second departure’s properties as empty strings "".  
 If PID didn't return any departures (failed API call / departure not found in the response), set the nextTime and leaveIn as empty strings.  
 displayData is an array containing one entry per tower. Each entry's departures array can contain up to 2 departures.  
-The server must: read the database to read all of that gateway's tower->stop assignments, then make one request to PID, format it, and send the response. It's described a bit better in `./server-pid.md`
+The server must: read the database to read all of that gateway's tower->stop assignments, then make one request to PID, format it, and send the response. It's described a bit better in `./server-pid.md`  
 
 Endpoint: GET `/gateway/{gatewayId}/departures`  
 Headers: Authorization: Bearer gateway-token (23/03 ignore the header for the MVP)  
@@ -22,11 +22,12 @@ Response:
 			"towerId": "tower_001",
 			"departures": [
 				{
-					"headsign": "136 Jizni Mesto", // string,
-					"stopName": "Vysocanska", // string, use the stop id which has no diacritics
-					"type": "0", // number (enum) from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry;
-					"leaveIn": "10m", // string length 3
-					"nextTime": "15:50" // string length 5
+					"lineNumber": "136", // string, length 3
+					"lineDirection": "Jizni Mesto", // string, length 15
+					"stopName": "Vysocanska", // string, length 22, use the stop id which has no diacritics
+					"nextTime": "15:50" // string, length 5
+					"leaveIn": "10m", // string, length 3
+					"type": "0", // number, enum from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry;
 				}
 			]
 		}
@@ -72,7 +73,7 @@ Request Body:
 			"connected": true, 
 			"firmwareVersion": "1.0.0",
 			"lastSeen": "2026-03-12T14:29:55Z", 
-			"voltage": 1.48, 
+			"voltage": 1.48
 		}, 
 		{ 
 			"towerId": "tower_002", 
