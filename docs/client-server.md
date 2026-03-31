@@ -1,9 +1,17 @@
-23/03/2026
+31/03/2026
+
+TODO:
+- CRUD for assignments
+- Gateway CRUD: list, rename, delete gateways
+- CRUD for towers
+- user signup
 
 # Client - Server
 This API specification covers user authentication, stop configuration, and system monitoring.
 
-## Get all stops for autocomplete NOT IMPLEMENTED
+
+
+## Get all stops for autocomplete
 Returns every stop's name, id, and display_ascii. Using the display_ascii property will make autocomplete and searching much easier.
 Endpoint: GET `/trieData` 
 Headers: Authorization: Bearer `jwt-token`  
@@ -17,7 +25,7 @@ Response:
 ] 
 ```
 
-## Get stop details with lines NOT IMPLEMENTED
+## Get stop details with lines
 Returns all the stop's lines grouped by type. The stopId is the `id` from `/trieData`.  
 I could edit it to take slugs instead.  
 Endpoint: GET `/stopGroups/:stopId`  
@@ -59,9 +67,9 @@ Response (mock):
 }
 ```
 
-## Add an assignment to a tower NOT IMPLEMENTED
+## Add an assignment to a tower
 There's a limit of 2 assignments per tower, so you might have to replace one.  
-Endpoint: PUT `/gateway/:gatewayId/:towerId/addStop`  
+Endpoint: PUT `/gateway/:gatewayId/:towerId/addAssignment`  
 Headers: Authorization: Bearer `jwt-token`  
 Request Body:  
 ```
@@ -78,7 +86,7 @@ Request Body:
 }
 ```
 
-## Authentication NOT IMPLEMENTED
+## Authentication
 Endpoint: POST /api/auth/login  
 Request body:  
 ```

@@ -30,7 +30,7 @@ Body:
 			"stopName": "Vysocanska", // string, length 22, use the stop id which has no diacritics
 			"nextTime": "15:50" // string, length 5
 			"leaveIn": "10m", // string, length 3
-			"type": "0", // number, enum from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry;
+			"type": "0", // The database stores the type as a string, so you gotta convert it to a number: enum from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry; 
 		},
 		{
 			like above

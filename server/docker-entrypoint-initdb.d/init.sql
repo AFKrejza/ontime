@@ -45,16 +45,16 @@ CREATE TABLE IF NOT EXISTS stops (
 );
 
 CREATE TABLE IF NOT EXISTS lines (
-	id INTEGER PRIMARY KEY,
-	slug TEXT UNIQUE NOT NULL,
+	id SERIAL PRIMARY KEY,
+	pid_id INTEGER NOT NULL,
+	gtfs_id TEXT NOT NULL,
 	name TEXT NOT NULL,
 	display_ascii TEXT NOT NULL,
-	type INTEGER NOT NULL,
-	number TEXT NOT NULL,
+	type TEXT NOT NULL,
 	direction TEXT NOT NULL,
-	gtfsId TEXT NOT NULL,
 	created_at TIMESTAMPTZ DEFAULT NOW(),
-	updated_at TIMESTAMPTZ DEFAULT NOW()
+	updated_at TIMESTAMPTZ DEFAULT NOW(),
+	UNIQUE (pid_id, gtfs_id)
 );
 
 

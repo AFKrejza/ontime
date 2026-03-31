@@ -41,9 +41,10 @@ gateways 1:N towers
 towers 1:N assignments  
 assignments 1:1 stops  
 assignments 1:1 stops  
-stops M:N lines, stops_lines table  
+stops 1:N lines,
 
-## Terminology
+## Details
+`id` is always created in our database. If other IDs such as the ones from PID are used, they'll be called something else.
 `name` is the original `uniqueName` for stops, or the `name` for lines. This will be displayed on the frontend.  
 `slug` is the URL friendly version of the name, meaning the diacritics are removed, it's lowercased, and spaces are replaced with hyphens -.  
 `display_ascii` is what will actually be displayed on a tower's screen, so it's the same as `name` except without diacritics.  
@@ -87,7 +88,7 @@ towers (
 	gateway_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	battery_voltage REAL DEFAULT NULL,
-	last_seen DATETIME DEFAULT NULL,
+	last_seen TIMESTAMPTZ DEFAULT NULL,
 	FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE CASCADE,
 	created_at TIMESTAMPTZ DEFAULT NOW(),
 	updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -95,6 +96,7 @@ towers (
 ```
 
 ## Assignments
+When creating assignments, make sure that `line_id` uses the internal `id` our DB generated and not the `pid_id`!
 ```
 assignments (
 	id SERIAL PRIMARY KEY,
@@ -124,30 +126,21 @@ stops (
 ```
 
 ## Lines
-`id` is the one that's in the original data.
+This table actually contains a separate entry for each individual line in every stop. So if a line goes through 10 stops, there will be 10 lines with one direction and 10 lines with the opposite direction. All 20 lines will have the same `pid_id`s, but different `gtfsId`s and `id`s. **TODO: double check this**  
+`pid_id` is the id that's in the original data. It is NOT unique, since a line passes through many stops.  
+The combination of `pid_id` and `gtfs_id` should be unique. **TODO: This needs to be tested.**  
 ```
 lines (
-	id INTEGER PRIMARY KEY,
-	slug TEXT UNIQUE NOT NULL,
+	id SERIAL PRIMARY KEY,
+	pid_id INTEGER NOT NULL,
+	gtfs_id TEXT NOT NULL,
 	name TEXT NOT NULL,
 	display_ascii TEXT NOT NULL,
-	type INTEGER NOT NULL,
+	type TEXT NOT NULL,
 	direction TEXT NOT NULL,
-	gtfsId TEXT NOT NULL,
 	created_at TIMESTAMPTZ DEFAULT NOW(),
-	updated_at TIMESTAMPTZ DEFAULT NOW()
-)
-```
-
-## Stops_Lines junction table
-```
-stops_lines (
-	stop_id INTEGER,
-	line_id INTEGER,
-	PRIMARY KEY (stop_id, line_id),
-	FOREIGN KEY (stop_id) REFERENCES stops(id) ON DELETE CASCADE,
-	FOREIGN KEY (line_id) REFERENCES lines(id) ON DELETE CASCADE,
-	created_at TIMESTAMPTZ DEFAULT NOW(),
+	updated_at TIMESTAMPTZ DEFAULT NOW(),
+	UNIQUE (pid_id, gtfs_id)
 )
 ```
 
