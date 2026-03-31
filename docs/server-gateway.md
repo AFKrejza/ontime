@@ -5,21 +5,36 @@ This API specification covers Tower registration, status updates, and stop data 
 
 
 ## Gateway requests stop data from the Server NOT IMPLEMENTED
-This must support multiple towers, and each tower can have up to 2 departures.  
-If it has only one departure, set the second departure’s properties as empty strings "".  
+This must support up to 5 towers, and each tower can have up to 2 departures.  
+If it has only one departure, set the second departure’s properties as empty strings "" (or NULL it?).  
 If PID didn't return any departures (failed API call / departure not found in the response), set the nextTime and leaveIn as empty strings.  
 displayData is an array containing one entry per tower. Each entry's departures array can contain up to 2 departures.  
-The server must: read the database to read all of that gateway's tower->stop assignments, then make one request to PID, format it, and send the response. It's described a bit better in `./server-pid.md`  
+The server must:  
+- Verify that those towers belong to that gateway  
+- read the database to read all of that gateway's tower->stop assignments  
+- make one request to PID, format it, and send the response.  
+It's described a bit better in `./server-pid.md`  
 
 Endpoint: GET `/gateway/{gatewayId}/departures`  
 Headers: Authorization: Bearer gateway-token (23/03 ignore the header for the MVP)  
+Request Body:
+```
+{
+	"towerIds": [
+		"55ffc99c",
+		"48848eff",
+		"44410aaa"
+	]
+}
+```
+
 Response: 
 ```
 { 
 	"timestamp": "2026-03-12T14:30:00Z", 
 	"displayData": [
 		{
-			"towerId": "tower_001",
+			"towerId": "55ffc99c",
 			"departures": [
 				{
 					"lineNumber": "136", // string, length 3
@@ -41,7 +56,7 @@ Headers: Authorization: Bearer gateway-token
 Request Body:  
 ```
 { 
-	"gatewayId": "gateway_001", 
+	"gatewayId": "1222223a", 
 	"location": "Living Room", 
 	"towers": [ 
 		{ 
@@ -93,3 +108,39 @@ Response:
 } 
 ```
 
+## Gateway registers itself to a user NOT IMPLEMENTED
+Endpoint: POST `/api/users/{userId}/gateway/register`  
+Headers: Authorization: Bearer gateway-token  
+Request Body:  
+```
+{
+	"id": "13cdd3334" // some kind of unique device identifier
+} 
+```
+Response:  
+```
+201
+```
+
+## Gateway registers new towers NOT IMPLEMENTED
+Endpoint: POST `/api/gateway/register`  
+Headers: Authorization: Bearer gateway-token  
+Request Body:  
+```
+{ 
+	"gatewayId": "gateway_001", 
+	"location": "Living Room", 
+	"towers": [ 
+		{ 
+			"towerId": "tower_001"
+		} 
+	] 
+} 
+```
+Response:  
+```
+{ 
+	"gatewayToken": "eyJhbGciOiJIUzI1NiIs...", 
+	"registeredTowers": ["tower_001"], 
+}
+```

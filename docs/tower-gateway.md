@@ -18,7 +18,7 @@ Request Body:
 ```
 
 ## Gateway sends display data to one tower via radio.
-Each tower should support up to 2 stops. If no stops were selected, all the fields must be empty strings or NULL. If only one stop was selected, the second one must have all its fields be empty strings.
+Each tower should support up to 2 stops. If no stops were selected, all the fields must be empty strings or NULL. If only one stop was selected, the second one must have all its fields be empty strings (or just have the second object be NULL).
 Body:  
 ```
 { 

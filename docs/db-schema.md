@@ -1,8 +1,40 @@
-29/03/2026  
+31/03/2026  
 
-This is for PostgreSQL. We can do it like last semester where we use a Docker Container, put the init stuff in `init.sql`, and then add sample data in `seed.sql`.Path: `server/docker-entrypoint-initdb.d/init.sql`.  
+**Everything that communicates with the DB should be put into `dao/`**
 
-This still needs to be integrated properly!!!  
+## Using the postgres container:  
+
+I put the schema into `init.sql`. Path: `server/docker-entrypoint-initdb.d/init.sql`.  
+
+1. Download and run Docker Desktop  
+2. Go to the `server` dir, and run `docker compose up -d` to start it (the `-d` flag lets you keep using that terminal)  
+3. Start the server with `npm start` and it'll print the current date. If it failed it'll print an error  
+
+More useful stuff:  
+If you wanna wipe ALL the data in the local database, run `docker compose down -v`.  
+You can turn it off either in Docker Desktop or with `docker compose down`.  
+
+To directly access the Postgres database via psql:  
+Open a shell within the docker container:  
+`docker exec -it ontime_db sh`  
+In the same window, run  
+`psql -U postgres -d ontime`  
+This will run psql and allow you to interact with the postgres database.  
+Examples:  
+List all tables:  
+`\dt`  
+View all users and user data:  
+`SELECT * FROM users;`  
+To exit psql:  
+`exit`, or just ctrl+d  
+
+View what docker containers are running:  
+`docker ps`  
+
+View real-time logs:  
+`docker compose logs -f`  
+
+
 
 users 1:N gateways  
 gateways 1:N towers  
@@ -100,7 +132,6 @@ lines (
 	name TEXT NOT NULL,
 	display_ascii TEXT NOT NULL,
 	type INTEGER NOT NULL,
-	number TEXT NOT NULL,
 	direction TEXT NOT NULL,
 	gtfsId TEXT NOT NULL,
 	created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -121,7 +152,7 @@ stops_lines (
 ```
 
 ### Additional functions
-This function updates all `updated_at` fields.
+This function updates the `updated_at` field to now.
 
 ```
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -133,12 +164,12 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-Then apply it to each table:
+Then applied it to each table:
 ```
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 ```

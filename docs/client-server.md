@@ -3,29 +3,32 @@
 # Client - Server
 This API specification covers user authentication, stop configuration, and system monitoring.
 
-## Get all stops for autocomplete DONE
-Returns every stop's name and id.
+## Get all stops for autocomplete NOT IMPLEMENTED
+Returns every stop's name, id, and display_ascii. Using the display_ascii property will make autocomplete and searching much easier.
 Endpoint: GET `/trieData` 
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
 [ 
-	{ "name": "Albertov", "id": "albertov" }, 
-	{ "name": "Ametystová", "id": "ametystova" }, 
-	{ "name": "Amforová", "id": "amforova" },
+	{ "name": "Albertov", "id": "1", "display_ascii": "albertov" }, 
+	{ "name": "Ametystová", "id": "2", "display_ascii": "ametystova" }, 
+	{ "name": "Amforová", "id": "3", "display_ascii": "amforova" },
 	...
 ] 
 ```
 
-## Get stop details with lines DONE
+## Get stop details with lines NOT IMPLEMENTED
 Returns all the stop's lines grouped by type. The stopId is the `id` from `/trieData`.  
+I could edit it to take slugs instead.  
 Endpoint: GET `/stopGroups/:stopId`  
 Headers: Authorization: Bearer `jwt-token`  
-Response (partial):  
+Response (mock):  
 ```
 { 
-	"name": "Vysočanská", 
-	"id": "vysocanska", 
+	"id": "1200", 
+	"slug": "vysocanksa",
+	"name": "Vysočanská",
+	"displayAscii": "Vysocanska", 
 	"lines": { 
 		"tram": [ 
 			{ 
@@ -57,23 +60,19 @@ Response (partial):
 ```
 
 ## Add an assignment to a tower NOT IMPLEMENTED
-This needs to be stored in the db.  
-Endpoint: PUT `/gateway/:gatewayId/addStop`  
+There's a limit of 2 assignments per tower, so you might have to replace one.  
+Endpoint: PUT `/gateway/:gatewayId/:towerId/addStop`  
 Headers: Authorization: Bearer `jwt-token`  
 Request Body:  
 ```
 {
-	"towerId": "tower-667", // string
-	"offset": -10, // must be <= 0
+	"towerId": "7dd66ab22", // string
 	"assignments": [
 		{
-			"stopName": "Vysočanská",
-			"stopId": "vysocanska",
-			"id": 136,
-			"name": "136",
-			"type": "bus",
-			"direction": "Jižní Město",
-			"gtfsId": "U474Z6P"
+			"departureOffset": -10, // must be <= 0
+			"stopId": 1200, // generated in our database
+			"lineId": 136, // the line ID from PID. e.g. metro b = 992, bus 136 = 136
+			"gtfsId": "U474Z6P" // from PID
 		}
 	]
 }
@@ -99,4 +98,45 @@ Response:
 		"role": "admin" 
 	} 
 } 
+```
+
+## Get one gateway and its tower's statuses
+
+Endpoint: GET `/api/gateway/:gatewayId/status`
+Headers: Authorization: Bearer `jwt-token`  
+Response:
+```
+{
+	"gatewayId": "737737ffa", 
+	"gatewayName": "Home",
+	"towers": [ 
+		{ 
+			"id": "838838883", 
+			"name": "Living Room",
+			"battery": 1.44, 
+			"lastSeen": "2026-03-12T14:29:55Z", 
+			"assignment": {
+				"departureOffset": -10, // must be <= 0
+				"stopId": 1200, // generated in our database
+				"lineId": 152, // the line ID from PID. e.g. metro b = 992, bus 136 = 136
+				"gtfsId": "U474Z5P" // from PID
+			},
+			"stop": {
+				"id": 1200,
+				"slug": klicov",
+				"name": Klíčov",
+				"displayAscii": "Klicov"
+			},
+			"line": {
+				"id": 152, 
+				"slug": "ceskomoravska",
+				"displayAscii": "Ceskomoravska",
+				"name": "152", 
+				"type": "bus", 
+				"direction": "Českomoravská", 
+				"gtfsId": "U474Z5P" 
+			}
+		}
+	],
+}
 ```
