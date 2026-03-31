@@ -3,10 +3,12 @@ import dotenv from "dotenv";
 import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
-import { scheduler, createJob } from './src/jobs/scheduler.js';
 import db from "./db.js";
 // 
 import router from "./testing_db.js"; 
+import { sampleDao } from "./src/dao/sampleDao.js";
+import {pgClient, initDB} from "./src/db/postgres.js";
+
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
 const CLIENT_URL = process.env.CLIENT_URL;
@@ -16,11 +18,23 @@ app.use(express.json());
 app.use(cors({
 	origin: CLIENT_URL
 }));
+
+async function dbCheck() {
+	try {
+		const result = await pgClient.query("SELECT NOW()");
+		console.log(result.rows);
+	} catch (err) {
+		console.log("DB error");
+		console.error(err);
+	}
+}
+initDB();
+await dbCheck();
+
 //
 app.use("/api/tower", router);
 // TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
-scheduler();
 
 app.get("/trieData", async (req, res) => {
 	const data = JSON.parse(await fs.readFile("./data/trieData.json"));
@@ -52,6 +66,7 @@ app.get("/bustest", async (req, res) => {
 	res.send(data);
 });
 
+// TODO: integrate with db
 app.get("/stopGroups/:id", async (req, res) => {
 	try {
 		const id = req.params.id;
@@ -76,6 +91,8 @@ app.put("/getStop", async (req, res) => {
 		const gtfsId = req.body.line.gtfsId;
 		const name = req.body.line.name;
 		const offset = req.body.offset;
+		const limit = 5;
+		const minutesAfter = 60; // default 60
 		const url = `
 			https://api.golemio.cz/v2/public/departureboards?
 			stopIds={"0": ["${gtfsId}"]}&
@@ -91,47 +108,17 @@ app.put("/getStop", async (req, res) => {
 			}
 		});
 		const data = await get.json();
+		if (!data.departures || data.departures.length === 0) {
+			const msg = `No departures found for line ${name}`;
+			console.log(msg);
+			res.send(msg);
+		}
 		console.log(data);
 		res.send(data);
 	} catch (err) {
 		console.error(err);
 	}
 });
-
-// TODO: needs type validation and a check to verify that the stop actually exists
-// replaces the currently tracked stop.
-app.put("/addStop", async (req, res) => {
-	try {
-		// const example = { // send all of this. Later on we'll only need the offset, stopId, lineId/name and gtfsId
-		// 	offset: 10,
-		// 	stopName: "Vysočanská",
-		// 	stopId: "vysocanska",
-		// 	line: {
-		// 		id: 136,
-		// 		name: "136",
-		// 		type: "bus",
-		// 		direction: "Jižní Město",
-		// 		gtfsId: "U474Z6P"
-		// 	}
-		// };
-		
-		class Stop {
-			constructor(offset, stopName, stopId, line) {
-				this.offset = offset;
-				this.stopName = stopName;
-				this.stopId = stopId;
-				this.line = line;
-			}
-		}
-		const newStop = new Stop(req.body.offset, req.body.stopName, req.body.stopId, req.body.line);
-
-		const msg = await createJob(newStop);
-		res.send(msg);
-	} catch (err) {
-		console.error(err);
-	}
-})
-
 
 // Mock endpoint for gateway departures
 app.get("/gateway/:gatewayId/departures", async (req, res) => {
@@ -176,6 +163,17 @@ app.get("/gateway/:gatewayId/departures", async (req, res) => {
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({ error: "Internal server error" });
+	}
+});
+
+// check if the db is still up and connected
+app.use("/dbtest", async (req, res) => {
+	try {
+		const result = await pgClient.query("SELECT NOW()");
+		res.json(result.rows);
+	} catch (err) {
+		console.error(err);
+		res.status(500).send("DB error");
 	}
 });
 
