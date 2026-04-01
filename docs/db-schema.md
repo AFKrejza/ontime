@@ -96,7 +96,6 @@ towers (
 ```
 
 ## Assignments
-When creating assignments, make sure that `line_id` uses the internal `id` our DB generated and not the `pid_id`!
 ```
 assignments (
 	id SERIAL PRIMARY KEY,

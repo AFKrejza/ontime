@@ -127,7 +127,7 @@ Response:
 			"assignment": {
 				"departureOffset": -10, // must be <= 0
 				"stopId": 1200, // generated in our database
-				"lineId": 152, // the line ID from PID. e.g. metro b = 992, bus 136 = 136
+				"lineId": 152, // from our DB
 				"gtfsId": "U474Z5P" // from PID
 			},
 			"stop": {
@@ -243,6 +243,7 @@ Response:
 ```
 
 ## Add an assignment to a tower
+When creating the assignment make sure that `line_id` uses the internal `id` our DB generated and not the `pid_id`!
 There's a limit of 2 assignments per tower so it should fail if you try to add a third.
 Endpoint: POST `api/gateway/:gatewayId/:towerId/addAssignment`  
 Headers: Authorization: Bearer `jwt-token`  
@@ -253,8 +254,8 @@ Request Body:
 	"assignments": [
 		{
 			"departureOffset": -10, // must be <= 0
-			"stopId": 1200, // generated in our database
-			"lineId": 136, // the line ID from PID. e.g. metro b = 992, bus 136 = 136
+			"stopId": 1200, // id field
+			"lineId": 136, // id field
 			"gtfsId": "U474Z6P" // from PID
 		}
 	]
