@@ -44,7 +44,6 @@ assignments 1:1 stops
 stops 1:N lines,
 
 ## Details
-`id` is always created in our database. If other IDs such as the ones from PID are used, they'll be called something else.
 `name` is the original `uniqueName` for stops, or the `name` for lines. This will be displayed on the frontend.  
 `slug` is the URL friendly version of the name, meaning the diacritics are removed, it's lowercased, and spaces are replaced with hyphens -.  
 `display_ascii` is what will actually be displayed on a tower's screen, so it's the same as `name` except without diacritics.  
@@ -70,9 +69,10 @@ users (
 ```
 
 ## Gateways
+The `id` is the hexadecimal ID from the radio dongle.
 ```
 gateways (
-	id SERIAL PRIMARY KEY,
+	id TEXT PRIMARY KEY,
 	user_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	FOREIGN KEY (user_id) REFERENCES users(id),
@@ -82,9 +82,10 @@ gateways (
 ```
 
 ## Towers
+The `id` is the hexadecimal ID from the tower.
 ```
 towers (
-	id SERIAL PRIMARY KEY,
+	id TEXT PRIMARY KEY,
 	gateway_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	battery_voltage REAL DEFAULT NULL,
