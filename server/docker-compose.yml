@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_PASSWORD: localreallysecurepassword
       POSTGRES_DB: ontime
     ports:
       - "5432:5432"
