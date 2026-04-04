@@ -21,7 +21,6 @@ export const pidDao = {
    * @returns {Promise<{slug: string, name: string, lines: object}>}
    */
   async getStopDetails(slug) {
-    // Get stop info
     const stopQuery = `
       SELECT slug, name, display_ascii
       FROM stops
@@ -35,22 +34,19 @@ export const pidDao = {
     
     const stop = stopRes.rows[0];
     
-    // Get lines for this stop using stops_lines junction table
     const linesQuery = `
       SELECT 
         l.name,
         l.type,
         l.direction,
         l.gtfs_id as "gtfsId"
-      FROM stops_lines sl
-      JOIN lines l ON sl.line_id = l.id
-      WHERE sl.stop_id = (SELECT id FROM stops WHERE slug = $1)
+      FROM lines l
+      WHERE l.stop_slug = $1
       ORDER BY l.type, l.name
     `;
     
     const linesRes = await pgClient.query(linesQuery, [slug]);
     
-    // Group lines by type
     const lines = {};
     for (const line of linesRes.rows) {
       if (!lines[line.type]) {
@@ -73,20 +69,12 @@ export const pidDao = {
 
   /**
    * Fetch departures from PID API for a specific stop and line
-   * @param {string} stopGtfsId - GTFS ID of the stop
+   * @param {string} stopGtfsId - GTFS ID of the stop for this line
    * @param {string} lineName - Line number (e.g., "136", "B")
-   * @param {number} minutesAfter - Minutes to look ahead (default 60)
-   * @param {number} minutesBefore - Minutes to look back (default -10)
    * @returns {Promise<object>}
    */
-  async fetchDeparturesFromPID(stopGtfsId, lineName, minutesAfter = 60, minutesBefore = -10) {
-    const url = "https://api.golemio.cz/v2/public/departureboards?" + new URLSearchParams({
-      stopIds: JSON.stringify({ "0": [stopGtfsId] }),
-      limit: 5,
-      routeShortNames: lineName,
-      minutesAfter: minutesAfter,
-      minutesBefore: minutesBefore,
-    });
+  async fetchDeparturesFromPID(stopGtfsId, lineName) {
+    const url = `https://api.golemio.cz/v2/public/departureboards?stopIds={"0":["${stopGtfsId}"]}&limit=5&routeShortNames=${lineName}&minutesAfter=60&minutesBefore=-10`;
     
     const response = await fetch(url, {
       method: "GET",
@@ -113,9 +101,9 @@ export const pidDao = {
         t.id as tower_id,
         t.stop_slug,
         t.line_name,
-        s.gtfs_id as stop_gtfs_id
+        l.gtfs_id as stop_gtfs_id
       FROM towers t
-      LEFT JOIN stops s ON t.stop_slug = s.slug
+      JOIN lines l ON l.stop_slug = t.stop_slug AND l.name = t.line_name
       WHERE t.id = $1
     `;
     const res = await pgClient.query(query, [towerId]);
@@ -133,7 +121,6 @@ export const pidDao = {
    * @returns {Promise<{gateway_id: string, user_id: number, towers: Array}>}
    */
   async getGatewayConfig(gatewayId) {
-    // Get gateway info
     const gatewayQuery = `
       SELECT id as gateway_id, user_id, name
       FROM gateways
@@ -147,17 +134,17 @@ export const pidDao = {
     
     const gateway = gatewayRes.rows[0];
     
-    // Get all towers for this gateway
     const towersQuery = `
       SELECT 
         t.id as tower_id,
         t.name as tower_name,
         t.stop_slug,
         t.line_name,
-        s.gtfs_id as stop_gtfs_id,
+        l.gtfs_id as stop_gtfs_id,
         s.name as stop_name
       FROM towers t
-      LEFT JOIN stops s ON t.stop_slug = s.slug
+      JOIN stops s ON t.stop_slug = s.slug
+      JOIN lines l ON l.stop_slug = t.stop_slug AND l.name = t.line_name
       WHERE t.gateway_id = $1
     `;
     const towersRes = await pgClient.query(towersQuery, [gatewayId]);

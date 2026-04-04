@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS towers (
     id TEXT PRIMARY KEY,
     gateway_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    stop_slug TEXT,
-    line_name TEXT,
+    stop_slug TEXT NOT NULL,
+    line_name TEXT NOT NULL,
     battery_voltage REAL DEFAULT NULL,
     last_seen TIMESTAMPTZ DEFAULT NULL,
     FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE CASCADE,
@@ -50,19 +50,10 @@ CREATE TABLE IF NOT EXISTS lines (
     display_ascii TEXT NOT NULL,
     type TEXT NOT NULL,
     direction TEXT NOT NULL,
+    stop_slug TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (pid_id, gtfs_id)
-);
-
--- Junction table for many-to-many relationship between stops and lines
-CREATE TABLE IF NOT EXISTS stops_lines (
-    stop_id INTEGER NOT NULL,
-    line_id INTEGER NOT NULL,
-    PRIMARY KEY (stop_id, line_id),
-    FOREIGN KEY (stop_id) REFERENCES stops(id) ON DELETE CASCADE,
-    FOREIGN KEY (line_id) REFERENCES lines(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    UNIQUE (pid_id, gtfs_id, stop_slug)
 );
 
 -- Function to automatically update updated_at timestamp
@@ -93,7 +84,7 @@ INSERT INTO gateways (id, user_id, name)
 VALUES ('c1895bf80e2b', (SELECT id FROM users WHERE username = 'mock_user'), 'Mock Gateway')
 ON CONFLICT (id) DO NOTHING;
 
--- Insert stops (without gtfs_id - that belongs to lines)
+-- Insert stops
 INSERT INTO stops (slug, name, display_ascii) 
 VALUES 
     ('vysocanska', 'Vysočanská', 'Vysocanska'),
@@ -101,34 +92,33 @@ VALUES
     ('kolbenova', 'Kolbenova', 'Kolbenova')
 ON CONFLICT (slug) DO NOTHING;
 
--- Insert lines with correct PID data
--- Metro B: pid_id 992, gtfs_id U75Z101P
--- Bus 136: pid_id from stops.json, gtfs_id U474Z6P
--- Bus 152: gtfs_id U474Z5P
--- Tram 12: gtfs_id U474Z2P
-INSERT INTO lines (pid_id, gtfs_id, name, display_ascii, type, direction)
-VALUES
-    (123, 'U474Z6P', '136', '136', 'bus', 'Sídliště Čakovice'),
-    (124, 'U474Z1P', '177', '177', 'bus', 'Chodov'),
-    (992, 'U75Z101P', 'B', 'B', 'metro', 'Zličín'),
-    (125, 'U474Z2P', '12', '12', 'tram', 'Lehovec'),
-    (126, 'U474Z5P', '152', '152', 'bus', 'Českomoravská')
-ON CONFLICT (pid_id, gtfs_id) DO NOTHING;
+-- Insert lines with stop_slug (each line-stop pair has its own GTFS ID)
+-- Vysocanska - Bus 136 (GTFS: U474Z6P)
+INSERT INTO lines (pid_id, gtfs_id, name, display_ascii, type, direction, stop_slug)
+VALUES (486, 'U474Z6P', '136', '136', 'bus', 'Sídliště Čakovice', 'vysocanska')
+ON CONFLICT (pid_id, gtfs_id, stop_slug) DO NOTHING;
 
--- Link stops to lines (based on actual PID data)
-INSERT INTO stops_lines (stop_id, line_id)
-VALUES
-    -- Vysocanska has bus 136, tram 12, bus 152
-    ((SELECT id FROM stops WHERE slug = 'vysocanska'), (SELECT id FROM lines WHERE gtfs_id = 'U474Z6P')),
-    ((SELECT id FROM stops WHERE slug = 'vysocanska'), (SELECT id FROM lines WHERE gtfs_id = 'U474Z2P')),
-    ((SELECT id FROM stops WHERE slug = 'vysocanska'), (SELECT id FROM lines WHERE gtfs_id = 'U474Z5P')),
-    -- Kolbenova has metro B
-    ((SELECT id FROM stops WHERE slug = 'kolbenova'), (SELECT id FROM lines WHERE gtfs_id = 'U75Z101P')),
-    -- Albertov has bus 177
-    ((SELECT id FROM stops WHERE slug = 'albertov'), (SELECT id FROM lines WHERE gtfs_id = 'U474Z1P'))
-ON CONFLICT DO NOTHING;
+-- Vysocanska - Tram 12 (GTFS: U474Z2P)
+INSERT INTO lines (pid_id, gtfs_id, name, display_ascii, type, direction, stop_slug)
+VALUES (212, 'U474Z2P', '12', '12', 'tram', 'Lehovec', 'vysocanska')
+ON CONFLICT (pid_id, gtfs_id, stop_slug) DO NOTHING;
 
--- Create mock towers with stop_slug and line_name
+-- Vysocanska - Bus 152 (GTFS: U474Z5P)
+INSERT INTO lines (pid_id, gtfs_id, name, display_ascii, type, direction, stop_slug)
+VALUES (487, 'U474Z5P', '152', '152', 'bus', 'Českomoravská', 'vysocanska')
+ON CONFLICT (pid_id, gtfs_id, stop_slug) DO NOTHING;
+
+-- Kolbenova - Metro B (GTFS: U75Z101P)
+INSERT INTO lines (pid_id, gtfs_id, name, display_ascii, type, direction, stop_slug)
+VALUES (992, 'U75Z101P', 'B', 'B', 'metro', 'Zličín', 'kolbenova')
+ON CONFLICT (pid_id, gtfs_id, stop_slug) DO NOTHING;
+
+-- Albertov - Bus 177 (GTFS: U474Z1P)
+INSERT INTO lines (pid_id, gtfs_id, name, display_ascii, type, direction, stop_slug)
+VALUES (485, 'U474Z1P', '177', '177', 'bus', 'Chodov', 'albertov')
+ON CONFLICT (pid_id, gtfs_id, stop_slug) DO NOTHING;
+
+-- Create mock towers
 INSERT INTO towers (id, gateway_id, name, stop_slug, line_name, battery_voltage, last_seen) 
 VALUES
     ('547c65321d0b', 'c1895bf80e2b', 'Mock Tower 1', 'vysocanska', '136', 85.5, NOW()),

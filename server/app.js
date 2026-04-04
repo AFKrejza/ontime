@@ -19,36 +19,44 @@ app.use(cors({
 	origin: CLIENT_URL
 }));
 
-async function dbCheck() {
+async function startServer() {
 	try {
+		await initDB();
+		
+		// Test database connection
 		const result = await pgClient.query(`SELECT NOW()`);
 		console.log("Database connected:", result.rows[0].now);
+		
+		// Start server first
+		app.listen(SERVER_PORT, () => {
+			console.log(`Server listening on port ${SERVER_PORT}`);
+			console.log(`API endpoints:`);
+			console.log(`  GET /api/stops - Get all stops for autocomplete`);
+			console.log(`  GET /api/stops/:slug - Get stop details with lines`);
+			console.log(`  GET /api/tower/:towerId/departures - Get departures for tower`);
+			console.log(`  GET /api/gateway/:gatewayId/departures - Get departures for gateway`);
+			console.log(`  GET /health - Health check`);
+		});
+		
+		// Run data update in background (don't block server start)
+		updateData().catch(err => console.error("Data update failed:", err));
+		
 	} catch (err) {
-		console.log("DB error:", err.message);
+		console.error("Failed to start server:", err);
 		process.exit(1);
 	}
 }
 
-// Initialize database and check connection
-await initDB();
-await dbCheck();
-
 // Routes
 app.use("/api/tower", router);
 
-// Update PID data (stops, lines, etc.)
-await updateData();
-
 // ==================== CLIENT-SERVER ENDPOINTS ====================
 
-// 1a. Get all stops for autocomplete
-// GET /api/stops?q=search_term
 app.get("/api/stops", async (req, res) => {
 	try {
 		const searchQuery = req.query.q || "";
 		let stops = await pidDao.getAllStops();
 		
-		// Filter by search query if provided
 		if (searchQuery) {
 			const lowerQuery = searchQuery.toLowerCase();
 			stops = stops.filter(stop => 
@@ -64,8 +72,6 @@ app.get("/api/stops", async (req, res) => {
 	}
 });
 
-// 1b. Get stop details with lines
-// GET /api/stops/:slug
 app.get("/api/stops/:slug", async (req, res) => {
 	try {
 		const slug = req.params.slug;
@@ -81,50 +87,28 @@ app.get("/api/stops/:slug", async (req, res) => {
 	}
 });
 
-// ==================== SERVER-GATEWAY ENDPOINTS ====================
-
-// Get departures for a single tower
-// GET /api/tower/:towerId/departures
 app.get("/api/tower/:towerId/departures", async (req, res) => {
 	try {
 		const towerId = req.params.towerId;
-		
-		// Get tower configuration
 		const towerConfig = await pidDao.getTowerConfig(towerId);
 		
-		if (!towerConfig.stop_gtfs_id || !towerConfig.line_name) {
-			return res.status(400).json({ 
-				error: "Tower not configured with stop and line"
-			});
-		}
-		
-		// Fetch departures from PID API
 		const data = await pidDao.fetchDeparturesFromPID(
 			towerConfig.stop_gtfs_id,
-			towerConfig.line_name,
-			60,
-			-10
+			towerConfig.line_name
 		);
 		
-		// Format the response
-		const departures = [];
-		if (data.departures && data.departures.length > 0) {
-			for (const departure of data.departures) {
-				const departureTime = new Date(departure.departure_timestamp?.actual || departure.departure_timestamp?.planned);
-				const now = new Date();
-				const minutesLeft = Math.round((departureTime - now) / 60000);
-				
-				departures.push({
-					lineNumber: departure.route?.short_name || towerConfig.line_name,
-					lineDirection: departure.route?.long_name || departure.direction || "",
-					stopName: departure.stop?.name || "",
-					nextTime: departureTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-					leaveIn: minutesLeft <= 0 ? "now" : `${minutesLeft}m`,
-					vehicleType: departure.route?.type,
-					departureTime: departureTime.toISOString()
-				});
-			}
-		}
+		const departures = (data.departures || []).map(d => {
+			const depTime = new Date(d.departure_timestamp?.actual || d.departure_timestamp?.planned);
+			const minsLeft = Math.round((depTime - new Date()) / 60000);
+			return {
+				lineNumber: d.route?.short_name || towerConfig.line_name,
+				lineDirection: d.route?.long_name || d.direction || "",
+				stopName: d.stop?.name || "",
+				nextTime: depTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+				leaveIn: minsLeft <= 0 ? "now" : `${minsLeft}m`,
+				departureTime: depTime.toISOString()
+			};
+		});
 		
 		res.json({
 			towerId: towerId,
@@ -139,57 +123,38 @@ app.get("/api/tower/:towerId/departures", async (req, res) => {
 	}
 });
 
-// Get departures for a gateway (all towers)
-// GET /api/gateway/:gatewayId/departures
 app.get("/api/gateway/:gatewayId/departures", async (req, res) => {
 	try {
 		const gatewayId = req.params.gatewayId;
-		
-		// Get gateway configuration
 		const gatewayConfig = await pidDao.getGatewayConfig(gatewayId);
 		
-		// Fetch departures for each tower
 		const displayData = [];
 		
 		for (const tower of gatewayConfig.towers) {
-			if (!tower.stop_gtfs_id || !tower.line_name) {
-				console.log(`Tower ${tower.tower_id} missing stop or line configuration`);
-				continue;
-			}
-			
 			try {
-				// Fetch departures from PID API
 				const data = await pidDao.fetchDeparturesFromPID(
-					tower.stop_gtfs_id, 
-					tower.line_name,
-					60,
-					-10
+					tower.stop_gtfs_id,
+					tower.line_name
 				);
 				
-				// Format departures
-				const departures = [];
-				if (data.departures && data.departures.length > 0) {
-					for (const departure of data.departures) {
-						const departureTime = new Date(departure.departure_timestamp?.actual || departure.departure_timestamp?.planned);
-						const now = new Date();
-						const minutesLeft = Math.round((departureTime - now) / 60000);
-						
-						departures.push({
-							lineNumber: departure.route?.short_name || tower.line_name,
-							lineDirection: departure.route?.long_name || departure.direction || "",
-							stopName: tower.stop_name || "",
-							nextTime: departureTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-							leaveIn: minutesLeft <= 0 ? "now" : `${minutesLeft}m`
-						});
-					}
-				}
+				const departures = (data.departures || []).map(d => {
+					const depTime = new Date(d.departure_timestamp?.actual || d.departure_timestamp?.planned);
+					const minsLeft = Math.round((depTime - new Date()) / 60000);
+					return {
+						lineNumber: d.route?.short_name || tower.line_name,
+						lineDirection: d.route?.long_name || d.direction || "",
+						stopName: tower.stop_name || "",
+						nextTime: depTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+						leaveIn: minsLeft <= 0 ? "now" : `${minsLeft}m`
+					};
+				});
 				
 				displayData.push({
 					towerId: tower.tower_id,
-					departures: departures
+					departures
 				});
 			} catch (err) {
-				console.error(`Failed to fetch departures for tower ${tower.tower_id}:`, err.message);
+				console.error(`Failed for tower ${tower.tower_id}:`, err.message);
 				displayData.push({
 					towerId: tower.tower_id,
 					departures: [],
@@ -204,16 +169,15 @@ app.get("/api/gateway/:gatewayId/departures", async (req, res) => {
 		});
 	} catch (err) {
 		console.error("Error fetching gateway departures:", err);
-		res.status(500).json({ error: "Internal server error" });
+		res.status(500).json({ error: err.message });
 	}
 });
 
-// Health check endpoint
 app.get("/health", (req, res) => {
 	res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Legacy endpoints (keep for compatibility)
+// Legacy endpoints
 app.get("/trieData", async (req, res) => {
 	const data = JSON.parse(await fs.readFile("./data/trieData.json"));
 	res.send(data);
@@ -265,12 +229,5 @@ app.use("/dbtest", async (req, res) => {
 	}
 });
 
-app.listen(SERVER_PORT, () => {
-	console.log(`Server listening on port ${SERVER_PORT}`);
-	console.log(`API endpoints:`);
-	console.log(`  GET /api/stops - Get all stops for autocomplete`);
-	console.log(`  GET /api/stops/:slug - Get stop details with lines`);
-	console.log(`  GET /api/tower/:towerId/departures - Get departures for tower`);
-	console.log(`  GET /api/gateway/:gatewayId/departures - Get departures for gateway`);
-	console.log(`  GET /health - Health check`);
-});
+// Start server
+startServer();
