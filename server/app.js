@@ -21,14 +21,20 @@ app.use(cors({
 
 async function dbCheck() {
 	try {
-		const result = await pgClient.query("SELECT NOW()");
-		console.log(result.rows);
+		const result = await pgClient.query(`SELECT NOW()`);
+		console.log(result.rows[0]);
+		// const test = await pgClient.query(`
+		// INSERT INTO users(username, email, password_hash) 
+		// VALUES ('TestUsere', 'testuser@gmail.com', 'unhashed') 
+		// RETURNING *
+		// `);
+		// console.log(test.rows[0]);
 	} catch (err) {
 		console.log("DB error");
 		console.error(err);
 	}
 }
-initDB();
+await initDB();
 await dbCheck();
 
 //
