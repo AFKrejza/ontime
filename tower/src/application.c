@@ -18,7 +18,7 @@ void radio_event_handler(twr_radio_event_t event, void *param);
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param);
 
 twr_radio_sub_t subscriptions[] = {
-	{ .topic = "assignment", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
+	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
 };
 
 // Application initialization function which is called once after boot
@@ -37,7 +37,7 @@ void application_init(void)
 	twr_radio_pairing_request("tower-ontime", FW_VERSION);
 	twr_led_pulse(&led, 2000);
 	twr_radio_pub_string("tower_health", "mock health data");
-	// twr_radio_set_event_handler(radio_event_handler, NULL);
+	twr_radio_set_event_handler(radio_event_handler, NULL);
 	twr_radio_set_subs(subscriptions, sizeof(subscriptions) / sizeof(subscriptions[0]));
 	
 	display_init();
@@ -69,7 +69,8 @@ void application_init(void)
 	strncpy(assignments[1].stop_name, v_sn, sizeof(assignments[1].stop_name));
 	assignments[1].type = 0;
 
-	draw_assignments(assignments);
+	// draw_assignments(assignments);
+	draw_char('A', 0, 0, 3);
 
 	
 }
@@ -97,10 +98,22 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 	}
 }
 
-// make it try to reconnect
+// it should try to reconnect if it fails? Idk how MQTT works
 void radio_event_handler(twr_radio_event_t event, void *param)
 {
-
+	twr_log_debug("RADIO event: %d", (int)event);
+	if (event == TWR_RADIO_EVENT_ATTACH)
+	{
+		twr_log_debug("RADIO: Attached to gateway");
+	}
+	else if (event == TWR_RADIO_EVENT_DETACH)
+	{
+		twr_log_debug("RADIO: Detached from gateway");
+	}
+	else if (event == TWR_RADIO_EVENT_ATTACH_FAILURE)
+	{
+		twr_log_debug("RADIO: Attach failure");
+	}
 }
 
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param)
