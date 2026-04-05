@@ -14,6 +14,12 @@
 #define BLACK 0x0000
 #define WHITE 0xFFFF
 
+#define LINE_NUMBER_SIZE 4 // assuming only 3 digits.
+#define LINE_DIRECTION_SIZE 16 // fits
+#define NEXT_TIME_SIZE 6 // 14:25
+#define LEAVE_IN_SIZE 4 // 15m
+#define STOP_NAME_SIZE 23 // fits
+
 // text size; enlarges draw_char bitmaps. 1 = 8x8 (original), 2 = 16x16, 4 = 32x32 etc.
 // Adding bigger sizes will need chunked transfer like in draw_rect due to exceeding BUFFER_SIZE
 enum Text_Size {
@@ -33,21 +39,14 @@ enum Transport_Type {
 	FERRY
 };
 
-// TODO: define max sizes, ensure the server doesn't send too much data, figure out how to fit stuff if it's too long (see what PID does with the headsigns! Maybe it's not even a problem!)
-#define LINE_NUMBER_SIZE 4 // assuming only 3 digits. TODO: verify this!
-#define LINE_DIRECTION_SIZE 16 // 15 wide fits nicely
-#define NEXT_TIME_SIZE 6 // 14:25 + \0
-#define LEAVE_IN_SIZE 4 // 15m
-#define STOP_NAME_SIZE 23 // whole screen
-
-typedef struct line_data {
+typedef struct assignment {
 	char line_number[LINE_NUMBER_SIZE];
 	char line_direction[LINE_DIRECTION_SIZE];
 	char next_time[NEXT_TIME_SIZE];
 	char leave_in[LEAVE_IN_SIZE];
 	char stop_name[STOP_NAME_SIZE];
 	uint8_t type; // references Transport_Type
-} Line_Data;
+} Assignment;
 
 void clear_char(uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
 void display_init();
@@ -56,6 +55,7 @@ void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t size);
 void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
-void draw_assignments(Line_Data *lines[]);
+void draw_assignments(Assignment lines[]);
+void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_size);
 void outline_screen(const uint16_t color);
 void paint_screen(uint16_t color);

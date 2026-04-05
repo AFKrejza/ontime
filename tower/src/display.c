@@ -137,20 +137,6 @@ void display_init()
 // draw rectangle, shape drawing primitive
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color)
 {
-	// TODO: We don't really need bounds checking imo since the screen regions will be calculated in advance.
-	if (col_start > SCREEN_WIDTH  || 
-		col_end   > SCREEN_WIDTH  || 
-		row_start > SCREEN_HEIGHT || 
-		row_end   > SCREEN_WIDTH
-	) {
-		twr_log_debug("Error in draw_rect: Exceeded screen dimensions");
-		return;
-	}
-	if (col_start > col_end || row_start > row_end) {
-		twr_log_debug("Error in draw_rect: start greater than end"); // TODO: do bounds checking everywhere? Not really needed.
-		return;
-	}
-
 	uint16_t width  = (col_end - col_start + 1);
 	uint16_t height = (row_end - row_start + 1);
 	uint32_t byte_count = 2 * width * height;
@@ -230,7 +216,6 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 	send_data(buffer, NULL, byte_count);
 }
 
-// only needed when deleting, not for overwriting
 void clear_char(uint16_t col_start, uint16_t row_start, uint8_t text_size)
 {
 	draw_char(0, col_start, row_start, text_size);
@@ -246,7 +231,6 @@ void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint
 }
 
 // used for drawing the 32x32 bus/metro/tram icons
-// TODO: add color options such as for metros
 void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t img_size)
 {
 	const uint8_t (*bitmap)[4] = images_32x32[type];
@@ -301,9 +285,9 @@ void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_s
 }
 
 // does both stops. TODO: decide behavior when only one stop was updated, or when there are no stops.
-// Backend must support this too: Always send an array with 2 elements. If !lines[i]->headsign, then 
+// Backend must support this too: Always send an array with 2 elements. If !lines[i].headsign, then 
 // just print the default (waiting etc)
-void draw_assignments(Line_Data *lines[]) // TODO: make them bigger so that the icon fits.
+void draw_assignments(Assignment lines[])
 {
 	const uint16_t box_height = 128;
 	for (uint8_t i = 0; i < 2; i++)
@@ -314,13 +298,13 @@ void draw_assignments(Line_Data *lines[]) // TODO: make them bigger so that the 
 		const uint16_t box_row_end = box_height + i * box_height;
 		
 		draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
-		draw_image(box_col_start, box_row_start + 40, lines[i]->type, 2);
+		draw_image(box_col_start, box_row_start + 40, lines[i].type, 2);
 
-		draw_line_direction(lines[i]->line_direction, box_col_start, box_row_start);
-		draw_line_number(lines[i]->line_number, box_col_start, box_row_start);
-		draw_stop_name(lines[i]->stop_name, box_col_start, box_row_start);
-		draw_next_time(lines[i]->next_time, box_col_start, box_row_start);
-		draw_leave_in(lines[i]->leave_in,   box_col_start, box_row_start);
+		draw_line_direction(lines[i].line_direction, box_col_start, box_row_start);
+		draw_line_number(lines[i].line_number, box_col_start, box_row_start);
+		draw_stop_name(lines[i].stop_name, box_col_start, box_row_start);
+		draw_next_time(lines[i].next_time, box_col_start, box_row_start);
+		draw_leave_in(lines[i].leave_in,   box_col_start, box_row_start);
 	}
 }
 
