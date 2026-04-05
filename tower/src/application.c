@@ -127,13 +127,8 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		twr_log_debug("Empty payload");
 		return;
 	}
-	twr_log_debug("test");
-
 	strncpy(assignment_buffer, (const char*)payload, sizeof(assignment_buffer) - 1);
 	assignment_buffer[ASSIGNMENTS_SIZE - 1] = '\0';
-	paint_screen(BLUE);
-	draw_char(assignment_buffer[0], 0, 300, 3);
-	draw_char(assignment_buffer[1], 48, 300, 3);
+	// draw_string(assignment_buffer, 100, 100, 4);
 	twr_log_debug("%s", (char*)assignment_buffer);
-	twr_radio_pub_string("tower_health", "function called");
 }

@@ -1,10 +1,16 @@
-23/03/2026
+4/04/2026
+
+Gateway notes: 
+- run bcg manually: `bcg --device COM6 --debug`, COM6 is the port on my desktop, check what it is on my laptop  
+- the tower subscrtiption topic is 4 levels deep: `assignment/-/data/set`  
+- MQTT publish topic is `node/tower-ontime:0/assignment/-/data/set`  
+- The payload must be a JSON-encoded string with outer quotes.  
 
 # Gateway – Tower
-This API specification covers health monitoring and display data transmission.
+This API specification covers health monitoring and display data transmission.  
 
 ## Tower sends health data to Gateway  
-Endpoint: Radio
+Endpoint: Radio  
 Description: Tower sends regular health updates and requests current display data  
 Request Body:  
 ```
