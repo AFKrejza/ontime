@@ -1,10 +1,16 @@
-23/03/2026
+4/04/2026
+
+Gateway notes: 
+- run bcg manually: `bcg --device COM6 --debug`, COM6 is the port on my desktop, check what it is on my laptop  
+- the tower subscrtiption topic is 4 levels deep: `assignment/-/data/set`  
+- MQTT publish topic is `node/tower-ontime:0/assignment/-/data/set`  
+- The payload must be a JSON-encoded string with outer quotes.  
 
 # Gateway – Tower
-This API specification covers health monitoring and display data transmission.
+This API specification covers health monitoring and display data transmission.  
 
 ## Tower sends health data to Gateway  
-Endpoint: Radio
+Endpoint: Radio  
 Description: Tower sends regular health updates and requests current display data  
 Request Body:  
 ```
@@ -18,25 +24,22 @@ Request Body:
 ```
 
 ## Gateway sends display data to one tower via radio.
-Each tower should support 2 stops. If no stops were selected, all the fields must be empty strings. If only one stop was selected, the second one must have all its fields be empty strings.
-Response Body:  
+Each tower should support up to 2 stops. If no stops were selected, all the fields must be empty strings or NULL. If only one stop was selected, the second one must have all its fields be empty strings (or just have the second object be NULL).
+Body:  
 ```
 { 
 	"timestamp": "2026-03-12T14:30:00Z", 
 	"lines": [
 		{
-			"headsign": "136 Jizni Mesto", // string
-			"stop_name": "Vysocanska", // string
-			"type": "0", // number (enum) from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry
-			"leave_in": "10m", // string length 3
-			"next_time": "15:50", // string length 5
+			"lineNumber": "136", // string, length 3
+			"lineDirection": "Jizni Mesto", // string, length 15
+			"stopName": "Vysocanska", // string, length 22, use display_ascii
+			"nextTime": "15:50" // string, length 5
+			"leaveIn": "10m", // string, length 3
+			"type": 0, // The database stores the type as a string, so you gotta convert it to a number before sending it: enum from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry; 
 		},
 		{
-			"headsign": "151 Ceskomoravska", // string
-			"stop_name": "Klicov", // string
-			"type": "0", // number (enum) from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry
-			"leave_in": "10m", // string length 3
-			"next_time": "15:50", // string length 5
+			like above
 		}
 	]
 }  

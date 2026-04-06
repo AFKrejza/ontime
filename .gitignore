@@ -1,3 +1,7 @@
+build/
+.vscode
+
+
 # OnTime Project
 
 # Dependencies - each project manages its own
