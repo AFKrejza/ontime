@@ -40,7 +40,8 @@ users 1:N gateways
 gateways 1:N towers  
 towers 1:N assignments  
 assignments 1:1 stops  
-assignments 1:1 stops  
+stops 1:N assignments
+lines 1:N assignments
 stops 1:N lines,
 
 ## Details
@@ -86,7 +87,7 @@ The `id` is the hexadecimal ID from the tower.
 ```
 towers (
 	id TEXT PRIMARY KEY,
-	gateway_id INTEGER NOT NULL,
+	gateway_id TEXT NOT NULL,
 	name TEXT NOT NULL,
 	battery_voltage REAL DEFAULT NULL,
 	last_seen TIMESTAMPTZ DEFAULT NULL,
@@ -100,7 +101,7 @@ towers (
 ```
 assignments (
 	id SERIAL PRIMARY KEY,
-	tower_id INTEGER NOT NULL,
+	tower_id TEXT NOT NULL,
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,
 	departure_offset INTEGER NOT NULL,
