@@ -4,7 +4,7 @@ import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import { updateTrieData } from "./src/stop_data/helpers/updateTrieData.js";
-import { scheduler } from "./src/jobs/scheduler.js";
+import { scheduler, createJob } from "./src/jobs/scheduler.js";
 import schedule from 'node-schedule';
 
 dotenv.config();
@@ -110,24 +110,31 @@ app.put("/getStop", async (req, res) => {
 // adds a stop and schedules it
 app.put("/addStop", async (req, res) => {
 	try {
+		console.log('POST /addStop - Body:', JSON.stringify(req.body));
+		const { offset, stopName, stopId, line } = req.body;
+
+		if (!stopName || !stopId || !line) {
+			return res.status(400).json({ error: 'stopName, stopId, and line are required' });
+		}
+
 		const data = {
-			offset: 10,
-			stopName: "Vysočanská",
-			stopId: "vysocanska",
-			line: {
-				id: 136,
-				name: "136",
-				type: "bus",
-				direction: "Jižní Město",
-				gtfsId: "U474Z6P"
-			}
+			offset,
+			stopName,
+			stopId,
+			line,
 		};
+
+		console.log('Calling createJob with:', JSON.stringify(data));
 		const msg = await createJob(data);
-		res.send(msg);
+		console.log('createJob returned:', msg);
+		res.json({ message: msg, data });
 	} catch (err) {
-		console.error(err);
+		console.error('Error in addStop - Full error:', err);
+		console.error('Error message:', err.message);
+		console.error('Error stack:', err.stack);
+		res.status(500).json({ error: 'Failed to schedule stop', details: err.message });
 	}
-})
+});
 
 // ============================================================================
 // NEW API ENDPOINTS FOR FRONTEND

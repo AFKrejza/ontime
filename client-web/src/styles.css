@@ -1,0 +1,284 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, sans-serif;
+  background: #f3f5f7;
+  color: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at top left, #eef7ff, transparent 35%),
+    linear-gradient(180deg, #ffffff, #f3f5f7);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+header p {
+  margin: 8px 0 0;
+  max-width: 700px;
+  color: #4b5563;
+}
+
+.content {
+  display: grid;
+  gap: 20px;
+}
+
+.card {
+  padding: 24px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.09);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.textInput {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.textInput:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.resultList {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 12px;
+}
+
+.linkButton {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.linkButton:hover {
+  background: #eef2ff;
+}
+
+.typeSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.pill {
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.pill.selected {
+  background: #3b82f6;
+  color: white;
+  border-color: transparent;
+}
+
+.lineGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.lineCard {
+  border: 1px solid #d1d5db;
+  border-radius: 18px;
+  padding: 16px;
+  text-align: left;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.lineCard.selected {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.lineMeta {
+  margin-top: 8px;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.formRow {
+  margin: 20px 0;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+input[type='number'] {
+  width: 120px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  color: white;
+  background: #2563eb;
+  cursor: pointer;
+}
+
+.primaryButton:hover {
+  background: #1d4ed8;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid #2563eb;
+  border-radius: 16px;
+  font-weight: 700;
+  color: #2563eb;
+  background: white;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  background: #eef4ff;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.deviceGrid {
+  display: grid;
+  gap: 18px;
+}
+
+.deviceCard {
+  padding: 20px;
+  border-radius: 22px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.deviceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.deviceLabel {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.deviceRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.statusValue {
+  font-weight: 700;
+}
+
+.statusValue.online {
+  color: #16a34a;
+}
+
+.statusValue.offline {
+  color: #dc2626;
+}
+
+.statusValue.normalBattery {
+  color: #111827;
+}
+
+.gatewayButton {
+  width: 100%;
+}
+
+.statusCard {
+  border-color: #e2e8f0;
+}
+
+.success {
+  margin: 0;
+  color: #166534;
+}
+
+.error {
+  margin: 0;
+  color: #b91c1c;
+}
+
+.status {
+  margin: 0;
+  color: #6b7280;
+}

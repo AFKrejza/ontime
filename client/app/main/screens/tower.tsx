@@ -4,9 +4,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { router } from 'expo-router';
 import { useTowerConfig } from '@/contexts/TowerConfigContext';
-import { fetchTrieData, StopSummary, SERVER_URL } from '@/utils/api';
+import { fetchTrieData, fetchStopLines, addStop, StopSummary, StopDetails, Line, SERVER_URL } from '@/utils/api';
 
-const lineOptions = ['A', 'B', 'C'];
 const typeOptions = ['bus', 'tram', 'metro', 'train'];
 
 // Fallback stops in case API is not available
@@ -35,10 +34,11 @@ export default function TowerConfigScreen() {
   const [filteredStops, setFilteredStops] = useState<StopSummary[]>([]);
   const [query, setQuery] = useState('');
   const [selectedStop, setSelectedStop] = useState<StopSummary | null>(null);
+  const [stopDetails, setStopDetails] = useState<StopDetails | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedLine, setSelectedLine] = useState('A');
-  const [selectedType, setSelectedType] = useState('bus');
+  const [selectedLine, setSelectedLine] = useState<Line | null>(null);
+  const [selectedType, setSelectedType] = useState<string>('bus');
   const [walkingOffset, setWalkingOffset] = useState(5);
 
   // Fetch all stops on mount
@@ -84,62 +84,64 @@ export default function TowerConfigScreen() {
     }
   }, [query, allStops]);
 
-  const handleSelectStop = (stop: StopSummary) => {
+  const handleSelectStop = async (stop: StopSummary) => {
     setSelectedStop(stop);
     setQuery(stop.name);
     setShowDropdown(false);
+    setLoading(true);
+
+    try {
+      const details = await fetchStopLines(stop.id);
+      setStopDetails(details);
+
+      const availableTypes = Object.keys(details.lines).filter(
+        (type) => details.lines[type as keyof typeof details.lines]?.length
+      );
+
+      const initialType = availableTypes.length > 0 ? availableTypes[0] : 'bus';
+      setSelectedType(initialType);
+
+      const initialLines = details.lines[initialType as keyof typeof details.lines];
+      setSelectedLine(initialLines && initialLines.length > 0 ? initialLines[0] : null);
+    } catch (error) {
+      console.error('Error fetching stop details for', stop.name, error);
+      setStopDetails(null);
+      setSelectedLine(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
-    if (!selectedStop) {
-      Alert.alert('Please select a stop first');
+    if (!selectedStop || !selectedLine) {
+      Alert.alert('Please select a stop and a line first');
       return;
     }
+
     try {
-      // First save locally via context
       await saveTowerConfig({
         stop: selectedStop.name,
         stopId: selectedStop.id,
-        line: selectedLine,
-        type: selectedType,
+        line: selectedLine.name,
+        type: selectedLine.type,
         walkingOffset,
       });
 
-      // Then try to save to server
       try {
-        const response = await fetch(`${SERVER_URL}/addStop`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            offset: walkingOffset,
-            stopName: selectedStop.name,
-            stopId: selectedStop.id,
-            line: {
-              id: selectedLine,
-              name: selectedLine,
-              type: selectedType,
-              direction: '',
-              gtfsId: '',
-            },
-          }),
+        await addStop({
+          offset: walkingOffset,
+          stopName: selectedStop.name,
+          stopId: selectedStop.id,
+          line: selectedLine,
         });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Server response:', result);
-        } else {
-          console.log('Server save failed, but saved locally');
-        }
       } catch (serverError) {
-        // Continue even if server fails - data is saved locally
-        console.log('Server not available, saved locally only');
+        console.log('Server not available, saved locally only', serverError);
       }
 
-      Alert.alert('Saved', `Tower configured for ${selectedStop.name} (${selectedLine} ${selectedType})`);
+      Alert.alert('Saved', `Tower configured for ${selectedStop.name} (${selectedLine.name} ${selectedLine.type})`);
       router.replace('/');
-    } catch {
+    } catch (error) {
+      console.error('Error saving tower configuration:', error);
       Alert.alert('Error', 'Failed to save tower configuration');
     }
   };
@@ -209,56 +211,73 @@ export default function TowerConfigScreen() {
         <View style={styles.section}>
           <ThemedText type="subtitle">Transport Type</ThemedText>
           <View style={styles.optionsRow}>
-            {typeOptions.map((type) => (
-              <Pressable
-                key={type}
-                style={[
-                  styles.optionButton,
-                  selectedType === type && styles.optionButtonSelected,
-                ]}
-                onPress={() => setSelectedType(type)}
-              >
-                <ThemedText
-                  style={[
-                    styles.optionText,
-                    selectedType === type && styles.optionTextSelected,
-                  ]}
-                >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </ThemedText>
-              </Pressable>
-            ))}
+              {(stopDetails ? Object.keys(stopDetails.lines) : typeOptions)
+                .filter((type) => {
+                  if (!stopDetails) return true;
+                  const lines = stopDetails.lines[type as keyof typeof stopDetails.lines];
+                  return !!lines && lines.length > 0;
+                })
+                .map((type) => (
+                  <Pressable
+                    key={type}
+                    style={[
+                      styles.optionButton,
+                      selectedType === type && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedType(type);
+                      if (stopDetails) {
+                        const lines = stopDetails.lines[type as keyof typeof stopDetails.lines];
+                        setSelectedLine(lines && lines.length > 0 ? lines[0] : null);
+                      }
+                    }}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.optionText,
+                        selectedType === type && styles.optionTextSelected,
+                      ]}
+                    >
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+            </View>
           </View>
-        </View>
 
-        {/* Line Selection */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle">Line</ThemedText>
-          <View style={styles.optionsRow}>
-            {lineOptions.map((line) => (
-              <Pressable
-                key={line}
-                style={[
-                  styles.lineButton,
-                  { backgroundColor: lineColors[line] },
-                  selectedLine === line && styles.lineButtonSelected,
-                ]}
-                onPress={() => setSelectedLine(line)}
-              >
-                <ThemedText
-                  style={[
-                    styles.lineButtonText,
-                    selectedLine === line && styles.lineButtonTextSelected,
-                  ]}
-                >
-                  {line}
-                </ThemedText>
-              </Pressable>
-            ))}
+          {/* Line Selection */}
+          <View style={styles.section}>
+            <ThemedText type="subtitle">Line</ThemedText>
+            {stopDetails && selectedType ? (
+              <View style={styles.optionsRow}>
+                {(stopDetails.lines[selectedType as keyof typeof stopDetails.lines] || []).map((line) => (
+                  <Pressable
+                    key={line.id}
+                    style={[
+                      styles.lineButton,
+                      { backgroundColor: lineColors[line.name] || '#888' },
+                      selectedLine?.id === line.id && styles.lineButtonSelected,
+                    ]}
+                    onPress={() => setSelectedLine(line)}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.lineButtonText,
+                        selectedLine?.id === line.id && styles.lineButtonTextSelected,
+                      ]}
+                    >
+                      {line.name}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <ThemedText style={styles.helperText}>
+                Select a stop first to view available lines.
+              </ThemedText>
+            )}
           </View>
-        </View>
 
-        {/* Walking Offset */}
         <View style={styles.section}>
           <ThemedText type="subtitle">Walking Offset: mins</ThemedText>
           <View style={styles.offsetRow}>
@@ -407,6 +426,11 @@ const styles = StyleSheet.create({
   },
   lineButtonTextSelected: {
     color: '#fff',
+  },
+  helperText: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
   },
   offsetRow: {
     flexDirection: 'row',

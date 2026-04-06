@@ -1,21 +1,26 @@
 import schedule from 'node-schedule';
 import dotenv from 'dotenv';
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const path = `./data/myStop.json`;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const myStopPath = path.join(__dirname, '../../data/myStop.json');
 const cron = '*/30 * * * * *'; // 30 second interval - adjust for production needs
+
 
 // only handles 1 stop!
 export function scheduler() {
 	const fetchJob = schedule.scheduleJob(cron, async function() {
 		try {
-			const data = await JSON.parse(await fs.readFile(path));
+			console.log('Reading job from:', myStopPath);
+			const data = await JSON.parse(await fs.readFile(myStopPath));
 			await fetchStop(data);
 		} catch (err) {
 			if (err.code === "ENOENT")
 				console.log(`No jobs found.`);
 			else {
-				console.error(`Error in reading myStops.json: ${err}`);
+				console.error(`Error in reading myStop.json: ${err}`);
 				throw new Error(err);
 			}
 		}
@@ -23,10 +28,31 @@ export function scheduler() {
 }
 
 export async function createJob(data) {
-	const {stopName, stopId, line, offset} = data;
-	const job = new Job(stopName, stopId, line, offset, cron);
-	await fs.writeFile(path, JSON.stringify(job));
-	return 'Created job';
+	try {
+		const {stopName, stopId, line, offset} = data;
+
+		if (!stopName || !stopId || !line) {
+			throw new Error('Missing required fields: stopName, stopId, or line');
+		}
+
+		// Create job as plain object
+		const job = {
+			stopName,
+			stopId,
+			line,
+			offset: offset * -1,
+			cron
+		};
+
+		console.log('Writing job to path:', myStopPath);
+		await fs.writeFile(myStopPath, JSON.stringify(job));
+		console.log('Job created successfully');
+		return 'Created job';
+	} catch (err) {
+		console.error('Error in createJob:', err.message);
+		console.error('Stack:', err.stack);
+		throw err;
+	}
 }
 
 async function fetchStop(job) {
