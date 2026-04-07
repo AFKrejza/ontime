@@ -135,13 +135,15 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	}
 	else
 	{
-		twr_log_debug("malformed message / error, skipping");
+		twr_log_debug("malformed message / error, clearing buffer");
+		goto cleanup;
 	}
 
 	parse_assignments(id);
 	draw_assignments(assignments);
 
 	// prevent garbage
+	cleanup:
 	memset(buffer, 0, sizeof(buffer));
 	buffer_index = 0;
 
