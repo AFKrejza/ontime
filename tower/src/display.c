@@ -14,7 +14,7 @@
 const uint16_t BG_COLOR = BLACK;
 const uint16_t TEXT_COLOR = WHITE;
 
-uint8_t buffer[BUFFER_SIZE];
+static uint8_t buffer[BUFFER_SIZE];
 
 static inline void command(uint8_t cmd);
 static inline void start_pixel_stream();
@@ -344,10 +344,11 @@ static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, 
 	uint16_t row_start = box_row_start + 60;
 
 	draw_string(text, col_start, row_start, size);
-
+	
 	size = SIZE_XL;
 	row_start = row_start + 24;
-
+	
+	draw_string("   ", col_start, row_start, size);
 	draw_string(leave_in, col_start, row_start, size);
 }
 
@@ -364,4 +365,10 @@ static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_star
 	row_start = row_start + 24;
 	size = SIZE_XL;
 	draw_string(next_time, col_start, row_start, size);
+}
+
+// blue if receiving data, green if connected, red if disconnected? Or maybe arrows instead.
+void draw_status(uint16_t color)
+{
+	draw_rect(16, 48, 272, 304, color);
 }

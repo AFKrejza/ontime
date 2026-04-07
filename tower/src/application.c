@@ -5,13 +5,23 @@
 #include <application.h>
 #include "display.h"
 
-#define ASSIGNMENTS_SIZE 2 * sizeof(Assignment) + 200 // TODO: calculate the maximum JSON size
+#define ASSIGNMENTS_SIZE 10 * sizeof(Assignment) + 200 // TODO: calculate the maximum JSON size
+
+#define TOWER_ID_SIZE 13 // includes null byte
+
+const char msg_start_char = '[';
+const char msg_end_char = ']';
+const char delimiter = '|';
+const char assignment_start_char = '{';
+const char assignment_end_char = '}';
 
 twr_led_t led;
 twr_button_t button;
 Assignment assignments[2];
-char assignment_buffer[ASSIGNMENTS_SIZE];
+static char buffer[ASSIGNMENTS_SIZE]; // ONLY stores assignments!
 
+void extract_field(uint16_t *i, char *dest, uint16_t max_len);
+void parse_assignments(uint64_t *id);
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
@@ -43,36 +53,7 @@ void application_init(void)
 	display_init();
 	paint_screen(BLACK);
 
-	twr_log_debug("end init");
-
-	char c_ln[] = "151";
-	char c_ld[] = "Ceskomoravska";
-	char c_nt[] = "15:50";
-	char c_li[] = "5m";
-	char c_sn[] = "Klicov";
-	strncpy(assignments[0].line_number, c_ln, sizeof(assignments[0].line_number));
-	strncpy(assignments[0].next_time, c_nt, sizeof(assignments[0].next_time));
-	strncpy(assignments[0].line_direction, c_ld, sizeof(assignments[0].line_direction));
-	strncpy(assignments[0].leave_in, c_li, sizeof(assignments[0].leave_in));
-	strncpy(assignments[0].stop_name, c_sn, sizeof(assignments[0].stop_name));
-	assignments[0].type = 0;
-	
-	char v_ln[] = "136";
-	char v_ld[] = "Jizni Mesto";
-	char v_nt[] = "15:50";
-	char v_li[] = "5m";
-	char v_sn[] = "Novovysocanska";
-	strncpy(assignments[1].line_number, v_ln, sizeof(assignments[1].line_number));
-	strncpy(assignments[1].next_time, v_nt, sizeof(assignments[1].next_time));
-	strncpy(assignments[1].line_direction, v_ld, sizeof(assignments[1].line_direction));
-	strncpy(assignments[1].leave_in, v_li, sizeof(assignments[1].leave_in));
-	strncpy(assignments[1].stop_name, v_sn, sizeof(assignments[1].stop_name));
-	assignments[1].type = 0;
-
-	// draw_assignments(assignments);
-	draw_char('A', 0, 0, 3);
-
-	
+	twr_log_debug("end init");	
 }
 
 // Application task function (optional) which is called periodically if scheduled
@@ -118,7 +99,6 @@ void radio_event_handler(twr_radio_event_t event, void *param)
 
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param)
 {
-	(void) id;
 	(void) topic;
 	(void) param;
 
@@ -127,8 +107,141 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		twr_log_debug("Empty payload");
 		return;
 	}
-	strncpy(assignment_buffer, (const char*)payload, sizeof(assignment_buffer) - 1);
-	assignment_buffer[ASSIGNMENTS_SIZE - 1] = '\0';
-	// draw_string(assignment_buffer, 100, 100, 4);
-	twr_log_debug("%s", (char*)assignment_buffer);
+	draw_status(BLUE);
+
+	size_t len = strlen((const char *)payload);
+	static size_t buffer_index = 0;
+	if (*(const char *)payload == msg_start_char)
+	{
+		twr_log_debug("first msg");
+		buffer_index = 0;
+		memcpy(buffer, payload, len);
+		buffer_index += len;
+		return;
+	}
+	else if (strchr((const char *)payload, msg_end_char)) // checks if last chunk
+	{
+		twr_log_debug("last msg");
+		memcpy(buffer + buffer_index, payload, len);
+		buffer_index += len;
+		twr_log_debug("%s", buffer);
+	}
+	else if (buffer_index > 0)
+	{
+		twr_log_debug("mid msg");
+		memcpy(buffer + buffer_index, payload, len);
+		buffer_index += len;
+		return;
+	}
+	else
+	{
+		twr_log_debug("malformed message / error, skipping");
+	}
+
+	parse_assignments(id);
+	draw_assignments(assignments);
+
+	// prevent garbage
+	memset(buffer, 0, sizeof(buffer));
+	buffer_index = 0;
+
+	draw_status(GREEN);
+}
+
+void parse_assignments(uint64_t *id)
+{
+	char tower_id[13];
+	snprintf(tower_id, sizeof(tower_id), "%012llx", *id);
+		
+	uint16_t i = 0;
+
+	uint8_t assignment_index = 0; // end at 1
+
+	while (i < strlen(buffer))
+	{
+		Assignment new;
+		if (assignment_index >= 2)
+			return;
+
+		// go to the next ID
+		while (buffer[i] != assignment_start_char && buffer[i])
+			i++;
+		i++;
+	
+		// get ID and verify
+		char new_id[TOWER_ID_SIZE];
+		uint16_t k = 0;
+		while (buffer[i] != delimiter && buffer[i] != '\0' && k < TOWER_ID_SIZE - 1)
+		{
+			new_id[k++] = buffer[i++];
+		}
+		new_id[k] = '\0';
+	
+		// go to the end of the current assignment
+		if (strncmp(new_id, tower_id, strlen(new_id)) != 0)
+		{
+			while (buffer[i] != assignment_end_char && buffer[i] != '\0')
+				i++;
+			if (buffer[i] == assignment_end_char)
+				i++;
+
+			continue;
+		}
+
+		// know it's one of this tower's assignments
+		// assignments are in the same order as previous requests
+
+		char tmp[1];
+
+		i++;
+		extract_field(&i, new.line_number, sizeof(new.line_number));
+		extract_field(&i, new.line_direction, sizeof(new.line_direction));
+		extract_field(&i, new.stop_name, sizeof(new.stop_name));
+		extract_field(&i, new.next_time, sizeof(new.next_time));
+		extract_field(&i, new.leave_in, sizeof(new.leave_in));
+		extract_field(&i, tmp, sizeof(tmp));
+		new.type = (uint8_t) strtoul(tmp, NULL, 10);
+
+		if (buffer[i] == assignment_end_char)
+			i++;
+
+		// twr_log_debug("Number:    %s", new.line_number);
+		// twr_log_debug("Direction: %s", new.line_direction);
+		// twr_log_debug("Name:      %s", new.stop_name);
+		// twr_log_debug("Time:      %s", new.next_time);
+		// twr_log_debug("Leave in:  %s", new.leave_in);
+		// twr_log_debug("Type:      %d", new.type);
+
+		// TODO: add a check for the same values to prevent unnecessary display refreshes
+		strncpy(assignments[assignment_index].line_number, new.line_number, sizeof(assignments[assignment_index].line_number));
+		strncpy(assignments[assignment_index].line_direction, new.line_direction, sizeof(assignments[assignment_index].line_direction));
+		strncpy(assignments[assignment_index].stop_name, new.stop_name, sizeof(assignments[assignment_index].stop_name));
+		strncpy(assignments[assignment_index].next_time, new.next_time, sizeof(assignments[assignment_index].next_time));
+		strncpy(assignments[assignment_index].leave_in, new.leave_in, sizeof(assignments[assignment_index].leave_in));
+		assignments[assignment_index].type = new.type;
+
+		assignment_index++;
+	}
+
+}
+
+void extract_field(uint16_t *i, char *dest, uint16_t max_len)
+{
+	twr_log_debug("extract_field start i=%d, next char='%c'", *i, buffer[*i]);
+	uint16_t j = 0;
+	while (buffer[*i] != delimiter && buffer[*i] != msg_end_char && buffer[*i] != '\0' && j < max_len - 1)
+	{
+		dest[j] = buffer[*i];
+		(*i)++;
+		j++;
+		twr_log_debug("extract_field start i=%d, next char='%c'", *i, buffer[*i]);
+	}
+	while (j < max_len)
+	{
+		dest[j] = '\0';
+		j++;
+	}
+
+	if (buffer[*i] == delimiter)
+		(*i)++;
 }

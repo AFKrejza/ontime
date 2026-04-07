@@ -56,6 +56,7 @@ void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
 void draw_assignments(Assignment lines[]);
+void draw_status(uint16_t color);
 void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_size);
 void outline_screen(const uint16_t color);
 void paint_screen(uint16_t color);
