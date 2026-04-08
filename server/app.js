@@ -247,7 +247,7 @@ app.get("/towertest", async (req, res) => {
 		}
 	];
 
-	// an array of assignments, each of which also has their towerId, means the index is the same as the response arrays from PID
+	// an array of assignments, each of which also has their towerId, and the index is aligned to the response from PID
 	const towerAssignments = [];
 	for (let i = 0; i < input.length; i++)
 	{
@@ -324,7 +324,7 @@ app.get("/towertest", async (req, res) => {
 			this.stopName = stopName;
 			this.nextTime = nextTime;
 			this.leaveIn = leaveIn;
-			this.type = type
+			this.type = type;
 		}
 	}
 
@@ -384,8 +384,9 @@ app.get("/towertest", async (req, res) => {
 	}
 
 	// parse it. This is very condensed so that every tower can be on the same topic
-	// as such: tower_001|136|Jizni Mesto|Vysocanska|15:50|10m|0|
-	// If a tower has 2 assignments, it must repeat the towerId.
+	// final result will be an array of all assignments of towers assigned to that gateway, e.g.:
+	// [{547c65321d0b|B|Zlicin|Kolbenova|17:46|5m}{1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0}]
+	// If a tower has 2 assignments it must repeat the towerId like above.
 	// The string will never be that long anyway, ~600 bytes.
 
 	const msg_start_char = '[';
@@ -413,10 +414,6 @@ app.get("/towertest", async (req, res) => {
 
 	res.setHeader('Content-Type', 'text/plain');
 	res.send(assignments);
-
-	// final result will look something like
-	// >547c65321d0b|B|Zličín|Kolbenova|17:46|5m|1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0<
-
 });
 
 app.listen(SERVER_PORT, () => {
