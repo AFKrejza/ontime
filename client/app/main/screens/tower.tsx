@@ -139,7 +139,6 @@ export default function TowerConfigScreen() {
       }
 
       Alert.alert('Saved', `Tower configured for ${selectedStop.name} (${selectedLine.name} ${selectedLine.type})`);
-      router.replace('/');
     } catch (error) {
       console.error('Error saving tower configuration:', error);
       Alert.alert('Error', 'Failed to save tower configuration');
