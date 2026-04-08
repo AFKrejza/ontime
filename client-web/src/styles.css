@@ -278,6 +278,12 @@ input[type='number'] {
   color: #b91c1c;
 }
 
+.helperText {
+  margin: 8px 0 16px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
 .status {
   margin: 0;
   color: #6b7280;

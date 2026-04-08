@@ -20,7 +20,7 @@ export default function SignUp() {
     }
 
     setError('');
-    navigate('/dashboard');
+    navigate('/device-connect');
   };
 
   return (

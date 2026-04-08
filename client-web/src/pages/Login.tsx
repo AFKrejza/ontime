@@ -13,7 +13,7 @@ export default function Login() {
       return;
     }
     setError('');
-    navigate('/dashboard');
+    navigate('/device-connect');
   };
 
   return (
