@@ -1,6 +1,6 @@
-20/2/2026
+26/2/2026
 Current state:
-Includes automatic data updating, structuring and some test routes.
+The server can update the transport data, has endpoints to provide data to the frontend, and it can schedule a stop and fetch data.
 
 Switch to server/, run npm install, and then npm start. It'll automatically download the necessary data from PID.
 

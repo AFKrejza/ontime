@@ -3,22 +3,16 @@ import dotenv from "dotenv";
 import cors from "cors";
 import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
-import { updateTrieData } from "./src/stop_data/helpers/updateTrieData.js";
+import db from "./db.js";
+//
+import router from "./testing_db.js";
+import { sampleDao } from "./src/dao/sampleDao.js";
+import {pgClient, initDB} from "./src/db/postgres.js";
 import { scheduler, createJob } from "./src/jobs/scheduler.js";
-import schedule from 'node-schedule';
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
 const CLIENT_URL = process.env.CLIENT_URL;
-const API_KEY = process.env.API_KEY;
-
-// Demo data - used as fallback when real data is not available
-const DEMO_STOPS = [
-	{ id: '1', name: 'Nádraží Holešovice', type: 'metro', lines: ['C'] },
-	{ id: '2', name: 'Můstek', type: 'metro', lines: ['A', 'B'] },
-	{ id: '3', name: 'Karlín', type: 'tram', lines: ['3', '8'] },
-	{ id: '4', name: 'Hlavní nádraží', type: 'bus', lines: ['100', '110'] },
-];
 
 const app = express();
 app.use(express.json());
@@ -26,6 +20,26 @@ app.use(cors({
 	origin: CLIENT_URL
 }));
 
+async function dbCheck() {
+	try {
+		const result = await pgClient.query(`SELECT NOW()`);
+		console.log(result.rows[0]);
+		// const test = await pgClient.query(`
+		// INSERT INTO users(username, email, password_hash) 
+		// VALUES ('TestUsere', 'testuser@gmail.com', 'unhashed') 
+		// RETURNING *
+		// `);
+		// console.log(test.rows[0]);
+	} catch (err) {
+		console.log("DB error");
+		console.error(err);
+	}
+}
+await initDB();
+await dbCheck();
+
+//
+app.use("/api/tower", router);
 // TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
 scheduler();
@@ -60,6 +74,7 @@ app.get("/bustest", async (req, res) => {
 	res.send(data);
 });
 
+// TODO: integrate with db
 app.get("/stopGroups/:id", async (req, res) => {
 	try {
 		const id = req.params.id;
@@ -68,46 +83,15 @@ app.get("/stopGroups/:id", async (req, res) => {
 		const stop = stopGroups.find((stop) => stop.id === id);
 
 		if (!stop)
-			throw new Error(`Stop ${id} not found`); // TODO: add status codes
+			throw new Error(`Stop ${id} not found`);
 
 		res.send(stop);
 	} catch (err) {
 		console.error(err);
-		res.send(err);
+		res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
 	}
 });
 
-// testing endpoint without saving data
-// https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U474Z6P"]}&limit=1&routeShortNames=136&minutesAfter=60&minutesBefore=-10
-// plus the X-Access-Token
-app.put("/getStop", async (req, res) => {
-	try {
-		const gtfsId = req.body.line.gtfsId;
-		const name = req.body.line.name;
-		const offset = req.body.offset;
-		const url = `
-			https://api.golemio.cz/v2/public/departureboards?
-			stopIds={"0": ["${gtfsId}"]}&
-			limit=5&
-			routeShortNames=${name}&
-			minutesAfter=60&
-			minutesBefore=${offset}
-		`;
-		const get = await fetch(url, {
-			method: "GET",
-			headers: {
-				"X-Access-Token": process.env.API_KEY
-			}
-		});
-		const data = await get.json();
-		console.log(data);
-		res.send(data);
-	} catch (err) {
-		console.error(err);
-	}
-});
-
-// adds a stop and schedules it
 app.put("/addStop", async (req, res) => {
 	try {
 		console.log('POST /addStop - Body:', JSON.stringify(req.body));
@@ -130,316 +114,338 @@ app.put("/addStop", async (req, res) => {
 		res.json({ message: msg, data });
 	} catch (err) {
 		console.error('Error in addStop - Full error:', err);
-		console.error('Error message:', err.message);
-		console.error('Error stack:', err.stack);
-		res.status(500).json({ error: 'Failed to schedule stop', details: err.message });
+		res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to schedule stop' });
 	}
 });
 
-// ============================================================================
-// NEW API ENDPOINTS FOR FRONTEND
-// ============================================================================
-
-// In-memory storage for saved stops (in production, use a database)
-let savedStops = [];
-
-// Load saved stops from file if exists
-async function loadSavedStops() {
+// testing endpoint without saving data
+// https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U474Z6P"]}&limit=1&routeShortNames=136&minutesAfter=60&minutesBefore=-10
+app.put("/getStop", async (req, res) => {
 	try {
-		const data = await fs.readFile("./data/savedStops.json", "utf8");
-		savedStops = JSON.parse(data);
-	} catch (err) {
-		// File doesn't exist yet, start with empty array
-		savedStops = [];
-	}
-}
-
-// Save stops to file
-async function saveSavedStops() {
-	await fs.writeFile("./data/savedStops.json", JSON.stringify(savedStops, null, 2));
-}
-
-// Initialize saved stops
-loadSavedStops();
-
-/**
- * GET /api/stops
- * Returns all available stops for the explore screen
- * Frontend calls this to display the list of stops
- */
-app.get("/api/stops", async (req, res) => {
-	try {
-		// Try to read from trieData.json first
-		let stops = [];
-		try {
-			const trieData = JSON.parse(await fs.readFile("./data/trieData.json", "utf8"));
-			// trieData contains stop names as keys
-			stops = Object.keys(trieData).map((name, index) => ({
-				id: `stop_${index}`,
-				name: name,
-				type: 'bus', // Default type, will be updated with actual data
-				lines: []
-			}));
-		} catch (e) {
-			// If no trie data, return sample stops for demo
-			stops = [...DEMO_STOPS];
-		}
-		res.json(stops);
-	} catch (err) {
-		console.error('Error fetching stops:', err);
-		res.status(500).json({ error: 'Failed to fetch stops' });
-	}
-});
-
-/**
- * GET /api/stops/search?q=query
- * Search stops by name prefix (uses Trie for fast searching)
- * Frontend calls this when user types in search bar
- */
-app.get("/api/stops/search", async (req, res) => {
-	try {
-		const query = req.query.q || '';
-		if (!query) {
-			return res.json([]);
-		}
-
-		// Try to use trie data for searching
-		let results = [];
-		try {
-			const trieData = JSON.parse(await fs.readFile("./data/trieData.json", "utf8"));
-			// Simple prefix matching (in production, use actual Trie)
-			const lowerQuery = query.toLowerCase();
-			results = Object.keys(trieData)
-				.filter(name => name.toLowerCase().includes(lowerQuery))
-				.slice(0, 20) // Limit to 20 results
-				.map((name, index) => ({
-					id: `stop_${index}`,
-					name: name,
-					type: 'bus',
-					lines: []
-				}));
-		} catch (e) {
-			// Fallback: return demo results
-			const lowerQuery = query.toLowerCase();
-			results = DEMO_STOPS.filter(stop => 
-				stop.name.toLowerCase().includes(lowerQuery)
-			);
-		}
-		res.json(results);
-	} catch (err) {
-		console.error('Error searching stops:', err);
-		res.status(500).json({ error: 'Failed to search stops' });
-	}
-});
-
-/**
- * GET /api/stops/:id
- * Get detailed information about a specific stop
- * Frontend calls this when user selects a stop
- */
-app.get("/api/stops/:id", async (req, res) => {
-	try {
-		const { id } = req.params;
-		
-		// Try to get stop details from stopDetails.json
-		let stopDetails = null;
-		try {
-			const allDetails = JSON.parse(await fs.readFile("./data/stopDetails.json", "utf8"));
-			stopDetails = allDetails.find(stop => stop.id === id);
-		} catch (e) {
-			// Return demo stop
-		}
-
-		if (stopDetails) {
-			return res.json(stopDetails);
-		}
-
-		// Return demo data if no real data
-		res.json({
-			id: id,
-			name: 'Vysočanská',
-			type: 'bus',
-			gtfsId: 'U474Z6P',
-			lines: [
-				{ id: 136, name: '136', direction: 'Jižní Město' },
-				{ id: 186, name: '186', direction: 'Poliklinika Vysočany' }
-			]
-		});
-	} catch (err) {
-		console.error('Error fetching stop details:', err);
-		res.status(500).json({ error: 'Failed to fetch stop details' });
-	}
-});
-
-/**
- * POST /api/departures
- * Get real-time departures for a specific stop and line
- * Frontend calls this to display upcoming departures
- * 
- * Request body:
- * {
- *   "gtfsId": "U474Z6P",      // Stop's GTFS ID (from Prague transit API)
- *   "lineName": "136",       // Line number (e.g., "136", "A", "C")
- *   "minutesBefore": -10,    // How many minutes before now to show
- *   "minutesAfter": 60        // How many minutes after now to show
- * }
- */
-app.post("/api/departures", async (req, res) => {
-	try {
-		// Validate API key is configured
-		if (!API_KEY) {
-			console.error('API_KEY environment variable is not set');
-			return res.status(500).json({ error: 'Server configuration error: API key not configured' });
-		}
-
-		const { gtfsId, lineName, minutesBefore = -10, minutesAfter = 60 } = req.body;
-
-		if (!gtfsId || !lineName) {
-			return res.status(400).json({ error: 'gtfsId and lineName are required' });
-		}
-
-		// Validate time bounds
-		const validMinutesBefore = Math.max(-60, Math.min(0, minutesBefore ?? -10));
-		const validMinutesAfter = Math.min(120, Math.max(1, minutesAfter ?? 60));
-
-		// Call Prague transit API to get real-time departures
-		const url = `https://api.golemio.cz/v2/public/departureboards?${new URLSearchParams({
-			stopIds: JSON.stringify({"0": [gtfsId]}),
-			limit: 10,
-			routeShortNames: lineName,
-			minutesAfter: validMinutesAfter,
-			minutesBefore: validMinutesBefore
-		})}`;
-
-		const response = await fetch(url, {
+		const gtfsId = req.body.line.gtfsId;
+		const name = req.body.line.name;
+		const offset = req.body.offset;
+		const limit = 5;
+		const minutesAfter = 60; // default 60
+		const url = `
+			https://api.golemio.cz/v2/public/departureboards?
+			stopIds={"0": ["${gtfsId}"]}&
+			limit=5&
+			routeShortNames=${name}&
+			minutesAfter=60&
+			minutesBefore=${offset}
+		`;
+		const get = await fetch(url, {
 			method: "GET",
 			headers: {
-				"X-Access-Token": API_KEY
+				"X-Access-Token": process.env.API_KEY
 			}
 		});
-
-		if (!response.ok) {
-			throw new Error('Failed to fetch departures from transit API');
+		const data = await get.json();
+		if (!data.departures || data.departures.length === 0) {
+			const msg = `No departures found for line ${name}`;
+			console.log(msg);
+			res.send(msg);
 		}
+		console.log(data);
+		res.send(data);
+	} catch (err) {
+		console.error(err);
+	}
+});
 
-		const data = await response.json();
+// Mock endpoint for gateway departures
+app.get("/gateway/:gatewayId/departures", async (req, res) => {
+	try {
+		const gatewayId = req.params.gatewayId;
 		
-		// Transform the API response to a simpler format for frontend
-		const departures = (data.departures || []).map(dep => ({
-			id: dep.trip?.tripId || Math.random().toString(),
-			lineName: dep.route?.short_name || lineName,
-			direction: dep.route?.long_name || dep.trip?.trip_headsign || 'Unknown',
-			expectedDeparture: dep.expected_departureUtc,
-			realTime: dep.actual_relative_time || null,
-			type: dep.route?.type || 'bus'
-		}));
-
-		res.json({
-			stopId: gtfsId,
-			lineName: lineName,
-			departures: departures
-		});
-	} catch (err) {
-		console.error('Error fetching departures:', err);
-		res.status(500).json({ error: 'Failed to fetch departures', details: err.message });
-	}
-});
-
-/**
- * GET /api/savedStops
- * Get all saved/starred stops for the user
- * Frontend calls this to show the user's tracked stops on home screen
- */
-app.get("/api/savedStops", async (req, res) => {
-	try {
-		res.json(savedStops);
-	} catch (err) {
-		console.error('Error fetching saved stops:', err);
-		res.status(500).json({ error: 'Failed to fetch saved stops' });
-	}
-});
-
-/**
- * POST /api/savedStops
- * Save a new stop to track
- * Frontend calls this when user adds a stop to their favorites
- * 
- * Request body:
- * {
- *   "name": "Vysočanská",
- *   "gtfsId": "U474Z6P",
- *   "line": { "name": "136", "direction": "Jižní Město" }
- * }
- */
-app.post("/api/savedStops", async (req, res) => {
-	try {
-		const { name, gtfsId, line } = req.body;
-
-		if (!name || !gtfsId) {
-			return res.status(400).json({ error: 'name and gtfsId are required' });
-		}
-
-		const newStop = {
-			id: Date.now().toString(),
-			name,
-			gtfsId,
-			line: line || null,
-			createdAt: new Date().toISOString()
+		// Mock response data as per API docs
+		const mockResponse = {
+			timestamp: new Date().toISOString(),
+			displayData: [
+				{
+					towerId: "tower_001",
+					departures: [
+						{
+							lineNumber: "136",
+							lineDirection: "Jizni Mesto",
+							stopName: "Vysocanska",
+							nextTime: "15:50",
+							leaveIn: "10m",
+							type: 0
+						}
+					]
+				}
+			]
 		};
 
-		savedStops.push(newStop);
-		await saveSavedStops();
-
-		// Also schedule a job for this stop if line is provided
-		if (line) {
-			await createJob({
-				offset: 10,
-				stopName: name,
-				stopId: newStop.id,
-				line: {
-					id: Date.now(),
-					name: line.name,
-					type: 'bus',
-					direction: line.direction,
-					gtfsId: gtfsId
-				}
-			});
+		// Optional: You can vary the response based on gatewayId if needed
+		// For example, if gatewayId === "2", return different mock data
+		if (gatewayId === "2") {
+			mockResponse.displayData[0].towerId = "tower_002";
+			mockResponse.displayData[0].departures[0] = {
+				lineNumber: "152",
+				lineDirection: "Ceskomoravska",
+				stopName: "Klicov",
+				nextTime: "15:45",
+				leaveIn: "5m",
+				type: 0
+			};
 		}
 
-		res.status(201).json(newStop);
+		res.json(mockResponse);
 	} catch (err) {
-		console.error('Error saving stop:', err);
-		res.status(500).json({ error: 'Failed to save stop' });
+		console.error(err);
+		res.status(500).json({ error: "Internal server error" });
 	}
 });
 
-/**
- * DELETE /api/savedStops/:id
- * Remove a saved stop
- * Frontend calls this when user removes a stop from favorites
- */
-app.delete("/api/savedStops/:id", async (req, res) => {
+// check if the db is still up and connected
+app.use("/dbtest", async (req, res) => {
 	try {
-		const { id } = req.params;
-		const initialLength = savedStops.length;
-		
-		savedStops = savedStops.filter(stop => stop.id !== id);
-
-		if (savedStops.length === initialLength) {
-			return res.status(404).json({ error: 'Stop not found' });
-		}
-
-		await saveSavedStops();
-		res.json({ message: 'Stop removed successfully' });
+		const result = await pgClient.query("SELECT NOW()");
+		res.json(result.rows);
 	} catch (err) {
-		console.error('Error removing stop:', err);
-		res.status(500).json({ error: 'Failed to remove stop' });
+		console.error(err);
+		res.status(500).send("DB error");
 	}
 });
 
-// ============================================================================
-// END OF NEW API ENDPOINTS
-// ============================================================================
+// test endpoint for a tower's TWO departures with correct parsing. based off /bustest
+app.get("/towertest", async (req, res) => {
+
+	// Based off the worked example in server-pid.md
+
+	//https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U75Z101P"]}&stopIds={"1": ["U474Z6P"]}&limit=30&minutesAfter=60&minutesBefore=-15
+	// 	the metro B Zlicin at Kolbenova
+	//	gtfsId:U75Z101P
+	//	departureOffset: -15
+	//	the bus 177 Chodov at Vysocanska.
+	//	gtfsId: U474Z6P
+	//	departureOffset: -10
+
+	// use a JOIN to add the stop and line
+	const input = [
+		{
+			towerId: "c1895bf80e2b",
+			assignments: [
+				{
+					departureOffset: -15,
+					stopId: 1200, // generated in our database
+					lineId: 1, // generated in our DB
+					gtfsId: "U75Z101P", // from PID,
+					stop: {
+						id: 1200, // our db
+						slug: "kolbenova",
+						name: "Kolbenova",
+						displayAscii: "Kolbenova"
+					},
+					line: {
+						id: 1, // our db
+						pidId: 992, // from PID 
+						gtfsId: "U75Z101P",
+						name: "B", 
+						displayAscii: "Zlicin",
+						type: "metro", 
+						direction: "Zličín"
+					}
+				},
+				{
+					departureOffset: -10,
+					stopId: 3, // generated in our database
+					lineId: 54, // generated in our DB
+					gtfsId: "U474Z6P", // from PID,
+					stop: {
+						id: 3, // our db
+						slug: "vysocanska",
+						name: "Vysočanská",
+						displayAscii: "Vysocanska"
+					},
+					line: {
+						id: 54, // our db
+						pidId: 177, // from PID 
+						gtfsId: "U474Z6P",
+						name: "177", 
+						displayAscii: "Chodov",
+						type: "bus", 
+						direction: "Chodov"
+					}
+				}
+			]
+		}
+	];
+
+	// an array of assignments, each of which also has their towerId, means the index is the same as the response arrays from PID
+	const towerAssignments = [];
+	for (let i = 0; i < input.length; i++)
+	{
+		for (let j = 0; j < input[i].assignments.length; j++)
+		{
+			const assignment = input[i].assignments[j];
+			assignment.towerId = input[i].towerId;
+			towerAssignments.push(assignment);
+		}
+	}
+
+	let stopIds = [];
+	for (let i = 0; i < input.length; i++)
+	{
+		for (let j = 0; j < input[i].assignments.length; j++)
+		{
+			const stopId = input[i].assignments[j].gtfsId;
+			stopIds.push(stopId);
+		}
+	}
+	console.log(stopIds);
+
+	const stopIdParams = stopIds.map((id, i) => `stopIds={"${i}": ["${id}"]}`).join("&");
+	const minutesBefore = -15; // take lowest departureOffset
+	const minutesAfter = 60;
+	const limit = 30;
+	const url = `https://api.golemio.cz/v2/public/departureboards?${stopIdParams}&limit=${limit}&minutesAfter=${minutesAfter}&minutesBefore=${minutesBefore}`;
+	console.log(url);
+
+	const response = await fetch(url, {
+		method: "GET",
+		headers: {
+			"X-Access-Token": process.env.API_KEY
+		}
+	});
+
+
+	const allDepartures = await response.json();
+
+	// filter to correct ones then map to towerAssignments, then parse into correct structure
+	for (let i = 0; i < allDepartures.length; i++) {
+
+		// assign leaveIn and nextTime
+		for (let j = 0; j < allDepartures[i].length; j++) {
+			const name = towerAssignments[i].line.name;
+			const shortName = allDepartures[i][j].route.short_name;
+
+			const minutes = Number(allDepartures[i][j].departure.minutes);
+			const departureOffset = towerAssignments[i].departureOffset;
+			const leaveIn = minutes - departureOffset * -1;
+
+			if (leaveIn > 0 && name === shortName)
+			{
+				const predicted = allDepartures[i][j].departure.timestamp_predicted;
+				towerAssignments[i].nextTime = predicted.substring(11, 16);
+				towerAssignments[i].leaveIn = `${leaveIn}m`;
+				break;
+			}
+		}
+		// if no bus was found
+		if (!towerAssignments[i].nextTime)
+		{
+			towerAssignments[i].nextTime = `NONE`;
+			towerAssignments[i].leaveIn = `///`;
+		}
+	}
+
+	// everything MUST be a string!!!
+	class Assignment {
+		constructor(towerId, lineNumber, lineDirection, stopName, nextTime, leaveIn, type) {
+			this.towerId = towerId;
+			this.lineNumber = lineNumber;
+			this.lineDirection = lineDirection;
+			this.stopName = stopName;
+			this.nextTime = nextTime;
+			this.leaveIn = leaveIn;
+			this.type = type
+		}
+	}
+
+	const enumTransportTypes = {
+		bus: 0,
+		metro: 1,
+		tram: 2,
+		trolleybus: 3,
+		train: 4,
+		ferry: 5
+	}
+
+	// not including null byte!
+	const TOWER_ID_SIZE = 12;
+	const LINE_NUMBER_SIZE = 3;
+	const LINE_DIRECTION_SIZE = 15;
+	const NEXT_TIME_SIZE = 5;
+	const LEAVE_IN_SIZE = 3;
+	const STOP_NAME_SIZE = 22;
+
+	const towersData = [];
+	// then shorten everything to the max sizes & set the type & clean up
+	for (let i = 0; i < towerAssignments.length; i++)
+	{
+		const towerId = towerAssignments[i].towerId;
+		const nextTime = towerAssignments[i].nextTime;
+		const leaveIn = towerAssignments[i].leaveIn;
+		let lineNumber;
+		let lineDirection;
+		let stopName;
+		const type = enumTransportTypes[towerAssignments[i].line.type.toLowerCase()];
+
+		if (towerAssignments[i].line.name.length > LINE_NUMBER_SIZE) {
+			lineNumber = towerAssignments[i].line.name.substring(0, LINE_NUMBER_SIZE);
+		} else lineNumber = towerAssignments[i].line.name;
+
+		if (towerAssignments[i].line.displayAscii.length > LINE_DIRECTION_SIZE) {
+			lineDirection = towerAssignments[i].line.displayAscii.substring(0, LINE_DIRECTION_SIZE - 2);
+			lineDirection = `${lineDirection}..`;
+		} else lineDirection = towerAssignments[i].line.displayAscii;
+
+		if (towerAssignments[i].stop.displayAscii.length > STOP_NAME_SIZE) {
+			stopName = towerAssignments[i].stop.displayAscii.substring(0, STOP_NAME_SIZE - 2);
+			stopName = `${stopName}..`;
+		} else stopName = towerAssignments[i].stop.displayAscii;
+
+		const assignment = new Assignment(
+			towerId,
+			lineNumber,
+			lineDirection,
+			stopName,
+			nextTime,
+			leaveIn,
+			type
+		);
+		towersData.push(assignment);
+	}
+
+	// parse it. This is very condensed so that every tower can be on the same topic
+	// as such: tower_001|136|Jizni Mesto|Vysocanska|15:50|10m|0|
+	// If a tower has 2 assignments, it must repeat the towerId.
+	// The string will never be that long anyway, ~600 bytes.
+
+	const msg_start_char = '[';
+	const msg_end_char = ']';
+	const delimiter = '|';
+
+	const assignment_start_char = '{';
+	const assignment_end_char = '}';
+
+	let assignments = "";
+	assignments = assignments.concat(msg_start_char);
+	for (let i = 0; i < towersData.length; i++)
+	{
+		assignments = assignments.concat(assignment_start_char);
+		assignments = assignments.concat(towersData[i].towerId);
+		assignments = assignments.concat(delimiter, towersData[i].lineNumber);
+		assignments = assignments.concat(delimiter, towersData[i].lineDirection);
+		assignments = assignments.concat(delimiter, towersData[i].stopName);
+		assignments = assignments.concat(delimiter, towersData[i].nextTime);
+		assignments = assignments.concat(delimiter, towersData[i].leaveIn);
+		assignments = assignments.concat(delimiter, towersData[i].type);
+		assignments = assignments.concat(assignment_end_char);
+	}
+	assignments = assignments.concat(msg_end_char);
+
+	res.setHeader('Content-Type', 'text/plain');
+	res.send(assignments);
+
+	// final result will look something like
+	// >547c65321d0b|B|Zličín|Kolbenova|17:46|5m|1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0<
+
+});
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);

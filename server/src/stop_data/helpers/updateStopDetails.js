@@ -18,7 +18,7 @@ export async function updateStopDetails() {
 
 		let latin = removeDiacritics(stopGroups[i].uniqueName);
 		if (latinNames.has(latin))
-			name = name.concat('_2'); // silly
+			name = name.concat('_2');
 		latinNames.add(latin);
 
 		let id = removeDiacritics(name.toLowerCase());
@@ -58,19 +58,6 @@ function getStops(stopGroup) {
 			if (!stopData[line.type])
 				stopData[line.type] = [];
 			stopData[line.type].splice(computeIndex(stopData[line.type], line), 0, line); // sorts by name (line number)
-
-			let multDirs = 2;
-			while (lines[j][`direction${multDirs}`]) { // creates a different line for each direction
-				const line = new Line(
-					lines[j].id,
-					lines[j].name,
-					lines[j].type,
-					lines[j][`direction${multDirs}`],
-					gtfsId
-				);
-				stopData[line.type].splice(computeIndex(stopData[line.type], line), 0, line);
-				multDirs++;
-			}
 		}
 	}
 
