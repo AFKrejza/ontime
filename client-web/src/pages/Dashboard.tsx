@@ -7,6 +7,8 @@ const devices = [
     battery: '46%',
     lastSeen: '12:32',
     lowBattery: false,
+    line: 'Line 136',
+    location: 'Vysočanská',
   },
   {
     name: 'work stop',
@@ -14,42 +16,68 @@ const devices = [
     battery: '22%',
     lastSeen: '16:03',
     lowBattery: true,
+    line: 'Metro B',
+    location: 'Kolbenova',
   },
 ];
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const onlineCount = devices.filter(d => d.status === 'online').length;
 
   return (
     <div className="page">
       <header className="header">
         <div>
-          <h1>Your devices</h1>
-          <p>Monitor your gateways, status, and recent activity.</p>
+          <h1>Dashboard</h1>
+          <p>Monitor your connected devices and tower assignments.</p>
         </div>
       </header>
 
       <main className="content">
+        <section className="card summarySection">
+          <div className="summaryGrid">
+            <div className="summaryItem">
+              <div className="summaryValue">{onlineCount}</div>
+              <div className="summaryLabel">Online Devices</div>
+            </div>
+            <div className="summaryItem">
+              <div className="summaryValue">{devices.length}</div>
+              <div className="summaryLabel">Total Towers</div>
+            </div>
+          </div>
+        </section>
+
         <section className="card">
+          <h2>Your Towers</h2>
           <div className="deviceGrid">
             {devices.map((device) => (
               <div key={device.name} className="deviceCard">
                 <div className="deviceHeader">
                   <div>
-                    <div className="deviceLabel">Tower: {device.name}</div>
+                    <div className="deviceLabel">📍 {device.name}</div>
+                    <div className="deviceLocation">{device.location}</div>
                   </div>
-                  <div className={device.status === 'online' ? 'statusValue online' : 'statusValue offline'}>
-                    {device.status}
+                  <div className={device.status === 'online' ? 'statusBadge online' : 'statusBadge offline'}>
+                    {device.status === 'online' ? '🟢' : '🔴'} {device.status}
                   </div>
                 </div>
 
-                <div className="deviceRow">
-                  <span>Battery:</span>
-                  <span className={device.lowBattery ? 'statusValue offline' : 'statusValue normalBattery'}>{device.battery}</span>
-                </div>
-                <div className="deviceRow">
-                  <span>Last seen:</span>
-                  <span>{device.lastSeen}</span>
+                <div className="deviceDetails">
+                  <div className="deviceDetailRow">
+                    <span className="detailLabel">Line:</span>
+                    <span className="detailValue">{device.line}</span>
+                  </div>
+                  <div className="deviceDetailRow">
+                    <span className="detailLabel">Battery:</span>
+                    <span className={`detailValue ${device.lowBattery ? 'lowBattery' : ''}`}>
+                      🔋 {device.battery}
+                    </span>
+                  </div>
+                  <div className="deviceDetailRow">
+                    <span className="detailLabel">Last seen:</span>
+                    <span className="detailValue">{device.lastSeen}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -58,7 +86,10 @@ export default function Dashboard() {
 
         <section className="card">
           <button className="primaryButton gatewayButton" onClick={() => navigate('/tower')}>
-            + Add assignment
+            ➕ Add New Assignment
+          </button>
+          <button className="secondaryButton gatewayButton" onClick={() => navigate('/settings')}>
+            ⚙️ Settings
           </button>
         </section>
       </main>

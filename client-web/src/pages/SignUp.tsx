@@ -19,6 +19,11 @@ export default function SignUp() {
       return;
     }
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     setError('');
     navigate('/device-connect');
   };
@@ -28,16 +33,16 @@ export default function SignUp() {
       <header className="header">
         <div>
           <h1>Create Account</h1>
-          <p>Sign up to start assigning tower stops and monitoring lines.</p>
+          <p>Join OnTime and start monitoring your devices today.</p>
         </div>
       </header>
 
       <main className="content">
-        <section className="card">
-          <h2>Step 2 of 4</h2>
+        <section className="card authCard">
+          <h2>Sign Up</h2>
           <div className="formRow">
             <label>
-              Email
+              Email Address
               <input
                 type="email"
                 value={email}
@@ -54,7 +59,7 @@ export default function SignUp() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Password"
+                placeholder="Create a password (6+ characters)"
                 className="textInput"
               />
             </label>
@@ -66,18 +71,28 @@ export default function SignUp() {
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Confirm password"
+                placeholder="Confirm your password"
                 className="textInput"
               />
             </label>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="primaryButton" onClick={handleSignUp}>
+          <button className="primaryButton authButton" onClick={handleSignUp}>
             Create Account
           </button>
-          <button className="secondaryButton" onClick={() => navigate('/login')}>
-            Already have an account
+          <div className="divider">or</div>
+          <button className="secondaryButton authButton" onClick={() => navigate('/login')}>
+            Already have an account? Sign In
           </button>
+        </section>
+
+        <section className="card infoCard">
+          <h3>Why OnTime?</h3>
+          <ul className="reasonsList">
+            <li>✓ Real-time transport monitoring</li>
+            <li>✓ Easy device management</li>
+            <li>✓ Reliable and always available</li>
+          </ul>
         </section>
       </main>
     </div>

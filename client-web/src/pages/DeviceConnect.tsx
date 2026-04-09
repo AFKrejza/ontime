@@ -23,9 +23,9 @@ export default function DeviceConnect() {
       console.log('Connecting to device with code:', deviceCode);
       
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setSuccessMessage(`Connected to device ${deviceCode}!`);
+      setSuccessMessage(`✓ Connected to device ${deviceCode.toUpperCase()}`);
       setTimeout(() => {
         navigate('/dashboard');
       }, 1500);
@@ -44,38 +44,48 @@ export default function DeviceConnect() {
     <div className="page">
       <header className="header">
         <div>
-          <h1>Connect Device</h1>
-          <p>Enter your device code to connect and start monitoring.</p>
+          <h1>Connect Your Device</h1>
+          <p>Link your tower device to start monitoring transport lines.</p>
         </div>
       </header>
 
       <main className="content">
-        <section className="card">
-          <h2>Step 3 of 4</h2>
+        <section className="card deviceConnectCard">
+          <h2>Device Pairing</h2>
+          <p className="stepInfo">Step 3 of 4</p>
+          
+          <div className="instructionBox">
+            <h3>How to find your device code:</h3>
+            <ol className="instructionList">
+              <li>Look on the back of your OnTime device</li>
+              <li>Find the 6-12 character alphanumeric code</li>
+              <li>Enter it below to pair with your account</li>
+            </ol>
+          </div>
+
           <div className="formRow">
             <label>
               Device Code
               <input
                 type="text"
                 value={deviceCode}
-                onChange={(event) => setDeviceCode(event.target.value)}
-                placeholder="Enter your 6-12 character device code"
-                className="textInput"
+                onChange={(event) => setDeviceCode(event.target.value.toUpperCase())}
+                placeholder="e.g., ABC123XYZ789"
+                className="textInput deviceCodeInput"
               />
             </label>
           </div>
-          <p className="helperText">
-            You can find your device code on the back of your OnTime device or in the device settings.
-          </p>
+          
           {error && <p className="error">{error}</p>}
           {successMessage && <p className="success">{successMessage}</p>}
+          
           <div className="buttonGroup">
             <button 
               className="primaryButton" 
               onClick={handleConnect} 
               disabled={isLoading}
             >
-              {isLoading ? 'Connecting…' : 'Connect Device'}
+              {isLoading ? '⏳ Connecting…' : '🔗 Connect Device'}
             </button>
             <button 
               className="secondaryButton" 
@@ -85,6 +95,11 @@ export default function DeviceConnect() {
               Skip for Now
             </button>
           </div>
+        </section>
+
+        <section className="card infoCard">
+          <h3>Don't have a device yet?</h3>
+          <p>You can still use OnTime to configure and manage your settings. You'll be able to connect a device later.</p>
         </section>
       </main>
     </div>

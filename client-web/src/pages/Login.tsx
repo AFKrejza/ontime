@@ -21,16 +21,16 @@ export default function Login() {
       <header className="header">
         <div>
           <h1>Log In</h1>
-          <p>Enter your credentials to continue to OnTime.</p>
+          <p>Access your OnTime account and manage your devices.</p>
         </div>
       </header>
 
       <main className="content">
-        <section className="card">
-          <h2>Step 2 of 4</h2>
+        <section className="card authCard">
+          <h2>Sign In to Your Account</h2>
           <div className="formRow">
             <label>
-              Email
+              Email Address
               <input
                 type="email"
                 value={email}
@@ -47,18 +47,24 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Password"
+                placeholder="Enter your password"
                 className="textInput"
               />
             </label>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="primaryButton" onClick={handleLogin}>
-            Log In
+          <button className="primaryButton authButton" onClick={handleLogin}>
+            Sign In
           </button>
-          <button className="secondaryButton" onClick={() => navigate('/signup')}>
-            Create account
+          <div className="divider">or</div>
+          <button className="secondaryButton authButton" onClick={() => navigate('/signup')}>
+            Create New Account
           </button>
+        </section>
+
+        <section className="card infoCard">
+          <h3>Need help?</h3>
+          <p>If you don't have an account yet, you can create one in seconds with just an email and password.</p>
         </section>
       </main>
     </div>
