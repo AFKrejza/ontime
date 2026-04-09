@@ -4,9 +4,9 @@ export default function Welcome() {
   const navigate = useNavigate();
 
   const features = [
-    { icon: '📍', title: 'Real-time Monitoring', desc: 'Track buses and metro arrivals in real-time' },
-    { icon: '🔗', title: 'Device Connection', desc: 'Connect your tower devices to the network' },
-    { icon: '⚙️', title: 'Easy Configuration', desc: 'Set up stops and monitor routes with one click' },
+    { icon: '', title: 'Real-time Monitoring', desc: 'Track buses and metro arrivals in real-time' },
+    { icon: '', title: 'Device Connection', desc: 'Connect your tower devices to the network' },
+    { icon: '', title: 'Easy Configuration', desc: 'Set up stops and monitor routes with one click' },
   ];
 
   return (
