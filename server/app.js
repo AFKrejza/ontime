@@ -210,7 +210,7 @@ app.get("/towertest", async (req, res) => {
 	// use a JOIN to add the stop and line
 	const input = [
 		{
-			towerId: "547c65321d0b",
+			towerId: "c1895bf80e2b",
 			assignments: [
 				{
 					departureOffset: -15,
@@ -258,7 +258,7 @@ app.get("/towertest", async (req, res) => {
 		}
 	];
 
-	// an array of assignments, each of which also has their towerId, means the index is the same as the response arrays from PID
+	// an array of assignments, each of which also has their towerId, and the index is aligned to the response from PID
 	const towerAssignments = [];
 	for (let i = 0; i < input.length; i++)
 	{
@@ -335,7 +335,7 @@ app.get("/towertest", async (req, res) => {
 			this.stopName = stopName;
 			this.nextTime = nextTime;
 			this.leaveIn = leaveIn;
-			this.type = type
+			this.type = type;
 		}
 	}
 
@@ -347,13 +347,14 @@ app.get("/towertest", async (req, res) => {
 		train: 4,
 		ferry: 5
 	}
-	// not including null byte
+
+	// not including null byte!
+	const TOWER_ID_SIZE = 12;
 	const LINE_NUMBER_SIZE = 3;
 	const LINE_DIRECTION_SIZE = 15;
 	const NEXT_TIME_SIZE = 5;
 	const LEAVE_IN_SIZE = 3;
 	const STOP_NAME_SIZE = 22;
-
 
 	const towersData = [];
 	// then shorten everything to the max sizes & set the type & clean up
@@ -371,10 +372,10 @@ app.get("/towertest", async (req, res) => {
 			lineNumber = towerAssignments[i].line.name.substring(0, LINE_NUMBER_SIZE);
 		} else lineNumber = towerAssignments[i].line.name;
 
-		if (towerAssignments[i].line.direction.length > LINE_DIRECTION_SIZE) {
-			lineDirection = towerAssignments[i].line.direction.substring(0, LINE_DIRECTION_SIZE - 2);
+		if (towerAssignments[i].line.displayAscii.length > LINE_DIRECTION_SIZE) {
+			lineDirection = towerAssignments[i].line.displayAscii.substring(0, LINE_DIRECTION_SIZE - 2);
 			lineDirection = `${lineDirection}..`;
-		} else lineDirection = towerAssignments[i].line.direction;
+		} else lineDirection = towerAssignments[i].line.displayAscii;
 
 		if (towerAssignments[i].stop.displayAscii.length > STOP_NAME_SIZE) {
 			stopName = towerAssignments[i].stop.displayAscii.substring(0, STOP_NAME_SIZE - 2);
@@ -393,31 +394,37 @@ app.get("/towertest", async (req, res) => {
 		towersData.push(assignment);
 	}
 
-	console.log(towersData);
-
 	// parse it. This is very condensed so that every tower can be on the same topic
-	// write tower_001|136|Jizni Mesto|Vysocanska|15:50|10m|0|
-	// If a tower has 2 assignments, it must repeat the towerId.
+	// final result will be an array of all assignments of towers assigned to that gateway, e.g.:
+	// [{547c65321d0b|B|Zlicin|Kolbenova|17:46|5m}{1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0}]
+	// If a tower has 2 assignments it must repeat the towerId like above.
 	// The string will never be that long anyway, ~600 bytes.
 
+	const msg_start_char = '[';
+	const msg_end_char = ']';
+	const delimiter = '|';
+
+	const assignment_start_char = '{';
+	const assignment_end_char = '}';
+
 	let assignments = "";
+	assignments = assignments.concat(msg_start_char);
 	for (let i = 0; i < towersData.length; i++)
 	{
+		assignments = assignments.concat(assignment_start_char);
 		assignments = assignments.concat(towersData[i].towerId);
-		assignments = assignments.concat("|", towersData[i].lineNumber);
-		assignments = assignments.concat("|", towersData[i].lineDirection);
-		assignments = assignments.concat("|", towersData[i].stopName);
-		assignments = assignments.concat("|", towersData[i].nextTime);
-		assignments = assignments.concat("|", towersData[i].leaveIn);
-		assignments = assignments.concat("|", towersData[i].type);
+		assignments = assignments.concat(delimiter, towersData[i].lineNumber);
+		assignments = assignments.concat(delimiter, towersData[i].lineDirection);
+		assignments = assignments.concat(delimiter, towersData[i].stopName);
+		assignments = assignments.concat(delimiter, towersData[i].nextTime);
+		assignments = assignments.concat(delimiter, towersData[i].leaveIn);
+		assignments = assignments.concat(delimiter, towersData[i].type);
+		assignments = assignments.concat(assignment_end_char);
 	}
-	assignments = assignments.concat("\n");
+	assignments = assignments.concat(msg_end_char);
 
+	res.setHeader('Content-Type', 'text/plain');
 	res.send(assignments);
-	
-	// final result will look something like
-	// 547c65321d0b|B|Zličín|Kolbenova|17:46|5m|1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0\n
-
 });
 
 app.listen(SERVER_PORT, () => {

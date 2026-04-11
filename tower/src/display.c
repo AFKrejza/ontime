@@ -14,7 +14,7 @@
 const uint16_t BG_COLOR = BLACK;
 const uint16_t TEXT_COLOR = WHITE;
 
-uint8_t buffer[BUFFER_SIZE];
+static uint8_t buffer[BUFFER_SIZE];
 
 static inline void command(uint8_t cmd);
 static inline void start_pixel_stream();
@@ -267,12 +267,12 @@ void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t img_size)
 	}
 }
 
-void draw_string(char *s, uint16_t col_start, uint16_t row_start, uint8_t text_size)
+void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_start, uint8_t text_size)
 {
 	uint16_t char_col_start;
 	uint16_t letter_width = text_size * LETTER_EDGE;
 
-	for (uint16_t i = 0; i < strlen(s); i++)
+	for (uint16_t i = 0; i < length; i++)
 	{
 		char_col_start = col_start + i * letter_width;
 		draw_char( 
@@ -314,7 +314,7 @@ static void draw_line_direction(char direction[LINE_DIRECTION_SIZE], uint16_t bo
 	uint8_t size = SIZE_L;
 	uint16_t col_start = box_col_start + 96;
 	uint16_t row_start = box_row_start + 8;
-	draw_string(direction, col_start, row_start, size);
+	draw_string(direction, LINE_DIRECTION_SIZE -1, col_start, row_start, size);
 }
 
 // e.g. 136
@@ -323,7 +323,7 @@ static void draw_line_number(char line_number[LINE_NUMBER_SIZE], uint16_t box_co
 	uint8_t size = SIZE_L;
 	uint16_t col_start = box_col_start;
 	uint16_t row_start = box_row_start + 8;
-	draw_string(line_number, col_start, row_start, size);
+	draw_string(line_number, LINE_NUMBER_SIZE -1, col_start, row_start, size);
 }
 
 // e.g. Zlicin
@@ -332,7 +332,7 @@ static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_star
 	uint8_t size = SIZE_M;
 	uint16_t row_start = box_row_start + 36;
 	uint16_t col_start = box_col_start + 96;
-	draw_string(stop_name, col_start, row_start, size);
+	draw_string(stop_name, STOP_NAME_SIZE -1, col_start, row_start, size);
 }
 
 // e.g. leave in x minutes
@@ -343,12 +343,12 @@ static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, 
 	uint16_t col_start = box_col_start + 328;
 	uint16_t row_start = box_row_start + 60;
 
-	draw_string(text, col_start, row_start, size);
-
+	draw_string(text, strlen(text), col_start, row_start, size);
+	
 	size = SIZE_XL;
 	row_start = row_start + 24;
-
-	draw_string(leave_in, col_start, row_start, size);
+	
+	draw_string(leave_in, LEAVE_IN_SIZE -1, col_start, row_start, size);
 }
 
 // e.g. 16:24
@@ -359,9 +359,15 @@ static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_star
 	uint8_t size = SIZE_M;
 	
 	char *text = "Departure";
-	draw_string(text, col_start, row_start, size);
+	draw_string(text, strlen(text), col_start, row_start, size);
 
 	row_start = row_start + 24;
 	size = SIZE_XL;
-	draw_string(next_time, col_start, row_start, size);
+	draw_string(next_time, NEXT_TIME_SIZE -1, col_start, row_start, size);
+}
+
+// blue if receiving data, green if connected, red if disconnected? Or maybe arrows instead.
+void draw_status(uint16_t color)
+{
+	draw_rect(16, 48, 272, 304, color);
 }
