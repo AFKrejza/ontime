@@ -2,12 +2,7 @@ import * as fs from "node:fs/promises";
 
 // fetches PID Open Data's stops.json
 
-// TODO: have it automatically retry when needed
-// This should auto update every day at 5am. If generatedAt is the same, then retry in 5 minutes.
-// const message = `PID's stops.json hasn't been updated yet. Retrying in 5 minutes.`;
-
-// TODO: check if it returns 1 if updated, 2 if it's already updated.
-// saves the whole stops.json in data/stops.json
+// returns 1 if updated, 2 if it's already updated.
 export async function fetchStops() {
 	const localPath = `./data/stops.json`;
 	const url = `https://data.pid.cz/stops/json/stops.json`;
@@ -44,7 +39,7 @@ export async function fetchStops() {
 }
 
 // checks if it's < 24 hours old
-function isUpToDate(generatedAt) {	
+export function isUpToDate(generatedAt) {	
 	if (!generatedAt)
 		return false;
 	const msDay = 24 * 60 * 60 * 1000;

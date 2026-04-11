@@ -96,6 +96,10 @@ CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH R
 CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE INDEX ON stops (slug);
+CREATE INDEX ON stops_lines (stop_id);
+CREATE INDEX ON stops_lines (line_id);
+
 /*
 	TODO: Add some mock data
 */
