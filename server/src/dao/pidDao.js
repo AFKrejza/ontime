@@ -9,7 +9,6 @@ export async function packStopsLines() {
         //     console.log("Data already exists in DB. Skipping import.");
         //     return;
         // }
-        const trieData = JSON.parse(fs.readFileSync('./data/trieData.json', 'utf8'));
         const stopsDetails = JSON.parse(fs.readFileSync( './data/stopDetails.json', 'utf8'));
 
         const stopIdMap = new Map();
@@ -18,21 +17,21 @@ export async function packStopsLines() {
 
         // FILLING STOPS TABLE
         console.log("Filling stops...");
-        for (const stop of trieData) {
+        for (const stop of stopsDetails) {
             const res = await pgClient.query(`
                 INSERT INTO stops (slug, name, display_ascii)
                 VALUES ($1, $2, $3)
                 ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
                 RETURNING id
-            `, [stop.id, stop.name, stop.id]);
+            `, [stop.slug, stop.name, stop.displayAscii]);
             
-            stopIdMap.set(stop.id, res.rows[0].id);
+            stopIdMap.set(stop.slug, res.rows[0].id);
         }
 
         // Filling LINES AND STOPS_LINES
         console.log("Filling lines and relations...");
         for (const stopDetail of stopsDetails) {
-            const dbStopId = stopIdMap.get(stopDetail.id);
+            const dbStopId = stopIdMap.get(stopDetail.slug);
             if (!dbStopId) continue;
 
             const allLines = stopDetail.lines || {};
@@ -43,7 +42,7 @@ export async function packStopsLines() {
                         VALUES ($1, $2, $3, $4, $5, $6)
                         ON CONFLICT (pid_id, gtfs_id) DO UPDATE SET name = EXCLUDED.name
                         RETURNING id
-                    `, [line.id, line.gtfsId, line.name, line.name, type, line.direction]);
+                    `, [line.pidId, line.gtfsId, line.name, line.displayAscii, type, line.direction]);
 
                     const dbLineId = resLine.rows[0].id;
 
@@ -62,7 +61,7 @@ export async function packStopsLines() {
 
     } catch (err) {
         await pgClient.query('ROLLBACK');
-        console.error("ERROR in packDb:", err.message);
+        console.error("ERROR in packDb:", err.message, err);
     }
 }
 
@@ -78,22 +77,20 @@ async function addMockData() {
         const userRes = await pgClient.query("SELECT id FROM users WHERE username = $1", ['mock_user']);
         const userId = userRes.rows[0].id;
 
-        // 2. Add Gateway (ID: c1895bf80e2b)
         await pgClient.query(`
             INSERT INTO gateways (user_id, name)
             VALUES ($1, $2)
             ON CONFLICT DO NOTHING
-        `, [userId, 'Gateway c1895bf80e2b']);
+        `, [userId, 'Gateway 547c65321d0b']);
 
-        const gwRes = await pgClient.query("SELECT id FROM gateways WHERE name = $1", ['Gateway c1895bf80e2b']);
+        const gwRes = await pgClient.query("SELECT id FROM gateways WHERE name = $1", ['Gateway 547c65321d0b']);
         const gatewayId = gwRes.rows[0].id;
 
-        // 3. Add Tower (ID: 547c65321d0b)
         await pgClient.query(`
             INSERT INTO towers (gateway_id, name)
             VALUES ($1, $2)
             ON CONFLICT DO NOTHING
-        `, [gatewayId, 'Tower 547c65321d0b']);
+        `, [gatewayId, 'Tower c1895bf80e2b']);
 
     } catch (err) {
         console.error("Error adding mock data:", err.message);

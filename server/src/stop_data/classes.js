@@ -1,23 +1,25 @@
 export class StopSummary {
-	constructor(name, id) {
+	constructor(slug, name, displayAscii) {
+		this.slug = slug;
 		this.name = name;
-		this.id = id;
+		this.displayAscii = displayAscii;
 	}
 }
 
 export class DetailedStop extends StopSummary {
-	constructor(name, id, lines) {
-		super(name, id);
+	constructor(slug, name, displayAscii, lines) {
+		super(slug, name, displayAscii);
 		this.lines = lines;
 	}
 }
 
 export class Line {
-	constructor(id, name, type, direction, gtfsId) {
-		this.id = id;
+	constructor(pidId, gtfsId, name, displayAscii, type, direction) {
+		this.pidId = pidId;
+		this.gtfsId = gtfsId;
 		this.name = name;
+		this.displayAscii = displayAscii;
 		this.type = type;
 		this.direction = direction;
-		this.gtfsId = gtfsId;
 	}
 }

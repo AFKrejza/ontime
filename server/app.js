@@ -1,9 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import {pgClient, initDB} from "./src/db/postgres.js";
+import { stopsDao } from "./src/dao/stopsDao.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -26,19 +26,16 @@ async function dbCheck() {
 		// `);
 		// console.log(test.rows[0]);
 	} catch (err) {
-		console.log("DB error");
-		console.error(err);
+		console.error("DB error", err);
 	}
 }
 await initDB();
 await dbCheck();
-
-// TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
 
 app.get("/trieData", async (req, res) => {
-	const data = JSON.parse(await fs.readFile("./data/trieData.json"));
-	res.send(data);
+	const data = await stopsDao.getTrieData();
+	res.send(data.rows);
 })
 
 // test endpoint to get one stop's data right now
@@ -67,17 +64,37 @@ app.get("/bustest", async (req, res) => {
 });
 
 // TODO: integrate with db
-app.get("/stopGroups/:id", async (req, res) => {
+app.get("/stopGroups/:slug", async (req, res) => {
 	try {
-		const id = req.params.id;
+		const slug = req.params.slug;
 
-		const stopGroups = JSON.parse(await fs.readFile("./data/stopDetails.json"));
-		const stop = stopGroups.find((stop) => stop.id === id);
+		const result = await stopsDao.getStopBySlug(slug);
 
-		if (!stop)
-			throw new Error(`Stop ${id} not found`);
+		if (result.rows.length === 0) return null;
 
-		res.send(stop);
+		const stopGroup = {	
+			id: result.rows[0].id,
+			slug: result.rows[0].slug,
+			name: result.rows[0].name,
+			displayAscii: result.rows[0].display_ascii,
+			lines: {}
+		};
+
+		for (const row of result.rows) {
+			const type = row.type;
+			if (!stopGroup.lines[type])
+				stopGroup.lines[type] = [];
+			stopGroup.lines[type].push({
+				id: row.line_id,
+				pidId: row.pid_id,
+				name:row.line_name,
+				type: row.type,
+				direction: row.direction,
+				gtfsId: row.gtfs_id,
+				displayAscii: row.line_ascii
+			});
+		}
+		res.send(stopGroup);
 	} catch (err) {
 		console.error(err);
 		res.send(err); // TODO: add status codes and proper errors everywhere

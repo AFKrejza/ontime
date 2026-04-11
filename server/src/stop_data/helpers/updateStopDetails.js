@@ -3,42 +3,38 @@ import { removeDiacritics } from "../../utils/removeDiacritics.js";
 import { Line } from "../classes.js";
 import { DetailedStop } from "../classes.js";
 
-// only takes stops in Prague
-
+// only outputs stops in Prague
 export async function updateStopDetails() {
 	const raw = JSON.parse(await fs.readFile(`./data/stops.json`));
 	const stopGroups = getPragueStops(raw.stopGroups);
 
 	const stopDetails = [];
 
-	const latinNames = new Set();
+	const asciiNames = new Set();
 
 	for (let i = 0; i < stopGroups.length; i++) {
 		let name = stopGroups[i].uniqueName;
+		const slug = toSlug(name);
+		const asciiName = removeDiacritics(stopGroups[i].uniqueName);
 
-		let latin = removeDiacritics(stopGroups[i].uniqueName);
-		if (latinNames.has(latin))
-			name = name.concat('_2');
-		latinNames.add(latin);
-
-		let id = removeDiacritics(name.toLowerCase());
+		if (asciiNames.has(asciiName))
+			name = name.concat('_2'); // there's only one duplicate in the whole list.
+		asciiNames.add(asciiName);
 		
 		const stop = new DetailedStop(
+			slug,
 			name,
-			id,
-			getStops(stopGroups[i])
+			asciiName,
+			getLines(stopGroups[i])
 		);
-
 		stopDetails.push(stop);
 	}
-
 	await fs.writeFile(`./data/stopDetails.json`, JSON.stringify(stopDetails));
-
 	return true;
 }
 
-// gets all unique lines from a stopGroup, making several lines if a line has more than one direction
-function getStops(stopGroup) {
+// gets all lines from a stopGroup
+function getLines(stopGroup) {
 	
 	const stopData = {};
 	const stops = stopGroup.stops;
@@ -49,10 +45,11 @@ function getStops(stopGroup) {
 		for (let j = 0; j < lines.length; j++) {
 			const line = new Line(
 				lines[j].id,
+				gtfsId,
 				lines[j].name,
+				removeDiacritics(lines[j].direction),
 				lines[j].type,
-				lines[j].direction,
-				gtfsId
+				lines[j].direction
 			);
 
 			if (!stopData[line.type])
@@ -68,7 +65,7 @@ function getStops(stopGroup) {
 	return stopData;
 }
 
-function computeIndex(lines, line) {
+export function computeIndex(lines, line) {
 	let i = 0;
 	for (; i < lines.length; i++) {
 		if (removeDiacritics(line.name) < removeDiacritics(lines[i].name))
@@ -84,4 +81,8 @@ function getPragueStops(stops) {
 			pragueStops.push(stops[i]);
 	}
 	return pragueStops;
+}
+
+function toSlug(name) {
+	return removeDiacritics(name.toLowerCase().replace(/\s+/g, '-'));
 }
