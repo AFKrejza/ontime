@@ -94,10 +94,30 @@ Response:
 } 
 ```
 
+## Register a gateway to a user
+Endpoint: POST `/gateways/register`  
+Headers: Authorization: Bearer `jwt-token`  
+Request:  
+```
+{
+	"gatewayId": "477277abca",
+	"gatewayName": "Office"
+}
+```
+Response:  
+```
+{
+	"id": "477277abca",
+	"userId": 332,
+	"name": "Office",
+	"createdAt": "2026-03-12T14:29:55Z"
+}
+```
+
 
 ## Get one gateway and its tower's statuses
 
-Endpoint: GET `/api/gateways/:gatewayId/status`
+Endpoint: GET `/gateways/:gatewayId/status`
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -137,7 +157,7 @@ Response:
 ```
 
 ## List gateways
-Endpoint: GET `/api/users/:userId/gateways/list`  
+Endpoint: GET `/users/:userId/gateways/list`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
 ```
@@ -156,7 +176,7 @@ Response:
 ```
 
 ## Rename gateways
-Endpoint: PATCH `/api/gateways/:gatewayId`  
+Endpoint: PATCH `/gateways/:gatewayId`  
 Headers: Authorization: Bearer `jwt-token`  
 Request:  
 ```
@@ -174,7 +194,7 @@ Response:
 ```
 
 ## Delete gateways
-Endpoint: DELETE `/api/gateways/:gatewayId`  
+Endpoint: DELETE `/gateways/:gatewayId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -185,7 +205,7 @@ Response:
 
 ## Get one tower and its assignments
 This endpoint should be basically the same as "Get one gateway and its tower's statuses".  
-Endpoint: GET `/api/towers/:towerId`  
+Endpoint: GET `/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`  
 ```
 { 
@@ -219,7 +239,7 @@ Headers: Authorization: Bearer `jwt-token`
 
 ## Delete a tower
 Unassign it from a gateway.  
-Endpoint: DELETE `/api/gateways/:gatewayId/towers/:towerId`  
+Endpoint: DELETE `/gateways/:gatewayId/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
 ```
@@ -231,7 +251,7 @@ Response:
 ## Add an assignment to a tower
 When creating the assignment make sure that `line_id` uses the internal `id` our DB generated and not the `pid_id`!
 There's a limit of 2 assignments per tower so it should fail if you try to add a third.
-Endpoint: POST `api/gateway/:gatewayId/:towerId/addAssignment`  
+Endpoint: POST `/gateways/:gatewayId/:towerId/addAssignment`  
 Headers: Authorization: Bearer `jwt-token`  
 Request Body:  
 ```
@@ -249,7 +269,7 @@ Request Body:
 ```
 
 ## Remove a tower's assignment
-Endpoint: PUT `api/gateway/:gatewayId/towers/:towerId/assignments/:assignmentId`  
+Endpoint: PUT `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -259,7 +279,7 @@ Response:
 ```
 
 ## Edit a tower's assignment
-Endpoint: PATCH `api/gateway/:gatewayId/towers/:towerId/assignments/:assignmentId`
+Endpoint: PATCH `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`
 Headers: Authorization: Bearer `jwt-token`
 Request:
 ```

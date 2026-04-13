@@ -1,6 +1,6 @@
 import { fetchStops } from "./helpers/fetchStops.js";
 import { updateStopDetails } from "./helpers/updateStopDetails.js";
-import { packStopsLines } from "../dao/pidDao.js";
+import { packStopsLines } from "./pidDao.js";
 import { pgClient } from "../db/postgres.js";
 
 export async function updateData() {

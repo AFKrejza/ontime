@@ -5,6 +5,7 @@ import { updateData } from "./src/stop_data/updateData.js";
 import {pgClient, initDB} from "./src/db/postgres.js";
 import { stopsDao } from "./src/dao/stopsDao.js";
 import { authRouter } from "./src/auth/auth.js";
+import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -429,6 +430,7 @@ app.get("/towertest", async (req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/gateways", gatewayRouter);
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);

@@ -1,6 +1,6 @@
 import { verifyToken } from "./jwtService.js";
 
-async function auth(req, res, next) {
+async function authMiddleware(req, res, next) {
 	const authHeader = req.headers.authorization;
 	if (!authHeader)
 		return res.status(401).json({ message: "Missing token" });
@@ -17,4 +17,4 @@ async function auth(req, res, next) {
 	}
 };
 
-export default auth;
+export default authMiddleware;

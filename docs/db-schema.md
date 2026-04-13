@@ -46,8 +46,8 @@ stops 1:N lines,
 
 ## Details
 `name` is the original `uniqueName` for stops, or the `name` for lines. This will be displayed on the frontend.  
-`slug` is the URL friendly version of the name, meaning the diacritics are removed, it's lowercased, and spaces are replaced with hyphens -.  
-`display_ascii` is what will actually be displayed on a tower's screen, so it's the same as `name` except without diacritics.  
+`slug` is the URL friendly version of the name, meaning the diacritics are removed, it's lowercased, and spaces are replaced with hyphens `-`.  
+`display_ascii` is what will actually be displayed on a tower's screen. It's the same as `name` for stops, or `direction` for lines, but without diacritics.  
 
 Example:
 ```
@@ -105,7 +105,7 @@ assignments (
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,
 	departure_offset INTEGER NOT NULL,
-	constraint departure_offset_nonpositive check (departure_offset <= 0),
+	CONSTRAINT departure_offset_nonpositive CHECK (departure_offset <= 0),
 	FOREIGN KEY (tower_id) REFERENCES towers(id),
 	FOREIGN KEY (stop_id) REFERENCES stops(id),
 	FOREIGN KEY (line_id) REFERENCES lines(id),
@@ -127,9 +127,10 @@ stops (
 ```
 
 ## Lines
-This table actually contains a separate entry for each individual line in every stop. So if a line goes through 10 stops, there will be 10 lines with one direction and 10 lines with the opposite direction. All 20 lines will have the same `pid_id`s, but different `gtfsId`s and `id`s. **TODO: double check this**  
+**Any possible departure from any stop has its own row.**  
+This table actually contains a separate entry for each individual line in every stop. So if a line goes through 10 stops, there will be 10 lines with one direction and 10 lines with the opposite direction. All 20 lines will have the same `pid_id`, but different `gtfsId`s and `id`s. **TODO: verify**  
 `pid_id` is the id that's in the original data. It is NOT unique, since a line passes through many stops.  
-The combination of `pid_id` and `gtfs_id` should be unique. **TODO: This needs to be tested.**  
+The combination of `pid_id` and `gtfs_id` should be unique. **TODO: verify**  
 ```
 lines (
 	id SERIAL PRIMARY KEY,
@@ -145,25 +146,15 @@ lines (
 )
 ```
 
-### Additional functions
-This function updates the `updated_at` field to now.
-
+## stops_lines junction table
+Read the `lines` table description to understand why this needs to exist.  
 ```
-CREATE OR REPLACE FUNCTION update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-	NEW.updated_at = NOW();
-	RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-Then applied it to each table:
-```
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+stops_lines (
+	stop_id INTEGER NOT NULL,
+	line_id INTEGER NOT NULL,
+	PRIMARY KEY (stop_id, line_id),
+	FOREIGN KEY (stop_id) REFERENCES stops(id) ON DELETE CASCADE,
+	FOREIGN KEY (line_id) REFERENCES lines(id) ON DELETE CASCADE,
+	created_at TIMESTAMPTZ DEFAULT NOW()
+)
 ```
