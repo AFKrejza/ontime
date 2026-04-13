@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS gateways (
-	id SERIAL PRIMARY KEY,
+	id TEXT PRIMARY KEY,
 	user_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	FOREIGN KEY (user_id) REFERENCES users(id),
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS gateways (
 );
 
 CREATE TABLE IF NOT EXISTS towers (
-	id SERIAL PRIMARY KEY,
-	gateway_id INTEGER NOT NULL,
+	id TEXT PRIMARY KEY,
+	gateway_id TEXT NOT NULL,
 	name TEXT NOT NULL,
 	battery_voltage REAL DEFAULT NULL,
 	last_seen TIMESTAMPTZ DEFAULT NULL,
@@ -60,11 +60,11 @@ CREATE TABLE IF NOT EXISTS lines (
 
 CREATE TABLE IF NOT EXISTS assignments (
 	id SERIAL PRIMARY KEY,
-	tower_id INTEGER NOT NULL,
+	tower_id TEXT NOT NULL,
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,
 	departure_offset INTEGER NOT NULL,
-	constraint departure_offset_nonpositive check (departure_offset <= 0),
+	CONSTRAINT departure_offset_nonpositive CHECK (departure_offset <= 0),
 	FOREIGN KEY (tower_id) REFERENCES towers(id),
 	FOREIGN KEY (stop_id) REFERENCES stops(id),
 	FOREIGN KEY (line_id) REFERENCES lines(id),

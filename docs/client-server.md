@@ -1,30 +1,27 @@
-31/03/2026
-
-TODO:
+13/04/2026
 
 # Client - Server
 This API specification covers user authentication, stop configuration, and system monitoring.
 
 
 
-## Get all stops for autocomplete
+## Get all stops for autocomplete IMPLEMENTED
 Returns every stop's name, id, and display_ascii. Using the display_ascii property will make autocomplete and searching much easier.
 Endpoint: GET `/trieData` 
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
 [ 
-	{ "name": "Albertov", "id": "1", "display_ascii": "albertov" }, 
-	{ "name": "Ametystová", "id": "2", "display_ascii": "ametystova" }, 
-	{ "name": "Amforová", "id": "3", "display_ascii": "amforova" },
+	{ "id": "1", "slug": "albertov", "name": "Albertov" }, 
+	{ "id": "2", "slug": "ametystova", "name": "Ametystová" }, 
+	{ "id": "3", "slug": "amforova", "name": "Amforová" }
 	...
 ] 
 ```
 
-## Get stop details with lines
-Returns all the stop's lines grouped by type. The stopId is the `id` from `/trieData`.  
-I could edit it to take slugs instead.  
-Endpoint: GET `/stopGroups/:stopId`  
+## Get stop details with lines IMPLEMENTED
+Returns all the stop's lines grouped by type. `slug` is from `/trieData`.  
+Endpoint: GET `/stopGroups/:slug`  
 Headers: Authorization: Bearer `jwt-token`  
 Response (mock):  
 ```
@@ -63,8 +60,8 @@ Response (mock):
 }
 ```
 
-## Login
-Endpoint: POST `/api/auth/login`  
+## Login IMPLEMENTED
+Endpoint: POST `/auth/login`  
 Request body:  
 ```
 { 
@@ -75,18 +72,12 @@ Request body:
 Response:  
 ```
 { 
-	"token": "eyJhbGciOiJIUzI1NiIs...", 
-	"expiresIn": 86400, 
-	"user": { 
-		"id": 1, 
-		"username": "admin", 
-		"role": "admin" 
-	} 
+	"token": "eyJhbGciOiJIUzI1NiIs..."
 } 
 ```
 
-## Signup
-Endpoint: POST `/api/auth/signup`
+## Signup IMPLEMENTED
+Endpoint: POST `/auth/signup`
 Request body:  
 ```
 { 
@@ -97,21 +88,36 @@ Request body:
 ```
 Response:  
 ```
-{ 
-	"token": "eyJhbGciOiJIUzI1NiIs...", 
-	"expiresIn": 86400, 
-	"user": { 
-		"id": 1, 
-		"username": "admin", 
-		"role": "admin" 
-	} 
+{
+	"message": "User registered.",
+	"token": "eyJhbGciOiJIUzI1NiIs..."
 } 
+```
+
+## Register a gateway to a user
+Endpoint: POST `/gateways/register`  
+Headers: Authorization: Bearer `jwt-token`  
+Request:  
+```
+{
+	"gatewayId": "477277abca",
+	"gatewayName": "Office"
+}
+```
+Response:  
+```
+{
+	"id": "477277abca",
+	"userId": 332,
+	"name": "Office",
+	"createdAt": "2026-03-12T14:29:55Z"
+}
 ```
 
 
 ## Get one gateway and its tower's statuses
 
-Endpoint: GET `/api/gateway/:gatewayId/status`
+Endpoint: GET `/gateways/:gatewayId/status`
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -151,7 +157,7 @@ Response:
 ```
 
 ## List gateways
-Endpoint: GET `/api/users/:userId/gateways/list`  
+Endpoint: GET `/users/:userId/gateways/list`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
 ```
@@ -170,7 +176,7 @@ Response:
 ```
 
 ## Rename gateways
-Endpoint: PATCH `/api/gateways/:gatewayId`  
+Endpoint: PATCH `/gateways/:gatewayId`  
 Headers: Authorization: Bearer `jwt-token`  
 Request:  
 ```
@@ -188,7 +194,7 @@ Response:
 ```
 
 ## Delete gateways
-Endpoint: DELETE `/api/gateways/:gatewayId`  
+Endpoint: DELETE `/gateways/:gatewayId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -199,7 +205,7 @@ Response:
 
 ## Get one tower and its assignments
 This endpoint should be basically the same as "Get one gateway and its tower's statuses".  
-Endpoint: GET `/api/towers/:towerId`  
+Endpoint: GET `/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`  
 ```
 { 
@@ -233,7 +239,7 @@ Headers: Authorization: Bearer `jwt-token`
 
 ## Delete a tower
 Unassign it from a gateway.  
-Endpoint: DELETE `/api/gateways/:gatewayId/towers/:towerId`  
+Endpoint: DELETE `/gateways/:gatewayId/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
 ```
@@ -245,7 +251,7 @@ Response:
 ## Add an assignment to a tower
 When creating the assignment make sure that `line_id` uses the internal `id` our DB generated and not the `pid_id`!
 There's a limit of 2 assignments per tower so it should fail if you try to add a third.
-Endpoint: POST `api/gateway/:gatewayId/:towerId/addAssignment`  
+Endpoint: POST `/gateways/:gatewayId/:towerId/addAssignment`  
 Headers: Authorization: Bearer `jwt-token`  
 Request Body:  
 ```
@@ -263,7 +269,7 @@ Request Body:
 ```
 
 ## Remove a tower's assignment
-Endpoint: PUT `api/gateway/:gatewayId/towers/:towerId/assignments/:assignmentId`  
+Endpoint: PUT `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -273,7 +279,7 @@ Response:
 ```
 
 ## Edit a tower's assignment
-Endpoint: PATCH `api/gateway/:gatewayId/towers/:towerId/assignments/:assignmentId`
+Endpoint: PATCH `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`
 Headers: Authorization: Bearer `jwt-token`
 Request:
 ```
