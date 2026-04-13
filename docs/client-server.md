@@ -1,30 +1,27 @@
-31/03/2026
-
-TODO:
+13/04/2026
 
 # Client - Server
 This API specification covers user authentication, stop configuration, and system monitoring.
 
 
 
-## Get all stops for autocomplete
+## Get all stops for autocomplete IMPLEMENTED
 Returns every stop's name, id, and display_ascii. Using the display_ascii property will make autocomplete and searching much easier.
 Endpoint: GET `/trieData` 
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
 [ 
-	{ "name": "Albertov", "id": "1", "display_ascii": "albertov" }, 
-	{ "name": "Ametystová", "id": "2", "display_ascii": "ametystova" }, 
-	{ "name": "Amforová", "id": "3", "display_ascii": "amforova" },
+	{ "id": "1", "slug": "albertov", "name": "Albertov" }, 
+	{ "id": "2", "slug": "ametystova", "name": "Ametystová" }, 
+	{ "id": "3", "slug": "amforova", "name": "Amforová" }
 	...
 ] 
 ```
 
-## Get stop details with lines
-Returns all the stop's lines grouped by type. The stopId is the `id` from `/trieData`.  
-I could edit it to take slugs instead.  
-Endpoint: GET `/stopGroups/:stopId`  
+## Get stop details with lines IMPLEMENTED
+Returns all the stop's lines grouped by type. `slug` is from `/trieData`.  
+Endpoint: GET `/stopGroups/:slug`  
 Headers: Authorization: Bearer `jwt-token`  
 Response (mock):  
 ```
@@ -63,8 +60,8 @@ Response (mock):
 }
 ```
 
-## Login
-Endpoint: POST `/api/auth/login`  
+## Login IMPLEMENTED
+Endpoint: POST `/auth/login`  
 Request body:  
 ```
 { 
@@ -75,18 +72,12 @@ Request body:
 Response:  
 ```
 { 
-	"token": "eyJhbGciOiJIUzI1NiIs...", 
-	"expiresIn": 86400, 
-	"user": { 
-		"id": 1, 
-		"username": "admin", 
-		"role": "admin" 
-	} 
+	"token": "eyJhbGciOiJIUzI1NiIs..."
 } 
 ```
 
-## Signup
-Endpoint: POST `/api/auth/signup`
+## Signup IMPLEMENTED
+Endpoint: POST `/auth/signup`
 Request body:  
 ```
 { 
@@ -97,21 +88,16 @@ Request body:
 ```
 Response:  
 ```
-{ 
-	"token": "eyJhbGciOiJIUzI1NiIs...", 
-	"expiresIn": 86400, 
-	"user": { 
-		"id": 1, 
-		"username": "admin", 
-		"role": "admin" 
-	} 
+{
+	"message": "User registered.",
+	"token": "eyJhbGciOiJIUzI1NiIs..."
 } 
 ```
 
 
 ## Get one gateway and its tower's statuses
 
-Endpoint: GET `/api/gateway/:gatewayId/status`
+Endpoint: GET `/api/gateways/:gatewayId/status`
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
