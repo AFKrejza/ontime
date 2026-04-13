@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS gateways (
-	id SERIAL PRIMARY KEY,
+	id TEXT PRIMARY KEY,
 	user_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
 	FOREIGN KEY (user_id) REFERENCES users(id),
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS gateways (
 );
 
 CREATE TABLE IF NOT EXISTS towers (
-	id SERIAL PRIMARY KEY,
-	gateway_id INTEGER NOT NULL,
+	id TEXT PRIMARY KEY,
+	gateway_id TEXT NOT NULL,
 	name TEXT NOT NULL,
 	battery_voltage REAL DEFAULT NULL,
 	last_seen TIMESTAMPTZ DEFAULT NULL,
@@ -60,11 +60,11 @@ CREATE TABLE IF NOT EXISTS lines (
 
 CREATE TABLE IF NOT EXISTS assignments (
 	id SERIAL PRIMARY KEY,
-	tower_id INTEGER NOT NULL,
+	tower_id TEXT NOT NULL,
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,
 	departure_offset INTEGER NOT NULL,
-	constraint departure_offset_nonpositive check (departure_offset <= 0),
+	CONSTRAINT departure_offset_nonpositive CHECK (departure_offset <= 0),
 	FOREIGN KEY (tower_id) REFERENCES towers(id),
 	FOREIGN KEY (stop_id) REFERENCES stops(id),
 	FOREIGN KEY (line_id) REFERENCES lines(id),
@@ -95,6 +95,10 @@ CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON towers FOR EACH ROW EX
 CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE INDEX ON stops (slug);
+CREATE INDEX ON stops_lines (stop_id);
+CREATE INDEX ON stops_lines (line_id);
 
 /*
 	TODO: Add some mock data

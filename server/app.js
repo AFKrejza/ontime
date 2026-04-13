@@ -1,14 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import fs from "node:fs/promises";
 import { updateData } from "./src/stop_data/updateData.js";
 import db from "./db.js";
-//
-import router from "./testing_db.js";
+// 
+import router from "./testing_db.js"; 
 import { sampleDao } from "./src/dao/sampleDao.js";
 import {pgClient, initDB} from "./src/db/postgres.js";
-import { scheduler, createJob } from "./src/jobs/scheduler.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -31,22 +29,17 @@ async function dbCheck() {
 		// `);
 		// console.log(test.rows[0]);
 	} catch (err) {
-		console.log("DB error");
-		console.error(err);
+		console.error("DB error", err);
 	}
 }
 await initDB();
 await dbCheck();
-
-//
-app.use("/api/tower", router);
-// TODO: check its todo since the behavior is not standardized. Handle returns and errors as well.
 await updateData();
 scheduler();
 
 app.get("/trieData", async (req, res) => {
-	const data = JSON.parse(await fs.readFile("./data/trieData.json"));
-	res.send(data);
+	const data = await stopsDao.getTrieData();
+	res.send(data.rows);
 })
 
 // test endpoint to get one stop's data right now
@@ -75,17 +68,37 @@ app.get("/bustest", async (req, res) => {
 });
 
 // TODO: integrate with db
-app.get("/stopGroups/:id", async (req, res) => {
+app.get("/stopGroups/:slug", async (req, res) => {
 	try {
-		const id = req.params.id;
+		const slug = req.params.slug;
 
-		const stopGroups = JSON.parse(await fs.readFile("./data/stopDetails.json"));
-		const stop = stopGroups.find((stop) => stop.id === id);
+		const result = await stopsDao.getStopBySlug(slug);
 
-		if (!stop)
-			throw new Error(`Stop ${id} not found`);
+		if (result.rows.length === 0) return null;
 
-		res.send(stop);
+		const stopGroup = {	
+			id: result.rows[0].id,
+			slug: result.rows[0].slug,
+			name: result.rows[0].name,
+			displayAscii: result.rows[0].display_ascii,
+			lines: {}
+		};
+
+		for (const row of result.rows) {
+			const type = row.type;
+			if (!stopGroup.lines[type])
+				stopGroup.lines[type] = [];
+			stopGroup.lines[type].push({
+				id: row.line_id,
+				pidId: row.pid_id,
+				name:row.line_name,
+				type: row.type,
+				direction: row.direction,
+				gtfsId: row.gtfs_id,
+				displayAscii: row.line_ascii
+			});
+		}
+		res.send(stopGroup);
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
@@ -275,7 +288,7 @@ app.get("/towertest", async (req, res) => {
 		}
 	];
 
-	// an array of assignments, each of which also has their towerId, means the index is the same as the response arrays from PID
+	// an array of assignments, each of which also has their towerId, and the index is aligned to the response from PID
 	const towerAssignments = [];
 	for (let i = 0; i < input.length; i++)
 	{
@@ -352,7 +365,7 @@ app.get("/towertest", async (req, res) => {
 			this.stopName = stopName;
 			this.nextTime = nextTime;
 			this.leaveIn = leaveIn;
-			this.type = type
+			this.type = type;
 		}
 	}
 
@@ -412,8 +425,9 @@ app.get("/towertest", async (req, res) => {
 	}
 
 	// parse it. This is very condensed so that every tower can be on the same topic
-	// as such: tower_001|136|Jizni Mesto|Vysocanska|15:50|10m|0|
-	// If a tower has 2 assignments, it must repeat the towerId.
+	// final result will be an array of all assignments of towers assigned to that gateway, e.g.:
+	// [{547c65321d0b|B|Zlicin|Kolbenova|17:46|5m}{1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0}]
+	// If a tower has 2 assignments it must repeat the towerId like above.
 	// The string will never be that long anyway, ~600 bytes.
 
 	const msg_start_char = '[';
@@ -441,11 +455,10 @@ app.get("/towertest", async (req, res) => {
 
 	res.setHeader('Content-Type', 'text/plain');
 	res.send(assignments);
-
-	// final result will look something like
-	// >547c65321d0b|B|Zličín|Kolbenova|17:46|5m|1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0<
-
 });
+
+app.use("/auth", authRouter);
+app.use("/gateways", gatewayRouter);
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);

@@ -21,7 +21,7 @@ Assignment assignments[2];
 static char buffer[ASSIGNMENTS_SIZE]; // ONLY stores assignments!
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
-void parse_assignments(uint64_t *id);
+bool parse_assignments(uint64_t *id);
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
@@ -136,11 +136,15 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	else
 	{
 		twr_log_debug("malformed message / error, clearing buffer");
+		draw_status(RED); // flash
+		twr_tick_wait(500);
+		draw_status(BLACK);
 		goto cleanup;
 	}
 
-	parse_assignments(id);
-	draw_assignments(assignments);
+	bool updated = parse_assignments(id);
+	if (updated)
+		draw_assignments(assignments); // TODO: Add partial updating for stop info vs times
 
 	// prevent garbage
 	cleanup:
@@ -150,20 +154,21 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	draw_status(GREEN);
 }
 
-void parse_assignments(uint64_t *id)
+bool parse_assignments(uint64_t *id)
 {
+	bool is_updated = false;
 	char tower_id[13];
 	snprintf(tower_id, sizeof(tower_id), "%012llx", *id);
 		
 	uint16_t i = 0;
 
-	uint8_t assignment_index = 0; // end at 1
+	uint8_t assignment_index = 0;
 
 	while (i < strlen(buffer))
 	{
 		Assignment new;
 		if (assignment_index >= 2)
-			return;
+			break;
 
 		// go to the next ID
 		while (buffer[i] != assignment_start_char && buffer[i])
@@ -207,24 +212,35 @@ void parse_assignments(uint64_t *id)
 		if (buffer[i] == assignment_end_char)
 			i++;
 
+
+		if (strcmp(assignments[assignment_index].line_number, new.line_number) != 0 ||
+			strcmp(assignments[assignment_index].line_direction, new.line_direction) != 0 ||
+			strcmp(assignments[assignment_index].stop_name, new.stop_name) != 0)
+		{
+			strncpy(assignments[assignment_index].line_number, new.line_number, sizeof(assignments[assignment_index].line_number));
+			strncpy(assignments[assignment_index].line_direction, new.line_direction, sizeof(assignments[assignment_index].line_direction));
+			strncpy(assignments[assignment_index].stop_name, new.stop_name, sizeof(assignments[assignment_index].stop_name));
+			assignments[assignment_index].type = new.type;
+			is_updated = true;
+		}
+		if (strcmp(assignments[assignment_index].next_time, new.next_time) != 0 ||
+			strcmp(assignments[assignment_index].leave_in, new.leave_in) != 0)
+		{
+			strncpy(assignments[assignment_index].next_time, new.next_time, sizeof(assignments[assignment_index].next_time));
+			strncpy(assignments[assignment_index].leave_in, new.leave_in, sizeof(assignments[assignment_index].leave_in));
+			is_updated = true;
+		}
+		
+		assignment_index++;
+
 		// twr_log_debug("Number:    %s", new.line_number);
 		// twr_log_debug("Direction: %s", new.line_direction);
 		// twr_log_debug("Name:      %s", new.stop_name);
 		// twr_log_debug("Time:      %s", new.next_time);
 		// twr_log_debug("Leave in:  %s", new.leave_in);
 		// twr_log_debug("Type:      %d", new.type);
-
-		// TODO: add a check for the same values to prevent unnecessary display refreshes
-		strncpy(assignments[assignment_index].line_number, new.line_number, sizeof(assignments[assignment_index].line_number));
-		strncpy(assignments[assignment_index].line_direction, new.line_direction, sizeof(assignments[assignment_index].line_direction));
-		strncpy(assignments[assignment_index].stop_name, new.stop_name, sizeof(assignments[assignment_index].stop_name));
-		strncpy(assignments[assignment_index].next_time, new.next_time, sizeof(assignments[assignment_index].next_time));
-		strncpy(assignments[assignment_index].leave_in, new.leave_in, sizeof(assignments[assignment_index].leave_in));
-		assignments[assignment_index].type = new.type;
-
-		assignment_index++;
 	}
-
+	return is_updated;
 }
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len)
@@ -238,6 +254,7 @@ void extract_field(uint16_t *i, char *dest, uint16_t max_len)
 		j++;
 		twr_log_debug("extract_field start i=%d, next char='%c'", *i, buffer[*i]);
 	}
+	// null the rest otherwise there'll be junk values
 	while (j < max_len)
 	{
 		dest[j] = '\0';
