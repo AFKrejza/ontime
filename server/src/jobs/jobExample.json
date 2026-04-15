@@ -1,0 +1,13 @@
+{
+  "stopName": "Vysočanská",
+  "stopId": "vysocanska",
+  "line": {
+    "id": 136,
+    "name": "136",
+    "type": "bus",
+    "direction": "Jižní Město",
+    "gtfsId": "U474Z6P"
+  },
+  "offset": -10,
+  "cron": "*/1 * * * * *"
+}
