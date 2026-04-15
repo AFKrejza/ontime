@@ -2,6 +2,7 @@ const API_BASE = '';
 
 export interface StopSummary {
   id: string;
+  slug: string;
   name: string;
 }
 
@@ -15,6 +16,7 @@ export interface Line {
 
 export interface StopDetails {
   id: string;
+  slug: string;
   name: string;
   lines: Record<string, Line[]>;
 }
@@ -34,8 +36,8 @@ export async function getAllStops(): Promise<StopSummary[]> {
   return response.json();
 }
 
-export async function getStopDetails(stopId: string): Promise<StopDetails> {
-  const response = await fetch(`${API_BASE}/stopGroups/${encodeURIComponent(stopId)}`);
+export async function getStopDetails(slug: string): Promise<StopDetails> {
+  const response = await fetch(`${API_BASE}/stopGroups/${encodeURIComponent(slug)}`);
   if (!response.ok) {
     throw new Error('Failed to fetch stop details');
   }

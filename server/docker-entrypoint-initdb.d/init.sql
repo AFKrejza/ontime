@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS assignments (
 	updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- this isn't necessary, just add the stop_id to each line
 CREATE TABLE IF NOT EXISTS stops_lines (
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,

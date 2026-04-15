@@ -63,7 +63,7 @@ export default function TowerConfig() {
 
     try {
       setLoading(true);
-      const details = await getStopDetails(stop.id);
+      const details = await getStopDetails(stop.slug);
       setStopDetails(details);
       const types = uniqueTypes(details);
       const firstType = types[0] || 'bus';
@@ -81,7 +81,7 @@ export default function TowerConfig() {
   const handleSelectSavedConfig = async (config: TowerConfig) => {
     setSelectedConfigId(config.id);
     setQuery(config.stopName);
-    setSelectedStop({ id: config.stopId, name: config.stopName });
+    setSelectedStop({ id: config.stopId, name: config.stopName }); // TODO: This is broken
     setSelectedType(config.line.type);
     setSelectedLine(config.line);
     setWalkingOffset(config.offset);
