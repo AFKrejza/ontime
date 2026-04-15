@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 
 export default function SettingsScreen() {
   const { logout } = useAuth();
-  const { clearTowerConfig } = useTowerConfig();
+  const { towerConfigs, activeTowerConfig, clearTowerConfigs } = useTowerConfig();
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,8 +27,21 @@ export default function SettingsScreen() {
         text: 'Log Out',
         onPress: async () => {
           await logout();
-          await clearTowerConfig();
+          await clearTowerConfigs();
           router.replace('/');
+        },
+      },
+    ]);
+  };
+
+  const handleClearAllTowers = async () => {
+    Alert.alert('Clear Tower Configs', 'This will remove all saved tower settings.', [
+      { text: 'Cancel', onPress: () => {} },
+      {
+        text: 'Clear All',
+        style: 'destructive',
+        onPress: async () => {
+          await clearTowerConfigs();
         },
       },
     ]);
@@ -49,6 +62,23 @@ export default function SettingsScreen() {
         <ThemedText style={styles.sectionTitle}>Account</ThemedText>
         <Pressable style={[styles.button, styles.dangerButton]} onPress={handleLogout}>
           <ThemedText style={styles.dangerText}>Log Out</ThemedText>
+        </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText style={styles.sectionTitle}>Tower Configuration</ThemedText>
+        <View style={styles.card}>
+          <ThemedText style={styles.label}>Configured Towers</ThemedText>
+          <ThemedText style={styles.value}>{towerConfigs.length}</ThemedText>
+        </View>
+        {activeTowerConfig ? (
+          <View style={styles.card}>
+            <ThemedText style={styles.label}>Active Tower</ThemedText>
+            <ThemedText style={styles.value}>{activeTowerConfig.name}</ThemedText>
+          </View>
+        ) : null}
+        <Pressable style={[styles.button, styles.clearButton]} onPress={handleClearAllTowers}>
+          <ThemedText style={styles.clearText}>Clear All Tower Settings</ThemedText>
         </Pressable>
       </View>
 
@@ -115,6 +145,14 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  clearButton: {
+    backgroundColor: '#F5F5F5',
+  },
+  clearText: {
+    color: '#212121',
     fontWeight: '700',
     fontSize: 16,
   },

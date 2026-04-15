@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addAssignment, getAllStops, getStopDetails, Line, StopDetails, StopSummary } from '../api';
+import { getTowerConfigs, saveTowerConfig } from '../towerStorage';
+import type { TowerConfig } from '../towerStorage';
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
@@ -19,10 +21,15 @@ export default function TowerConfig() {
   const [selectedLine, setSelectedLine] = useState<Line | null>(null);
   const [walkingOffset, setWalkingOffset] = useState(5);
   const [loading, setLoading] = useState(false);
+  const [savedConfigs, setSavedConfigs] = useState<TowerConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+  const [loadingSavedConfig, setLoadingSavedConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    setSavedConfigs(getTowerConfigs());
+
     async function loadStops() {
       try {
         setLoading(true);
@@ -71,6 +78,25 @@ export default function TowerConfig() {
     }
   };
 
+  const handleSelectSavedConfig = async (config: TowerConfig) => {
+    setSelectedConfigId(config.id);
+    setQuery(config.stopName);
+    setSelectedStop({ id: config.stopId, name: config.stopName });
+    setSelectedType(config.line.type);
+    setSelectedLine(config.line);
+    setWalkingOffset(config.offset);
+    setLoadingSavedConfig(true);
+
+    try {
+      const details = await getStopDetails(config.stopId);
+      setStopDetails(details);
+    } catch (error) {
+      console.error('Failed to load saved tower stop details:', error);
+    } finally {
+      setLoadingSavedConfig(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedStop || !selectedLine) {
       setError('Please select a stop and a line to continue.');
@@ -86,12 +112,17 @@ export default function TowerConfig() {
         stopId: selectedStop.id,
         line: selectedLine,
       });
+
+      const saved = saveTowerConfig({
+        id: selectedConfigId || undefined,
+        stopName: selectedStop.name,
+        stopId: selectedStop.id,
+        line: selectedLine,
+        offset: walkingOffset,
+      });
+      setSavedConfigs(getTowerConfigs());
+      setSelectedConfigId(saved.id);
       setSuccessMessage('Assignment created successfully.');
-      setSelectedStop(null);
-      setStopDetails(null);
-      setSelectedType('');
-      setSelectedLine(null);
-      setQuery('');
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Failed to create assignment.');
@@ -110,6 +141,24 @@ export default function TowerConfig() {
       </header>
 
       <main className="content">
+        {savedConfigs.length > 0 && (
+          <section className="card">
+            <h2>Saved Towers</h2>
+            <div className="savedTowerList">
+              {savedConfigs.map((config) => (
+                <button
+                  key={config.id}
+                  className={config.id === selectedConfigId ? 'savedTowerItem selected' : 'savedTowerItem'}
+                  onClick={() => handleSelectSavedConfig(config)}
+                >
+                  <div className="savedTowerTitle">{config.stopName} · {config.line.name}</div>
+                  <div className="savedTowerMeta">{config.line.type} • {config.offset} mins</div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="card">
           <h2>Stop autocomplete</h2>
           <input

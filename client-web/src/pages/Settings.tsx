@@ -1,7 +1,14 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getTowerConfigs, clearTowerConfigs, TowerConfig } from '../towerStorage';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const [towerConfigs, setTowerConfigs] = useState<TowerConfig[]>([]);
+
+  useEffect(() => {
+    setTowerConfigs(getTowerConfigs());
+  }, []);
 
   return (
     <div className="page">
@@ -33,10 +40,30 @@ export default function Settings() {
 
         <section className="card">
           <h2>🏠 Devices</h2>
-          <p>You have 2 connected tower devices.</p>
+          <p>You have {towerConfigs.length} configured tower{towerConfigs.length === 1 ? '' : 's'}.</p>
           <button className="primaryButton gatewayButton" onClick={() => navigate('/tower')}>
             Add New Device
           </button>
+          {towerConfigs.length > 0 && (
+            <div className="settingsList">
+              {towerConfigs.map((config) => (
+                <div key={config.id} className="settingItem">
+                  <span>
+                    <strong>{config.stopName}</strong> • {config.line.name}
+                  </span>
+                  <span className="settingValue">Offset {config.offset}m</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {towerConfigs.length > 0 && (
+            <button className="secondaryButton gatewayButton" onClick={() => {
+              clearTowerConfigs();
+              setTowerConfigs([]);
+            }}>
+              Clear All Tower Settings
+            </button>
+          )}
         </section>
 
         <section className="card">

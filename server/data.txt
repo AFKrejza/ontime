@@ -1,9 +1,0 @@
-The data folder must contain the Timetables in GTFS folder:
-https://opendata.praha.eu/datasets/https%3A%2F%2Fapi.opendata.praha.eu%2Flod%2Fcatalog%2F9a6a1d8e-45b9-41de-b9ae-0bcec7126876
-
-Folder name PID_GTFS
-
-And the list of stops in JSON format:
-https://opendata.praha.eu/datasets/https%3A%2F%2Fapi.opendata.praha.eu%2Flod%2Fcatalog%2F6ac8381f-ea19-4ea9-8949-92076809dc5a
-
-Named stops.json

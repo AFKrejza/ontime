@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, View, Pressable, TextInput, Alert, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { router } from 'expo-router';
 import { useTowerConfig } from '@/contexts/TowerConfigContext';
-import { fetchTrieData, fetchStopLines, addStop, StopSummary, StopDetails, Line, SERVER_URL } from '@/utils/api';
+import { fetchTrieData, fetchStopLines, addStop, StopSummary, StopDetails, Line } from '@/utils/api';
 
 const typeOptions = ['bus', 'tram', 'metro', 'train'];
 
@@ -29,7 +28,7 @@ const lineColors: Record<string, string> = {
 };
 
 export default function TowerConfigScreen() {
-  const { saveTowerConfig } = useTowerConfig();
+  const { towerConfigs, activeTowerId, saveTowerConfig, setActiveTower } = useTowerConfig();
   const [allStops, setAllStops] = useState<StopSummary[]>([]);
   const [filteredStops, setFilteredStops] = useState<StopSummary[]>([]);
   const [query, setQuery] = useState('');
@@ -151,6 +150,28 @@ export default function TowerConfigScreen() {
         <ThemedText type="title" style={styles.title}>
           Configure Tower
         </ThemedText>
+
+        {towerConfigs.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText type="subtitle">Saved Towers</ThemedText>
+            {towerConfigs.map((config) => {
+              const isActive = config.id === activeTowerId;
+              return (
+                <Pressable
+                  key={config.id}
+                  style={[styles.towerCard, isActive && styles.towerCardActive]}
+                  onPress={() => setActiveTower(config.id)}
+                >
+                  <ThemedText style={styles.towerName}>{config.name}</ThemedText>
+                  <ThemedText style={styles.towerMeta}>
+                    {config.stop} • {config.line} • {config.walkingOffset} mins
+                  </ThemedText>
+                  {isActive && <ThemedText style={styles.towerActiveLabel}>Active</ThemedText>}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         {/* Stop Search Input */}
         <View style={styles.section}>
@@ -471,5 +492,32 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  towerCard: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    marginBottom: 10,
+  },
+  towerCardActive: {
+    borderColor: '#1976D2',
+    backgroundColor: '#E3F2FD',
+  },
+  towerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  towerMeta: {
+    fontSize: 12,
+    color: '#666',
+  },
+  towerActiveLabel: {
+    marginTop: 6,
+    color: '#1976D2',
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

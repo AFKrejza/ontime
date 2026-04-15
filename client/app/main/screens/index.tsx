@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useTowerConfig } from '@/contexts/TowerConfigContext';
 
 export default function HomeScreen() {
-  const { towerConfig, isLoading } = useTowerConfig();
+  const { towerConfigs, activeTowerId, setActiveTower, isLoading } = useTowerConfig();
 
   // Show loading state
   if (isLoading) {
@@ -19,7 +19,7 @@ export default function HomeScreen() {
   }
 
   // Show onboarding if no tower config is saved
-  if (!towerConfig) {
+  if (towerConfigs.length === 0) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.brandContainer}>
@@ -30,48 +30,57 @@ export default function HomeScreen() {
           Configure your transit stop to get real-time departure times.
         </ThemedText>
         <Pressable style={styles.addButton} onPress={() => router.push('/main/screens/tower')}>
-          <ThemedText style={styles.addButtonText}>+ Configure Stop</ThemedText>
+          <ThemedText style={styles.addButtonText}>+ Configure Tower</ThemedText>
         </Pressable>
       </ThemedView>
     );
   }
 
-  // Show the saved stop configuration
   return (
     <ThemedView style={styles.container}>
       <View style={styles.brandContainer}>
         <ThemedText type="title" style={styles.title}>ontime</ThemedText>
       </View>
-      <ThemedText style={styles.subtitle}>Your stop:</ThemedText>
 
+      <ThemedText style={styles.subtitle}>Your towers</ThemedText>
       <View style={styles.listContainer}>
-        <View style={styles.deviceCard}>
-          <ThemedText type="subtitle" style={styles.deviceLabel}>
-            {towerConfig.stop}
-          </ThemedText>
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Line:</ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {towerConfig.line}
-            </ThemedText>
-          </View>
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Type:</ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {towerConfig.type}
-            </ThemedText>
-          </View>
-          <View style={styles.detailRow}>
-            <ThemedText style={styles.detailLabel}>Walking offset:</ThemedText>
-            <ThemedText style={styles.detailValue}>
-              {towerConfig.walkingOffset} mins
-            </ThemedText>
-          </View>
-        </View>
+        {towerConfigs.map((config) => {
+          const isActive = config.id === activeTowerId;
+          return (
+            <Pressable
+              key={config.id}
+              style={[styles.deviceCard, isActive && styles.activeCard]}
+              onPress={() => setActiveTower(config.id)}
+            >
+              <View style={styles.cardHeader}>
+                <ThemedText type="subtitle" style={styles.deviceLabel}>
+                  {config.name}
+                </ThemedText>
+                {isActive && <ThemedText style={styles.activeLabel}>Active</ThemedText>}
+              </View>
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Stop:</ThemedText>
+                <ThemedText style={styles.detailValue}>{config.stop}</ThemedText>
+              </View>
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Line:</ThemedText>
+                <ThemedText style={styles.detailValue}>{config.line}</ThemedText>
+              </View>
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Type:</ThemedText>
+                <ThemedText style={styles.detailValue}>{config.type}</ThemedText>
+              </View>
+              <View style={styles.detailRow}>
+                <ThemedText style={styles.detailLabel}>Offset:</ThemedText>
+                <ThemedText style={styles.detailValue}>{config.walkingOffset} mins</ThemedText>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
       <Pressable style={styles.addButton} onPress={() => router.push('/main/screens/tower')}>
-        <ThemedText style={styles.addButtonText}>+ Configure Stop</ThemedText>
+        <ThemedText style={styles.addButtonText}>+ Configure Another Tower</ThemedText>
       </Pressable>
     </ThemedView>
   );
@@ -172,5 +181,21 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: 'center',
     lineHeight: 24,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  activeCard: {
+    borderColor: '#1976D2',
+    backgroundColor: '#E3F2FD',
+  },
+  activeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1976D2',
+    textTransform: 'uppercase',
   },
 });

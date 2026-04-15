@@ -483,6 +483,39 @@ input[type='number'] {
   color: #16a34a;
 }
 
+.savedTowerList {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.savedTowerItem {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  display: grid;
+  gap: 4px;
+  color: #111827;
+}
+
+.savedTowerItem.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.savedTowerTitle {
+  font-weight: 700;
+  color: #111827;
+}
+
+.savedTowerMeta {
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
 /* About Info */
 .aboutInfo {
   display: grid;
