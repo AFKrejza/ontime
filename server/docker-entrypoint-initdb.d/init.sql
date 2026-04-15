@@ -89,17 +89,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_gateways BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_towers BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_assignments BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_lines BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_stops BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE INDEX ON stops (slug);
 CREATE INDEX ON stops_lines (stop_id);
 CREATE INDEX ON stops_lines (line_id);
-
-/*
-	TODO: Add some mock data
-*/
+CREATE INDEX ON gateways (user_id);
+CREATE INDEX ON towers (gateway_id);
+CREATE INDEX ON assignments (tower_id);
+CREATE INDEX ON assignments (stop_id);
+CREATE INDEX ON assignments (line_id);

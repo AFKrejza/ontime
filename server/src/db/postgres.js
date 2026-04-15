@@ -18,7 +18,14 @@ pgClient.on('error', (err, client) => {
 	process.exit(-1);
 })
 
+// TODO: This shouldn't exist!!! Remove it!!
 export async function initDB() {
 	const init = fs.readFileSync("../server/docker-entrypoint-initdb.d/init.sql").toString();
 	await pgClient.query(init);
+}
+
+export async function addMockData() {
+	const res = await pgClient.query(`SELECT * FROM assignments`);
+	const mockData = fs.readFileSync(`./src/db/mockData.sql`).toString();
+	await pgClient.query(mockData);
 }
