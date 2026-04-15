@@ -94,7 +94,7 @@ Response:
 } 
 ```
 
-## Register a gateway to a user
+## Register a gateway to a user IMPLEMENTED
 Endpoint: POST `/gateways/register`  
 Headers: Authorization: Bearer `jwt-token`  
 Request:  
