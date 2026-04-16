@@ -14,13 +14,6 @@ There are a few test routes in app.js:
 `/stopGroups` to get all the lines in a given stop by id (visible in `trieData.json` and `stopDetails.json`),   
 `/bustest` which gets a stop from PID
 
-See `docs/client-server.md` for the frontend/backend API contract covering stop autocomplete, stop details, and tower assignment creation.
 
-The new web frontend lives in `client-web/`. To run it locally:
-
-1. change into `client-web/`
-2. run `npm install`
-3. run `npm run dev`
-
-You need to create a `.env` file and add `SERVER_PORT=3000` and `API_KEY`, I'll send the key.
+You need to create a .env file and add `SERVER_PORT=3000` and `API_KEY`, I'll send the key.
 
