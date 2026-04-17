@@ -21,7 +21,7 @@ Assignment assignments[2];
 static char buffer[ASSIGNMENTS_SIZE]; // ONLY stores assignments!
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
-bool parse_assignments(uint64_t *id);
+bool parse_assignments(uint64_t *tower_id);
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
@@ -52,7 +52,7 @@ void application_init(void)
 	
 	display_init();
 	paint_screen(BLACK);
-
+	
 	twr_log_debug("end init");	
 }
 
@@ -101,6 +101,9 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 {
 	(void) topic;
 	(void) param;
+	(void) id;
+	uint64_t tower_id = twr_radio_get_my_id();
+	twr_log_debug("tower_id: %llx", tower_id);
 
 	if (payload == NULL)
 	{
@@ -142,7 +145,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		goto cleanup;
 	}
 
-	bool updated = parse_assignments(id);
+	bool updated = parse_assignments(&tower_id);
 	if (updated)
 		draw_assignments(assignments); // TODO: Add partial updating for stop info vs times
 
@@ -154,11 +157,12 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	draw_status(GREEN);
 }
 
-bool parse_assignments(uint64_t *id)
+bool parse_assignments(uint64_t *tower_id)
 {
 	bool is_updated = false;
-	char tower_id[13];
-	snprintf(tower_id, sizeof(tower_id), "%012llx", *id);
+	char tower_id_string[13];
+	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", *tower_id);
+	twr_log_debug("string: %s", tower_id_string);
 		
 	uint16_t i = 0;
 
@@ -185,7 +189,7 @@ bool parse_assignments(uint64_t *id)
 		new_id[k] = '\0';
 	
 		// go to the end of the current assignment
-		if (strncmp(new_id, tower_id, strlen(new_id)) != 0)
+		if (strncmp(new_id, tower_id_string, strlen(new_id)) != 0)
 		{
 			while (buffer[i] != assignment_end_char && buffer[i] != '\0')
 				i++;
@@ -199,7 +203,6 @@ bool parse_assignments(uint64_t *id)
 		// assignments are in the same order as previous requests
 
 		char tmp[1];
-
 		i++;
 		extract_field(&i, new.line_number, sizeof(new.line_number));
 		extract_field(&i, new.line_direction, sizeof(new.line_direction));
@@ -211,7 +214,6 @@ bool parse_assignments(uint64_t *id)
 
 		if (buffer[i] == assignment_end_char)
 			i++;
-
 
 		if (strcmp(assignments[assignment_index].line_number, new.line_number) != 0 ||
 			strcmp(assignments[assignment_index].line_direction, new.line_direction) != 0 ||
@@ -233,26 +235,24 @@ bool parse_assignments(uint64_t *id)
 		
 		assignment_index++;
 
-		// twr_log_debug("Number:    %s", new.line_number);
-		// twr_log_debug("Direction: %s", new.line_direction);
-		// twr_log_debug("Name:      %s", new.stop_name);
-		// twr_log_debug("Time:      %s", new.next_time);
-		// twr_log_debug("Leave in:  %s", new.leave_in);
-		// twr_log_debug("Type:      %d", new.type);
+		twr_log_debug("Number:    %s", new.line_number);
+		twr_log_debug("Direction: %s", new.line_direction);
+		twr_log_debug("Name:      %s", new.stop_name);
+		twr_log_debug("Time:      %s", new.next_time);
+		twr_log_debug("Leave in:  %s", new.leave_in);
+		twr_log_debug("Type:      %d", new.type);
 	}
 	return is_updated;
 }
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len)
 {
-	twr_log_debug("extract_field start i=%d, next char='%c'", *i, buffer[*i]);
 	uint16_t j = 0;
 	while (buffer[*i] != delimiter && buffer[*i] != msg_end_char && buffer[*i] != '\0' && j < max_len - 1)
 	{
 		dest[j] = buffer[*i];
 		(*i)++;
 		j++;
-		twr_log_debug("extract_field start i=%d, next char='%c'", *i, buffer[*i]);
 	}
 	// null the rest otherwise there'll be junk values
 	while (j < max_len)
