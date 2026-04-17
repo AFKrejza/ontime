@@ -16,7 +16,17 @@ VALUES ('547c65321d0b', 'c1895bf80e2b', 'Desk')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO assignments (tower_id, stop_id, line_id, departure_offset)
-SELECT '547c65321d0b', 1393, 11563, -15
-WHERE NOT EXISTS (
-	SELECT 1 FROM assignments WHERE tower_id = '547c65321d0b'
-);
+SELECT 
+    '547c65321d0b',
+    s.id,
+    l.id,
+    -15
+FROM stops s
+JOIN stops_lines sl ON sl.stop_id = s.id
+JOIN lines l ON l.id = sl.line_id
+WHERE 
+    s.slug = 'vysocanska'
+    AND l.display_ascii = 'Sidliste Cakovice'
+	AND NOT EXISTS (select 1 FROM assignments a WHERE a.tower_id = '547c65321d0b')
+LIMIT 1
+ON CONFLICT DO NOTHING;

@@ -22,5 +22,5 @@ export const gatewayDao = {
 			VALUES ($1, $1, $2)
 			RETURNING id, gateway_id as gatewayId, name, created_at as createdAt
 		`, [towerId, gatewayId]);
-	}
+	},
 };

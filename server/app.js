@@ -214,7 +214,7 @@ app.get("/towertest", async (req, res) => {
 	// use a JOIN to add the stop and line
 	const input = [
 		{
-			towerId: "c1895bf80e2b",
+			towerId: "547c65321d0b",
 			assignments: [
 				{
 					departureOffset: -15,

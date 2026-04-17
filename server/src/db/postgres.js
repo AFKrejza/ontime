@@ -25,7 +25,8 @@ export async function initDB() {
 }
 
 export async function addMockData() {
-	const res = await pgClient.query(`SELECT * FROM assignments`);
+	console.log("seeding db...");
 	const mockData = fs.readFileSync(`./src/db/mockData.sql`).toString();
 	await pgClient.query(mockData);
+	console.log("seeding done");
 }

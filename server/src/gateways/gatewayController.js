@@ -1,3 +1,4 @@
+import { fetchDepartures } from "../pid/fetchDepartures.js";
 import { gatewayService } from "./gatewayService.js";
 
 // add try/catch with error handling
@@ -31,10 +32,27 @@ export const gatewayController = {
 		res.status(201).json(`${result} towers assigned to ${gatewayId}`);
 	},
 
-	// ~~NEXT~~
 	async getDepartures(req, res) {
-		const gatewayId = req.body.data.gatewayId;
-		const towerIds = req.body.data.towerIds;
-		const result = await gatewayService.getDepartures(gatewayId, towerIds);
+		const gatewayId = req.body.gatewayId;
+		const towerIds = req.body.towerIds;
+
+		// check if assigned
+		const result = await gatewayService.check(gatewayId);
+		if (!result) {
+			res.status(404).json({ registered: false });
+			return;
+		}
+
+		// assign towers
+		const newTowers = await gatewayService.addTowers(gatewayId, towerIds);
+		console.log(`gateway ${gatewayId} has ${towerIds.length} towers, ${towerIds.length - newTowers.length} new towers assigned`);
+
+		const assignments = await gatewayService.getGatewayAssignments(gatewayId);
+
+		const departures = await fetchDepartures(assignments);
+
+		console.log(departures);
+		res.setHeader('Content-Type', 'text/plain');
+		res.status(200).send(departures);
 	}
 };

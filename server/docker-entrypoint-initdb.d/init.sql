@@ -1,10 +1,4 @@
-/*
-	Reference docs/db-schema.md
-
-	This still needs to be integrated properly!!!  
-
-	TODO: add indexes
-*/
+-- 	Reference docs/db-schema.md
 
 CREATE TABLE IF NOT EXISTS users (
 	id SERIAL PRIMARY KEY,
@@ -34,7 +28,7 @@ CREATE TABLE IF NOT EXISTS towers (
 	created_at TIMESTAMPTZ DEFAULT NOW(),
 	updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
+ 
 CREATE TABLE IF NOT EXISTS stops (
 	id SERIAL PRIMARY KEY,
 	slug TEXT UNIQUE NOT NULL,
