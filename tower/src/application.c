@@ -5,7 +5,7 @@
 #include <application.h>
 #include "display.h"
 
-#define ASSIGNMENTS_SIZE 10 * sizeof(Assignment) + 200 // TODO: calculate the maximum JSON size
+#define ASSIGNMENTS_SIZE 10 * sizeof(Assignment) + 200
 
 #define TOWER_ID_SIZE 13 // includes null byte
 
@@ -147,7 +147,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 
 	bool updated = parse_assignments(&tower_id);
 	if (updated)
-		draw_assignments(assignments); // TODO: Add partial updating for stop info vs times
+		draw_assignments(assignments);
 
 	// prevent garbage
 	cleanup:

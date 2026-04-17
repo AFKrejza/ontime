@@ -284,10 +284,7 @@ void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_star
 	}
 }
 
-// does both stops. TODO: decide behavior when only one stop was updated, or when there are no stops.
-// Backend must support this too: Always send an array with 2 elements. If !lines[i].headsign, then 
-// just print the default (waiting etc)
-void draw_assignments(Assignment lines[])
+void draw_assignments(Assignment assignments[])
 {
 	const uint16_t box_height = 128;
 	for (uint8_t i = 0; i < 2; i++)
@@ -296,15 +293,20 @@ void draw_assignments(Assignment lines[])
 		const uint16_t box_col_end = SCREEN_WIDTH - 1;
 		const uint16_t box_row_start = 0 + i * box_height;
 		const uint16_t box_row_end = box_height + i * box_height;
-		
-		draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
-		draw_image(box_col_start, box_row_start + 40, lines[i].type, 2);
 
-		draw_line_direction(lines[i].line_direction, box_col_start, box_row_start);
-		draw_line_number(lines[i].line_number, box_col_start, box_row_start);
-		draw_stop_name(lines[i].stop_name, box_col_start, box_row_start);
-		draw_next_time(lines[i].next_time, box_col_start, box_row_start);
-		draw_leave_in(lines[i].leave_in,   box_col_start, box_row_start);
+		if (assignments[i].stop_name[0] == '\0')
+		{
+			draw_rect(0, SCREEN_WIDTH - 1, box_row_start + 1, box_row_end, BG_COLOR);
+			continue;
+		}
+
+		draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
+		draw_image(box_col_start, box_row_start + 40, assignments[i].type, 2);
+		draw_line_direction(assignments[i].line_direction, box_col_start, box_row_start);
+		draw_line_number(assignments[i].line_number, box_col_start, box_row_start);
+		draw_stop_name(assignments[i].stop_name, box_col_start, box_row_start);
+		draw_next_time(assignments[i].next_time, box_col_start, box_row_start);
+		draw_leave_in(assignments[i].leave_in,   box_col_start, box_row_start);
 	}
 }
 
