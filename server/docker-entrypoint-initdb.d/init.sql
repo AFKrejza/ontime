@@ -1,10 +1,4 @@
-/*
-	Reference docs/db-schema.md
-
-	This still needs to be integrated properly!!!  
-
-	TODO: add indexes
-*/
+-- 	Reference docs/db-schema.md
 
 CREATE TABLE IF NOT EXISTS users (
 	id SERIAL PRIMARY KEY,
@@ -34,7 +28,7 @@ CREATE TABLE IF NOT EXISTS towers (
 	created_at TIMESTAMPTZ DEFAULT NOW(),
 	updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
+ 
 CREATE TABLE IF NOT EXISTS stops (
 	id SERIAL PRIMARY KEY,
 	slug TEXT UNIQUE NOT NULL,
@@ -72,6 +66,7 @@ CREATE TABLE IF NOT EXISTS assignments (
 	updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- this isn't necessary, just add the stop_id to each line
 CREATE TABLE IF NOT EXISTS stops_lines (
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,
@@ -89,17 +84,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE OR REPLACE TRIGGER set_updated_at BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_gateways BEFORE UPDATE ON gateways FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_towers BEFORE UPDATE ON towers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_assignments BEFORE UPDATE ON assignments FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_lines BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER set_updated_at_stops BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE INDEX ON stops (slug);
 CREATE INDEX ON stops_lines (stop_id);
 CREATE INDEX ON stops_lines (line_id);
-
-/*
-	TODO: Add some mock data
-*/
+CREATE INDEX ON gateways (user_id);
+CREATE INDEX ON towers (gateway_id);
+CREATE INDEX ON assignments (tower_id);
+CREATE INDEX ON assignments (stop_id);
+CREATE INDEX ON assignments (line_id);

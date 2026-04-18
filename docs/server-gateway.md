@@ -51,7 +51,9 @@ Response:
 ```
 
 ## Gateway registers new towers
-Endpoint: POST `/api/gateway/register`  
+The gateway must first be assigned to a user via `/gateways/register` in client-server.md.  
+The gateway will repeatedly try to register its towers but the server will only accept it once it exists in the database, meaning once a user has registered it.  
+Endpoint: POST `/gateway/:gatewayId/towers/register`  
 Headers: Authorization: Bearer gateway-token  
 Request Body:  
 ```
@@ -109,12 +111,12 @@ Response:
 ```
 
 ## Gateway registers itself to a user
-Endpoint: POST `/api/users/{userId}/gateway/register`  
+Endpoint: POST `/gateway/register`  
 Headers: Authorization: Bearer gateway-token  
 Request Body:  
 ```
 {
-	"id": 3622662 // some kind of unique device identifier
+	"id": "3622662aac" // the radio dongle ID
 } 
 ```
 Response:  
