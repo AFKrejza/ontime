@@ -2,10 +2,11 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { updateData } from "./src/stop_data/updateData.js";
-import {pgClient, initDB} from "./src/db/postgres.js";
+import {pgClient, initDB, addMockData} from "./src/db/postgres.js";
 import { stopsDao } from "./src/dao/stopsDao.js";
 import { authRouter } from "./src/auth/auth.js";
 import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
+import { towerRouter } from "./src/towers/towerRouter.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -34,6 +35,7 @@ async function dbCheck() {
 await initDB();
 await dbCheck();
 await updateData();
+await addMockData();
 
 app.get("/trieData", async (req, res) => {
 	const data = await stopsDao.getTrieData();
@@ -212,7 +214,7 @@ app.get("/towertest", async (req, res) => {
 	// use a JOIN to add the stop and line
 	const input = [
 		{
-			towerId: "c1895bf80e2b",
+			towerId: "547c65321d0b",
 			assignments: [
 				{
 					departureOffset: -15,
@@ -431,6 +433,7 @@ app.get("/towertest", async (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/gateways", gatewayRouter);
+app.use("/towers", towerRouter);
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);
