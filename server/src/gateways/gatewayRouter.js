@@ -15,3 +15,5 @@ gatewayRouter.post("/check", gatewayController.check);
 gatewayRouter.post("/assigntowers", gatewayController.assignTowers);
 
 gatewayRouter.post("/departures", gatewayController.getDepartures);
+
+gatewayRouter.get("/:gatewayId/status", authMiddleware, gatewayController.status)

@@ -10,17 +10,11 @@ export const gatewayDao = {
 		`, [userId, gatewayId, gatewayName]);
 	},
 
-	async check(id) {
+	async findById(gatewayId) {
 		return await pgClient.query(`
 			SELECT * FROM gateways WHERE id = $1
-		`, [id]);
+		`, [gatewayId]);
 	},
 
-	async assignTower(gatewayId, towerId) {
-		return await pgClient.query(`
-			INSERT INTO towers (id, name, gateway_id)
-			VALUES ($1, $1, $2)
-			RETURNING id, gateway_id as gatewayId, name, created_at as createdAt
-		`, [towerId, gatewayId]);
-	},
+
 };

@@ -20,6 +20,7 @@ twr_button_t button;
 Assignment assignments[2];
 static char buffer[ASSIGNMENTS_SIZE]; // ONLY stores assignments!
 
+void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
 bool parse_assignments(uint64_t *tower_id);
 
@@ -118,9 +119,19 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	{
 		twr_log_debug("first msg");
 		buffer_index = 0;
-		memcpy(buffer, payload, len);
-		buffer_index += len;
-		return;
+		// if there are no assignments:
+		if (strchr((const char *)payload, msg_end_char))
+		{
+			twr_log_debug("Tower has no assignments");
+			clear_assignments(assignments);
+			goto draw;
+		}
+		else
+		{
+			memcpy(buffer, payload, len);
+			buffer_index += len;
+			return;
+		}
 	}
 	else if (strchr((const char *)payload, msg_end_char)) // checks if last chunk
 	{
@@ -147,7 +158,10 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 
 	bool updated = parse_assignments(&tower_id);
 	if (updated)
+	{
+		draw:
 		draw_assignments(assignments);
+	}
 
 	// prevent garbage
 	cleanup:
@@ -162,7 +176,7 @@ bool parse_assignments(uint64_t *tower_id)
 	bool is_updated = false;
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", *tower_id);
-	twr_log_debug("string: %s", tower_id_string);
+	twr_log_debug("Tower ID: %s", tower_id_string);
 		
 	uint16_t i = 0;
 
@@ -263,4 +277,17 @@ void extract_field(uint16_t *i, char *dest, uint16_t max_len)
 
 	if (buffer[*i] == delimiter)
 		(*i)++;
+}
+
+void clear_assignments(Assignment assignments[2])
+{
+	for (uint8_t i = 0; i < 2; i++)
+	{
+		memset(&assignments[i].leave_in, 0 , LEAVE_IN_SIZE);
+		memset(&assignments[i].line_direction, 0, LINE_DIRECTION_SIZE);
+		memset(&assignments[i].line_number, 0 , LINE_NUMBER_SIZE);
+		memset(&assignments[i].next_time, 0, NEXT_TIME_SIZE);
+		memset(&assignments[i].stop_name, 0, STOP_NAME_SIZE);
+		memset(&assignments[i].type, 0, 1);
+	}
 }

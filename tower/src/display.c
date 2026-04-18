@@ -296,7 +296,7 @@ void draw_assignments(Assignment assignments[])
 
 		if (assignments[i].stop_name[0] == '\0')
 		{
-			draw_rect(0, SCREEN_WIDTH - 1, box_row_start + 1, box_row_end, BG_COLOR);
+			draw_rect(0, SCREEN_WIDTH - 1, box_row_start + i, box_row_end, BG_COLOR);
 			continue;
 		}
 

@@ -1,6 +1,6 @@
 import { gatewayDao } from "./gatewayDao.js";
 import { towerDao } from "../towers/towerDao.js";
-import { assignmentsDao } from "../assignments/assignmentsDao.js";
+import { assignmentDao } from "../assignments/assignmentDao.js";
 
 // TODO: verify input + sanitize, throw errors
 
@@ -11,7 +11,7 @@ export const gatewayService = {
 	},
 
 	async check(id) {
-		const response = await gatewayDao.check(id);
+		const response = await gatewayDao.findById(id);
 		if (!response.rows[0]) return null;
 		return response.rows[0];
 	},
@@ -19,7 +19,7 @@ export const gatewayService = {
 	async assignTowers(gatewayId, towerIds) {
 		let count = 0;
 		for (id in towerIds) {
-			await gatewayDao.assignTower(gatewayId, id);
+			await towerDao.assignTower(gatewayId, id);
 			count++;
 		}
 		return count;
@@ -41,12 +41,12 @@ export const gatewayService = {
 	},
 
 	async getGatewayAssignments(gatewayId) {
-		const result = await assignmentsDao.getGatewayAssignments(gatewayId);
+		const result = await assignmentDao.getByGatewayId(gatewayId);
 
 		const towersMap = new Map();
 		for (const row of result.rows) {
 			if (!towersMap.has(row.tower_id)) {
-				towersMap.set(row.tower_id, { towerId: row.tower_id, assignments: [] });
+				towersMap.set(row.tower_id, { towerId: row.tower_id, towerName: row.tower_name, battery: row.battery, lastSeen: row.last_seen, assignments: [] });
 			}
 			towersMap.get(row.tower_id).assignments.push({
 				departureOffset: row.departure_offset,
