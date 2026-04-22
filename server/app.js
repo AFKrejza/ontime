@@ -7,6 +7,7 @@ import { stopsDao } from "./src/dao/stopsDao.js";
 import { authRouter } from "./src/auth/auth.js";
 import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
 import { towerRouter } from "./src/towers/towerRouter.js";
+import { userRouter } from "./src/users/userRouter.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -22,16 +23,11 @@ async function dbCheck() {
 	try {
 		const result = await pgClient.query(`SELECT NOW()`);
 		console.log(result.rows[0]);
-		// const test = await pgClient.query(`
-		// INSERT INTO users(username, email, password_hash) 
-		// VALUES ('TestUsere', 'testuser@gmail.com', 'unhashed') 
-		// RETURNING *
-		// `);
-		// console.log(test.rows[0]);
 	} catch (err) {
 		console.error("DB error", err);
 	}
 }
+// TODO: if DB connection fails, retry instead of dying
 await initDB();
 await dbCheck();
 await updateData();
@@ -434,6 +430,7 @@ app.get("/towertest", async (req, res) => {
 app.use("/auth", authRouter);
 app.use("/gateways", gatewayRouter);
 app.use("/towers", towerRouter);
+app.use("/users", userRouter);
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);

@@ -12,6 +12,7 @@ export const towerService = {
 		return {
 			towerId,
 			assignments: result.rows.map(row => ({
+				assignmentId: row.assignment_id,
 				departureOffset: row.departure_offset,
 				stopId: row.stop_id,
 				lineId: row.line_id,
@@ -40,13 +41,18 @@ export const towerService = {
 		tower = tower.rows[0];
 		console.log(JSON.stringify(tower));
 		const res = await this.getTowerAssignments(towerId);
+		let assignments;
+		if (res && res.assignments)
+			assignments = res.assignments;
+		else
+			assignments = [];
 
 		const result = {
 			id: tower.id,
 			name: tower.name,
 			battery: tower.battery_voltage,
 			lastSeen: tower.last_seen,
-			assignments: res.assignments
+			assignments: assignments
 		};
 
 		console.log(result);
