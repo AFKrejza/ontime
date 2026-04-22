@@ -1,6 +1,6 @@
 import { pgClient } from "../db/postgres.js"
 
-export const usersDao = {
+export const userDao = {
 
 	async findById(id) {
 		return await pgClient.query(`
@@ -24,7 +24,7 @@ export const usersDao = {
 
 	async getProfile(id) {
 		return await pgClient.query(`
-			SELECT (id, email, username, created_at) FROM users WHERE id = $1
+			SELECT id, email, username, created_at FROM users WHERE id = $1
 		`, [id]);
 	}
 }

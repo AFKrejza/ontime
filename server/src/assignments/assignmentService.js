@@ -22,5 +22,10 @@ export const assignmentService = {
 		const result = await assignmentDao.deleteAllByTowerId(towerId);
 		
 		return result.rowCount;
+	},
+
+	async deleteById(assignmentId) {
+		const result = await assignmentDao.deleteById(assignmentId);
+		return result.rowCount;
 	}
 };

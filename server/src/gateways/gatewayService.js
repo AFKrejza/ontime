@@ -49,6 +49,7 @@ export const gatewayService = {
 				towersMap.set(row.tower_id, { towerId: row.tower_id, towerName: row.tower_name, battery: row.battery, lastSeen: row.last_seen, assignments: [] });
 			}
 			towersMap.get(row.tower_id).assignments.push({
+				assignmentId: row.assignment_id,
 				departureOffset: row.departure_offset,
 				stopId: row.stop_id,
 				lineId: row.line_id,
