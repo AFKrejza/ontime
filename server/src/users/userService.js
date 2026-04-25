@@ -18,5 +18,11 @@ export const userService = {
 		}
 		console.log(data);
 		return profile;
+	},
+
+	async update(userId, data) {
+		const result = await userDao.update(userId, data);
+
+		return result.rows[0];
 	}
 };

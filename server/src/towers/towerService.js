@@ -61,7 +61,7 @@ export const towerService = {
 
 	async authorize(userId, towerId) {
 		let tower = await towerDao.findById(towerId);
-		if (!tower) {
+		if (!tower || !tower.rows[0]) {
 			throw new Error("Not found");
 		}
 		tower = tower.rows[0];
@@ -76,6 +76,16 @@ export const towerService = {
 			throw new Error("Unauthorized");
 		}
 		return true;
+	},
+
+	async deleteById(towerId) {
+		const result = await towerDao.deleteById(towerId);
+		return result.rowCount;
+	},
+
+	async rename(towerId, towerName) {
+		const result = await towerDao.rename(towerId, towerName);
+		return result.rows[0];
 	}
 	
 };

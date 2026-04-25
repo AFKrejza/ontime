@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS gateways (
 	id TEXT PRIMARY KEY,
 	user_id INTEGER NOT NULL,
 	name TEXT NOT NULL,
-	FOREIGN KEY (user_id) REFERENCES users(id),
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 	created_at TIMESTAMPTZ DEFAULT NOW(),
 	updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS assignments (
 	line_id INTEGER NOT NULL,
 	departure_offset INTEGER NOT NULL,
 	CONSTRAINT departure_offset_nonpositive CHECK (departure_offset <= 0),
-	FOREIGN KEY (tower_id) REFERENCES towers(id),
+	FOREIGN KEY (tower_id) REFERENCES towers(id) ON DELETE CASCADE,
 	FOREIGN KEY (stop_id) REFERENCES stops(id),
 	FOREIGN KEY (line_id) REFERENCES lines(id),
 	created_at TIMESTAMPTZ DEFAULT NOW(),

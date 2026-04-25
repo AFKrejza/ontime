@@ -96,6 +96,7 @@ Response:
 
 ## Get user profile IMPLEMENTED
 Endpoint: GET `/users/profile`  
+Headers: Authorization: Bearer `jwt-token`  
 This uses the JWT to get the ID.  
 No request body.  
 Response:  
@@ -104,6 +105,26 @@ Response:
 	"username": "john",
 	"email": "john@gmail.com",
     "createdAt": "2026-04-22T11:56:26.350Z",
+    "id": 502
+}
+```
+
+## Update a user's name/email IMPLEMENTED
+Endpoint: PATCH `/users/update`  
+Headers: Authorization: Bearer `jwt-token`  
+Uses the JWT to get the ID.
+Request body:  
+```
+{
+	"username": "newname",
+	"email": "newemail@gmai.com"
+}
+```
+Response:
+```
+{
+	"username": "newname",
+	"email": "newemail@gmail.com",
     "id": 502
 }
 ```
@@ -173,7 +194,7 @@ Response:
 }
 ```
 
-## List gateways
+## List a user's gateways IMPLEMENTED
 Endpoint: GET `/users/:userId/gateways/list`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
@@ -192,8 +213,8 @@ Response:
 }
 ```
 
-## Rename gateways
-Endpoint: PATCH `/gateways/:gatewayId`  
+## Rename a gateway IMPLEMENTED
+Endpoint: PATCH `/gateways/:gatewayId/rename`  
 Headers: Authorization: Bearer `jwt-token`  
 Request:  
 ```
@@ -210,13 +231,13 @@ Response:
 }
 ```
 
-## Delete gateways
+## Delete a gateway IMPLEMENTED
 Endpoint: DELETE `/gateways/:gatewayId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
 {
-	status: "Deleted" // something like that
+	"deleteCount": 1
 }
 ```
 
@@ -257,14 +278,14 @@ Headers: Authorization: Bearer `jwt-token`
 }
 ```
 
-## Delete a tower
+## Delete a tower IMPLEMENTED 
 Unassign it from a gateway. First it has to be unpaired from the gateway, then use this endpoint, and then the gateway has to be restarted to remove it from memory. Then it can be paired to another gateway (which is done by the gateway itself).  
-Endpoint: DELETE `/gateways/:gatewayId/towers/:towerId`  
+Endpoint: DELETE `/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
 ```
 {
-	status: "removed"
+	deleteCount: 1
 }
 ```
 
@@ -305,15 +326,25 @@ Response:
 }
 ```
 
-## Edit a tower's assignment
-Endpoint: PATCH `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`
+## Rename a tower IMPLEMENTED
+Endpoint: PATCH `/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`
 Request:
 ```
 {
-	"stopId": 55,
-	"lineId": 727,
-	departureOffset: -15
+	name: "newtowername"
 }
+```
+Response:
+{
+    "id": "547c65321d0b",
+    "gateway_id": "c1895bf80e2b",
+    "name": "newtowername",
+    "battery_voltage": null,
+    "last_seen": null,
+    "created_at": "2026-04-25T15:35:15.095Z",
+    "updated_at": "2026-04-25T15:46:39.769Z"
+}
+
 ```
 
