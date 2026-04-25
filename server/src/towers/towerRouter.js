@@ -13,3 +13,7 @@ towerRouter.post("/:towerId/addAssignment", authMiddleware, assignmentController
 towerRouter.delete("/:towerId/assignments/deleteAll", authMiddleware, assignmentController.deleteAllByTowerId);
 
 towerRouter.delete("/:towerId/assignments/:assignmentId", authMiddleware, assignmentController.deleteAssignment);
+
+towerRouter.delete("/:towerId", authMiddleware, towerController.deleteById);
+
+towerRouter.patch("/:towerId", authMiddleware, towerController.rename);

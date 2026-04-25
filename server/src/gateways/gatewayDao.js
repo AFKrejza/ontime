@@ -16,5 +16,25 @@ export const gatewayDao = {
 		`, [gatewayId]);
 	},
 
+	async rename(gatewayId, gatewayName) {
+		return await pgClient.query(`
+			UPDATE gateways
+			SET name = $1
+			WHERE id = $2
+			RETURNING id, name
+		`, [gatewayName, gatewayId]);
+	},
+
+	async list(userId) {
+		return await pgClient.query(`
+			SELECT * FROM gateways WHERE user_id = $1
+		`, [userId]);
+	},
+
+	async deleteById(gatewayId) {
+		return await pgClient.query(`
+			DELETE FROM gateways WHERE id = $1
+		`, [gatewayId]);
+	}
 
 };
