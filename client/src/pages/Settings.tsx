@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTowerConfigs, clearTowerConfigs, TowerConfig } from '../towerStorage';
+import { clearToken } from '../api';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -9,6 +10,11 @@ export default function Settings() {
   useEffect(() => {
     setTowerConfigs(getTowerConfigs());
   }, []);
+
+  const handleSignOut = () => {
+    clearToken();
+    navigate('/');
+  };
 
   return (
     <div className="page">
@@ -21,25 +27,25 @@ export default function Settings() {
 
       <main className="content">
         <section className="card">
-          <h2>👤 Account</h2>
-          <p>You are currently signed in as a user.</p>
+          <h2>Account</h2>
+          <p>You are currently signed in.</p>
           <div className="settingsList">
             <div className="settingItem">
               <span className="settingLabel">Email</span>
-              <span className="settingValue">user@example.com</span>
+              <span className="settingValue">*****@gmail.com.com</span>
             </div>
             <div className="settingItem">
               <span className="settingLabel">Account Status</span>
               <span className="settingValue active">Active</span>
             </div>
           </div>
-          <button className="secondaryButton gatewayButton" onClick={() => navigate('/')}>
+          <button className="secondaryButton gatewayButton" onClick={handleSignOut}>
             Sign Out
           </button>
         </section>
 
         <section className="card">
-          <h2>🏠 Devices</h2>
+          <h2> Devices</h2>
           <p>You have {towerConfigs.length} configured tower{towerConfigs.length === 1 ? '' : 's'}.</p>
           <button className="primaryButton gatewayButton" onClick={() => navigate('/tower')}>
             Add New Device
@@ -66,20 +72,6 @@ export default function Settings() {
           )}
         </section>
 
-        <section className="card">
-          <h2>🎯 Preferences</h2>
-          <p>Customize your OnTime experience.</p>
-          <div className="settingsList">
-            <div className="settingItem">
-              <span className="settingLabel">Notifications</span>
-              <span className="settingValue">Enabled</span>
-            </div>
-            <div className="settingItem">
-              <span className="settingLabel">Theme</span>
-              <span className="settingValue">Light Mode</span>
-            </div>
-          </div>
-        </section>
 
         <section className="card">
           <h2>ℹ️ About</h2>

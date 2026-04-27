@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signupUser } from '../api';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       setError('Please fill in all fields.');
       return;
@@ -19,13 +21,22 @@ export default function SignUp() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 4){
       setError('Password must be at least 6 characters.');
       return;
     }
 
     setError('');
-    navigate('/device-connect');
+    setIsSubmitting(true);
+
+    try {
+      await signupUser(email, password);
+      navigate('/device-connect');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -77,8 +88,8 @@ export default function SignUp() {
             </label>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="primaryButton authButton" onClick={handleSignUp}>
-            Create Account
+          <button className="primaryButton authButton" onClick={handleSignUp} disabled={isSubmitting}>
+            {isSubmitting ? 'Creating account…' : 'Create Account'}
           </button>
           <div className="divider">or</div>
           <button className="secondaryButton authButton" onClick={() => navigate('/login')}>

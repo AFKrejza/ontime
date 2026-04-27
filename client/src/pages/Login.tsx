@@ -1,19 +1,31 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loginUser } from '../api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError('Please fill in both email and password.');
       return;
     }
+
     setError('');
-    navigate('/device-connect');
+    setIsSubmitting(true);
+
+    try {
+      await loginUser(email, password);
+      navigate('/device-connect');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -53,8 +65,8 @@ export default function Login() {
             </label>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="primaryButton authButton" onClick={handleLogin}>
-            Sign In
+          <button className="primaryButton authButton" onClick={handleLogin} disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in…' : 'Sign In'}
           </button>
           <div className="divider">or</div>
           <button className="secondaryButton authButton" onClick={() => navigate('/signup')}>
