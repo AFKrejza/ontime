@@ -24,4 +24,25 @@ export const towerDao = {
 		`, [towerId, gatewayId]);
 	},
 
+	async deleteById(towerId) {
+		return await pgClient.query(`
+			DELETE FROM towers WHERE id = $1
+		`, [towerId]);
+	},
+
+	async getByGatewayId(gatewayId) {
+		return await pgClient.query(`
+			SELECT * FROM towers WHERE gateway_id = $1
+		`, [gatewayId]);
+	},
+
+	async rename(towerId, towerName) {
+		return await pgClient.query(`
+			UPDATE towers
+			SET name = $2
+			WHERE id = $1
+			RETURNING *
+		`, [towerId, towerName]);
+	}
+
 };

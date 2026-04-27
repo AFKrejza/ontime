@@ -16,4 +16,8 @@ gatewayRouter.post("/assigntowers", gatewayController.assignTowers);
 
 gatewayRouter.post("/departures", gatewayController.getDepartures);
 
-gatewayRouter.get("/:gatewayId/status", authMiddleware, gatewayController.status)
+gatewayRouter.get("/:gatewayId/status", authMiddleware, gatewayController.status);
+
+gatewayRouter.patch("/:gatewayId/rename", authMiddleware, gatewayController.rename);
+
+gatewayRouter.delete("/:gatewayId", authMiddleware, gatewayController.delete);

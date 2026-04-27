@@ -41,14 +41,16 @@ export const gatewayService = {
 	},
 
 	async getGatewayAssignments(gatewayId) {
+		const towers = await towerDao.getByGatewayId(gatewayId);
 		const result = await assignmentDao.getByGatewayId(gatewayId);
 
 		const towersMap = new Map();
+		for (const row of towers.rows) {
+			towersMap.set(row.id, { towerId: row.id, towerName: row.name, battery: row.battery_voltage, lastSeen: row.last_seen, assignments: [] });
+		}
 		for (const row of result.rows) {
-			if (!towersMap.has(row.tower_id)) {
-				towersMap.set(row.tower_id, { towerId: row.tower_id, towerName: row.tower_name, battery: row.battery, lastSeen: row.last_seen, assignments: [] });
-			}
 			towersMap.get(row.tower_id).assignments.push({
+				assignmentId: row.assignment_id,
 				departureOffset: row.departure_offset,
 				stopId: row.stop_id,
 				lineId: row.line_id,
@@ -72,5 +74,33 @@ export const gatewayService = {
 		}
 
 		return Array.from(towersMap.values());
+	},
+
+	async rename(gatewayId, gatewayName) {
+		const result = await gatewayDao.rename(gatewayId, gatewayName);
+		return result.rows[0];
+	},
+
+	async list(userId) {
+		const result = await gatewayDao.list(userId);
+		return result.rows;
+	},
+
+	async authorize(userId, gatewayId) {
+		let gateway = await gatewayDao.findById(gatewayId);
+		if (!gateway) {
+			throw new Error("Not found");
+		}
+		gateway = gateway.rows[0];
+
+		if (gateway.user_id !== userId) {
+			throw new Error("Unauthorized");
+		}
+		return true;
+	},
+
+	async delete(gatewayId) {
+		const res = await gatewayDao.deleteById(gatewayId);
+		return res.rowCount;
 	}
 };

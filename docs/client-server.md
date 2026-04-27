@@ -94,6 +94,41 @@ Response:
 } 
 ```
 
+## Get user profile IMPLEMENTED
+Endpoint: GET `/users/profile`  
+Headers: Authorization: Bearer `jwt-token`  
+This uses the JWT to get the ID.  
+No request body.  
+Response:  
+```
+{
+	"username": "john",
+	"email": "john@gmail.com",
+    "createdAt": "2026-04-22T11:56:26.350Z",
+    "id": 502
+}
+```
+
+## Update a user's name/email IMPLEMENTED
+Endpoint: PATCH `/users/update`  
+Headers: Authorization: Bearer `jwt-token`  
+Uses the JWT to get the ID.
+Request body:  
+```
+{
+	"username": "newname",
+	"email": "newemail@gmai.com"
+}
+```
+Response:
+```
+{
+	"username": "newname",
+	"email": "newemail@gmail.com",
+    "id": 502
+}
+```
+
 ## Register a gateway to a user IMPLEMENTED
 Endpoint: POST `/gateways/register`  
 Headers: Authorization: Bearer `jwt-token`  
@@ -116,8 +151,8 @@ Response:
 
 
 ## Get one gateway and its tower's statuses IMPLEMENTED
-
-Endpoint: GET `/gateways/:gatewayId/status`
+Warning: A gateway won't register its towers until it's been registered to a user. Only then will you be able to see which towers are registered to it and add assignments to them.  
+Endpoint: GET `/gateways/:gatewayId/status`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -132,6 +167,7 @@ Response:
 			"lastSeen": "2026-03-12T14:29:55Z", 
 			"assignments": [
 				{
+					"assignmentId": 26, // our DB
 					"departureOffset": -10, // must be <= 0
 					"stopId": 1200, // generated in our database
 					"lineId": 152, // from our DB
@@ -158,7 +194,7 @@ Response:
 }
 ```
 
-## List gateways
+## List a user's gateways IMPLEMENTED
 Endpoint: GET `/users/:userId/gateways/list`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
@@ -177,8 +213,8 @@ Response:
 }
 ```
 
-## Rename gateways
-Endpoint: PATCH `/gateways/:gatewayId`  
+## Rename a gateway IMPLEMENTED
+Endpoint: PATCH `/gateways/:gatewayId/rename`  
 Headers: Authorization: Bearer `jwt-token`  
 Request:  
 ```
@@ -195,13 +231,13 @@ Response:
 }
 ```
 
-## Delete gateways
+## Delete a gateway IMPLEMENTED
 Endpoint: DELETE `/gateways/:gatewayId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
 {
-	status: "Deleted" // something like that
+	"deleteCount": 1
 }
 ```
 
@@ -217,9 +253,10 @@ Headers: Authorization: Bearer `jwt-token`
 	"lastSeen": "2026-03-12T14:29:55Z", 
 	"assignments": [
 		{
-			"departureOffset": -10, // must be <= 0
-			"stopId": 1200, // generated in our database
-			"lineId": 152, // generated in our DB
+			"assignmentId": 26, // our DB
+			"departureOffset": -10, // from -30 to 0 inclusive
+			"stopId": 1200, // our DB
+			"lineId": 152, // our DB
 			"gtfsId": "U474Z5P" // from PID
 			"stop": {
 				"id": 1200, // our db
@@ -241,14 +278,14 @@ Headers: Authorization: Bearer `jwt-token`
 }
 ```
 
-## Delete a tower
-Unassign it from a gateway.  
-Endpoint: DELETE `/gateways/:gatewayId/towers/:towerId`  
+## Delete a tower IMPLEMENTED 
+Unassign it from a gateway. First it has to be unpaired from the gateway, then use this endpoint, and then the gateway has to be restarted to remove it from memory. Then it can be paired to another gateway (which is done by the gateway itself).  
+Endpoint: DELETE `/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:  
 ```
 {
-	status: "removed"
+	deleteCount: 1
 }
 ```
 
@@ -279,8 +316,8 @@ Response:
 }
 ```
 
-## Remove a tower's assignment
-Endpoint: PUT `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`  
+## Remove a tower's assignment IMPLEMENTED
+Endpoint: DELETE `/towers/:towerId/assignments/:assignmentId`  
 Headers: Authorization: Bearer `jwt-token`  
 Response:
 ```
@@ -289,15 +326,25 @@ Response:
 }
 ```
 
-## Edit a tower's assignment
-Endpoint: PATCH `/gateways/:gatewayId/towers/:towerId/assignments/:assignmentId`
+## Rename a tower IMPLEMENTED
+Endpoint: PATCH `/towers/:towerId`  
 Headers: Authorization: Bearer `jwt-token`
 Request:
 ```
 {
-	"stopId": 55,
-	"lineId": 727,
-	departureOffset: -15
+	name: "newtowername"
 }
+```
+Response:
+{
+    "id": "547c65321d0b",
+    "gateway_id": "c1895bf80e2b",
+    "name": "newtowername",
+    "battery_voltage": null,
+    "last_seen": null,
+    "created_at": "2026-04-25T15:35:15.095Z",
+    "updated_at": "2026-04-25T15:46:39.769Z"
+}
+
 ```
 

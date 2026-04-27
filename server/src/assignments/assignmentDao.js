@@ -33,6 +33,7 @@ export const assignmentDao = {
 	async getByGatewayId(gatewayId) {
 		return await pgClient.query(`
 			SELECT
+				a.id AS assignment_id,
 				a.tower_id,
 				a.departure_offset,
 				a.stop_id,
@@ -69,6 +70,12 @@ export const assignmentDao = {
 		return await pgClient.query(`
 			DELETE FROM assignments WHERE tower_id = $1
 		`, [towerId]);
+	},
+
+	async deleteById(assignmentId) {
+		return await pgClient.query(`
+			DELETE FROM assignments WHERE id = $1
+		`, [assignmentId]);
 	}
 	
 };

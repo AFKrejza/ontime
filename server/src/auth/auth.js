@@ -10,8 +10,6 @@ authRouter.post("/signup", authController.signup);
 // email, password
 authRouter.post("/login", authController.login);
 
-authRouter.get("/profile", authMiddleware, authController.profile);
-
 // authRouter.post("/google", authController.googleAuth);
 
 export {
