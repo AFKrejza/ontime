@@ -21,3 +21,5 @@ gatewayRouter.get("/:gatewayId/status", authMiddleware, gatewayController.status
 gatewayRouter.patch("/:gatewayId/rename", authMiddleware, gatewayController.rename);
 
 gatewayRouter.delete("/:gatewayId", authMiddleware, gatewayController.delete);
+
+gatewayRouter.post("/health", gatewayController.updateHealth);

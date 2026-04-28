@@ -89,7 +89,7 @@ towers (
 	id TEXT PRIMARY KEY,
 	gateway_id TEXT NOT NULL,
 	name TEXT NOT NULL,
-	battery_voltage REAL DEFAULT NULL,
+	battery REAL DEFAULT NULL,
 	last_seen TIMESTAMPTZ DEFAULT NULL,
 	FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE CASCADE,
 	created_at TIMESTAMPTZ DEFAULT NOW(),

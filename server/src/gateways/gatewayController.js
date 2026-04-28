@@ -1,5 +1,6 @@
 import { fetchDepartures } from "../pid/fetchDepartures.js";
 import { gatewayService } from "./gatewayService.js";
+import { towerService } from "../towers/towerService.js";
 
 // TODO: add try/catch with error handling
 
@@ -103,5 +104,20 @@ export const gatewayController = {
 			return res.status(404).json({ message: "Not found" });
 		}
 		return res.status(200).json({ deleteCount: rowCount });
+	},
+
+	// TODO: needs some kind of auth
+	async updateHealth(req, res) {
+		const gatewayId = req.body.gatewayId;
+		const batteryCharge = req.body.charge;
+		const towerId = req.body.towerId;
+
+		const result = await towerService.updateHealth(towerId, batteryCharge);
+		if (!result) {
+			console.log(`failed to update battery for tower ${towerId}`);
+			return res.status(404).json({ message: "Failed to update" });
+		}
+		console.log(`Updated battery for tower ${towerId}`);
+		return res.status(200).json({ message: result });
 	}
 };

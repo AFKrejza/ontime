@@ -20,7 +20,7 @@ export const assignmentDao = {
 				l.type AS line_type,
 				l.direction AS line_direction,
 				t.name AS tower_name,
-				t.battery_voltage AS battery,
+				t.battery AS battery,
 				t.last_seen
 			FROM assignments a
 			JOIN stops s ON s.id = a.stop_id
@@ -48,7 +48,7 @@ export const assignmentDao = {
 				l.type AS line_type,
 				l.direction AS line_direction,
 				t.name AS tower_name,
-				t.battery_voltage AS battery,
+				t.battery AS battery,
 				t.last_seen
 			FROM assignments a
 			JOIN stops s ON s.id = a.stop_id
@@ -61,9 +61,15 @@ export const assignmentDao = {
 	async create(towerId, newAssignment) {
 		return await pgClient.query(`
 			INSERT INTO assignments (tower_id, line_id, stop_id, departure_offset)
-			VALUES ($1, $2, $3, $4)
+			SELECT
+			$1, 
+			$2, 
+			sl.stop_id, 
+			$3
+			FROM stops_lines sl
+			WHERE sl.line_id = $2
 			RETURNING *
-		`, [towerId, newAssignment.lineId, newAssignment.stopId, newAssignment.departureOffset]);
+		`, [towerId, newAssignment.lineId, newAssignment.departureOffset]);
 	},
 
 	async deleteAllByTowerId(towerId) {

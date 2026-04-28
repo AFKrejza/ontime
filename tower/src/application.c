@@ -18,7 +18,9 @@ const char assignment_end_char = '}';
 twr_led_t led;
 twr_button_t button;
 Assignment assignments[2];
-static char buffer[ASSIGNMENTS_SIZE]; // ONLY stores assignments!
+static char buffer[ASSIGNMENTS_SIZE]; // only stores assignments
+static uint32_t boot_time = 0;
+
 
 void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
@@ -27,9 +29,12 @@ bool parse_assignments(uint64_t *tower_id);
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param);
+void radio_get_gateway_id_callback(uint64_t *id, const char *topic, void *payload, void *param);
+void send_battery_charge();
 
 twr_radio_sub_t subscriptions[] = {
-	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
+	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL },
+	{ .topic = "gateway_id", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_get_gateway_id_callback, .param = NULL }
 };
 
 // Application initialization function which is called once after boot
@@ -37,6 +42,8 @@ void application_init(void)
 {
 	twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
 	twr_log_debug("start init");
+
+	boot_time = twr_tick_get();
 
 	twr_button_init(&button, TWR_GPIO_BUTTON, TWR_GPIO_PULL_DOWN, 0);
 	twr_button_set_event_handler(&button, button_event_handler, NULL);
@@ -60,12 +67,15 @@ void application_init(void)
 // Application task function (optional) which is called periodically if scheduled
 void application_task(void)
 {
-	// static int counter = 0;
-
-	// Log task run and increment counter
-	// twr_log_debug("APP: Task run (count: %d)", ++counter);
-
-	twr_scheduler_plan_current_from_now(1000);
+	uint32_t now = twr_tick_get();
+	if (now - boot_time >= 3600000) // restart & send health data each hour
+	{
+		send_battery_charge();
+		twr_log_debug("hourly reboot");
+		twr_tick_wait(100);
+		NVIC_SystemReset();
+	}
+	twr_scheduler_plan_current_from_now(100000);
 }
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param)
@@ -80,7 +90,6 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 	}
 }
 
-// it should try to reconnect if it fails? Idk how MQTT works
 void radio_event_handler(twr_radio_event_t event, void *param)
 {
 	twr_log_debug("RADIO event: %d", (int)event);
@@ -135,14 +144,14 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	}
 	else if (strchr((const char *)payload, msg_end_char)) // checks if last chunk
 	{
-		twr_log_debug("last msg");
+		// twr_log_debug("last msg");
 		memcpy(buffer + buffer_index, payload, len);
 		buffer_index += len;
 		twr_log_debug("%s", buffer);
 	}
 	else if (buffer_index > 0)
 	{
-		twr_log_debug("mid msg");
+		// twr_log_debug("mid msg");
 		memcpy(buffer + buffer_index, payload, len);
 		buffer_index += len;
 		return;
@@ -176,7 +185,7 @@ bool parse_assignments(uint64_t *tower_id)
 	bool is_updated = false;
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", *tower_id);
-	twr_log_debug("Tower ID: %s", tower_id_string);
+	// twr_log_debug("Tower ID: %s", tower_id_string);
 		
 	uint16_t i = 0;
 
@@ -249,12 +258,12 @@ bool parse_assignments(uint64_t *tower_id)
 		
 		assignment_index++;
 
-		twr_log_debug("Number:    %s", new.line_number);
-		twr_log_debug("Direction: %s", new.line_direction);
-		twr_log_debug("Name:      %s", new.stop_name);
-		twr_log_debug("Time:      %s", new.next_time);
-		twr_log_debug("Leave in:  %s", new.leave_in);
-		twr_log_debug("Type:      %d", new.type);
+		// twr_log_debug("Number:    %s", new.line_number);
+		// twr_log_debug("Direction: %s", new.line_direction);
+		// twr_log_debug("Name:      %s", new.stop_name);
+		// twr_log_debug("Time:      %s", new.next_time);
+		// twr_log_debug("Leave in:  %s", new.leave_in);
+		// twr_log_debug("Type:      %d", new.type);
 	}
 	return is_updated;
 }
@@ -290,4 +299,34 @@ void clear_assignments(Assignment assignments[2])
 		memset(&assignments[i].stop_name, 0, STOP_NAME_SIZE);
 		memset(&assignments[i].type, 0, 1);
 	}
+}
+
+// charge: 100 at 3V, 0 at 2V. Tower still works at 2.4V (charge 40)
+void send_battery_charge()
+{
+	const uint64_t tower_id = twr_radio_get_my_id();
+	char tower_id_string[13];
+	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", tower_id);
+	twr_module_battery_measure();
+	int charge_percentage = -1;
+	twr_module_battery_get_charge_level(&charge_percentage);
+	twr_log_debug("Charge: %d", charge_percentage);
+	char charge_string[4] = {0};
+	snprintf(charge_string, sizeof(charge_string), "%d", charge_percentage);
+
+	// id,charge
+	char msg[17] = {0};
+	memcpy(msg, tower_id_string, 12);
+	msg[12] = ',';
+	snprintf(msg + 13, sizeof(msg) - 13, "%s", charge_string);
+	twr_log_debug("%s", msg);
+	twr_radio_pub_string("tower_health", msg);
+}
+
+void radio_get_gateway_id_callback(uint64_t *id, const char *topic, void *payload, void *param)
+{
+	char id_string[13];
+	snprintf(id_string, sizeof(id_string), "%012llx", *id);
+	twr_log_debug("gateway ID: %lld", *id);
+	draw_gateway_id(id_string);
 }

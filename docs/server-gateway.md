@@ -1,7 +1,10 @@
-31/03/2026
+27/04/2026
+
+# OUT OF DATE
+
 
 # Server - Gateway
-This API specification covers Tower registration, status updates, and stop data distribution.
+This API specification covers Tower registration, status updates, and stop data distribution.  
 
 
 ## Gateway requests stop data from the Server
@@ -15,7 +18,7 @@ The server must:
 - make one request to PID, format it, and send the response.  
 It's described a bit better in `./server-pid.md`  
 
-Endpoint: GET `/gateway/{gatewayId}/departures`  
+Endpoint: GET `/gateways/{gatewayId}/departures`  
 Headers: Authorization: Bearer gateway-token (23/03 ignore the header for the MVP)  
 Request Body:
 ```
@@ -53,7 +56,7 @@ Response:
 ## Gateway registers new towers
 The gateway must first be assigned to a user via `/gateways/register` in client-server.md.  
 The gateway will repeatedly try to register its towers but the server will only accept it once it exists in the database, meaning once a user has registered it.  
-Endpoint: POST `/gateway/:gatewayId/towers/register`  
+Endpoint: POST `/gateways/:gatewayId/towers/register`  
 Headers: Authorization: Bearer gateway-token  
 Request Body:  
 ```
@@ -61,9 +64,7 @@ Request Body:
 	"gatewayId": 1222223, 
 	"name": "Living Room", 
 	"towers": [ 
-		{ 
-			"towerId": 77b23727
-		} 
+		77b23727
 	] 
 } 
 ```
@@ -76,42 +77,30 @@ Response:
 ```
 
 
-## Gateway sends connected towers status
-Endpoint: POST `/api/gateway/status`  
-Headers: Authorization: Bearer gateway-token  
-Request Body: 
+## Gateway sends tower health data IMPLEMENTED
+Each tower will periodically send its health data to the gateway, which will then forward it to the server.  
+Towers send a string of length 16 which contains the tower ID and the charge level, separated by a comma.  
+The charge can be any value from 100 at 3 volts to 0 at 2 volts.  
+If the tower isn't using its battery, it'll send -1.  
+Endpoint: POST `/gateways/health`  
+Request Body:  
 ```
 { 
-	"gatewayId": 727777, 
-	"timestamp": "2026-03-12T14:30:00Z", 
-	"towers": [ 
-		{ 
-			"towerId": 5345454, 
-			"connected": true, 
-			"firmwareVersion": "1.0.0",
-			"lastSeen": "2026-03-12T14:29:55Z", 
-			"voltage": 1.48
-		}, 
-		{ 
-			"towerId": "78567657", 
-			"connected": false, 
-			"firmwareVersion": "1.0.0",
-			"lastSeen": "2026-03-12T14:20:00Z",
-			‘voltage”: 1.44
-		} 
-	]
+	"gatewayId": 727777,
+	"towerId": 5345454, 
+	"charge": "76"
 } 
 ```
 
 Response:
 ```
 { 
-  "success": true, 
+  "message": 1 // or 0 if it failed to update
 } 
 ```
 
-## Gateway registers itself to a user
-Endpoint: POST `/gateway/register`  
+## Gateway registers itself to a user IMPLEMENTED
+Endpoint: POST `/gateways/register`  
 Headers: Authorization: Bearer gateway-token  
 Request Body:  
 ```
@@ -122,4 +111,15 @@ Request Body:
 Response:  
 ```
 201
+```
+
+## Gateway sends tower health/battery data to the server IMPLEMENTED
+Endpoint: POST `/gateways/health`  
+Request Body:
+```
+{
+	"gatewayId": "4994994",
+	"towerId": 53444bce,
+	"charge": 44 // percentage
+}
 ```

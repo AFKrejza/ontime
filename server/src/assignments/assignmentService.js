@@ -11,8 +11,6 @@ export const assignmentService = {
 			throw new Error("Tower already has the maximum number of stops. Delete one first.");
 		}
 
-		// TODO: when creating: ensure that the provided stop + line combination actually exists
-
 		const result = await assignmentDao.create(towerId, newAssignment);
 
 		return result.rows[0];
