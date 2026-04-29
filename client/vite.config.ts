@@ -1,29 +1,37 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      '/trieData': {
-        target: 'http://localhost:3000',
+      "/trieData": {
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
-      '/stopGroups': {
-        target: 'http://localhost:3000',
+      "/stopGroups": {
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
-      '/addStop': {
-        target: 'http://localhost:3000',
+      "/addStop": {
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
-      '/auth': {
-        target: 'http://localhost:3000',
+      "/auth": {
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
-      '/gateways': {
-        target: 'http://localhost:3000',
+      "/gateways": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/towers": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/users": {
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
     },
