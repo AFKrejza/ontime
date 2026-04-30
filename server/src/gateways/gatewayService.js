@@ -46,7 +46,7 @@ export const gatewayService = {
 
 		const towersMap = new Map();
 		for (const row of towers.rows) {
-			towersMap.set(row.id, { towerId: row.id, towerName: row.name, battery: row.battery_voltage, lastSeen: row.last_seen, assignments: [] });
+			towersMap.set(row.id, { towerId: row.id, towerName: row.name, battery: row.battery, lastSeen: row.last_seen, assignments: [] });
 		}
 		for (const row of result.rows) {
 			towersMap.get(row.tower_id).assignments.push({

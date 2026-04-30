@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS towers (
 	id TEXT PRIMARY KEY,
 	gateway_id TEXT NOT NULL,
 	name TEXT NOT NULL,
-	battery_voltage REAL DEFAULT NULL,
+	battery REAL DEFAULT NULL,
 	last_seen TIMESTAMPTZ DEFAULT NULL,
 	FOREIGN KEY (gateway_id) REFERENCES gateways(id) ON DELETE CASCADE,
 	created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS lines (
 	UNIQUE (pid_id, gtfs_id)
 );
 
-
 CREATE TABLE IF NOT EXISTS assignments (
 	id SERIAL PRIMARY KEY,
 	tower_id TEXT NOT NULL,
@@ -66,7 +65,6 @@ CREATE TABLE IF NOT EXISTS assignments (
 	updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- this isn't necessary, just add the stop_id to each line
 CREATE TABLE IF NOT EXISTS stops_lines (
 	stop_id INTEGER NOT NULL,
 	line_id INTEGER NOT NULL,

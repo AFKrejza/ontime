@@ -373,3 +373,8 @@ void draw_status(uint16_t color)
 {
 	draw_rect(16, 48, 272, 304, color);
 }
+
+void draw_gateway_id(char *id_string)
+{
+	draw_string(id_string, strlen(id_string), 64, 272, 2);
+}

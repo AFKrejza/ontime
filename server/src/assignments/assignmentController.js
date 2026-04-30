@@ -9,8 +9,7 @@ export const assignmentController = {
 		const { departureOffset, lineId, stopId } = req.body.assignment;
 		const newAssignment = {
 			departureOffset,
-			lineId,
-			stopId
+			lineId
 		};
 		const authorize = await towerService.authorize(userId, towerId);
 
