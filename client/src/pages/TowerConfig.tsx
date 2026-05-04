@@ -130,7 +130,7 @@ export default function TowerConfig() {
   const handleSelectSavedConfig = async (config: TowerConfig) => {
     setSelectedConfigId(config.id);
     setQuery(config.stopName);
-    setSelectedStop({ id: config.stopId, name: config.stopName }); // TODO: This is broken
+    setSelectedStop({ id: config.stopId, name: config.stopName, slug: config.stopSlug }); // TODO: This is broken
     setSelectedType(config.line.type);
     setSelectedLine(config.line);
     setWalkingOffset(config.offset);
@@ -164,6 +164,9 @@ export default function TowerConfig() {
 
       const saved = saveTowerConfig({
         id: selectedConfigId || undefined,
+        stopSlug: selectedStop.slug,
+        towerId: selectedTowerId,
+        gatewayName: undefined, // TODO: Fix this shit
         stopName: selectedStop.name,
         stopId: selectedStop.id,
         line: selectedLine,

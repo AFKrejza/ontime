@@ -8,10 +8,17 @@ import { authRouter } from "./src/auth/auth.js";
 import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
 import { towerRouter } from "./src/towers/towerRouter.js";
 import { userRouter } from "./src/users/userRouter.js";
+import { exec } from "child_process";
 
 dotenv.config();
-const SERVER_PORT = process.env.SERVER_PORT;
-const CLIENT_URL = process.env.CLIENT_URL;
+const SERVER_PORT = process.env.PORT;
+const CLIENT_URL = process.env.LOCAL === 'true' ? process.env.LOCAL_CLIENT_URL : process.env.CLIENT_URL;
+if (process.env.LOCAL === 'true') {
+	console.log('using local environment');
+} else {
+	console.log('cloud deployment');
+}
+
 
 const app = express();
 app.use(express.json());
@@ -19,19 +26,34 @@ app.use(cors({
 	origin: CLIENT_URL
 }));
 
+function sleep(milliseconds) {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 async function dbCheck() {
-	try {
-		const result = await pgClient.query(`SELECT NOW()`);
-		console.log(result.rows[0]);
-	} catch (err) {
-		console.error("DB error", err);
+	while (true)
+	{
+		try {
+			const result = await pgClient.query(`SELECT NOW()`);
+			if (result.rows[0]) {
+				console.log("Connected to DB");
+				break;
+			}
+		} catch (err) {
+			console.error("DB error, retrying in 5 seconds");
+			await sleep(5000);
+		}
+		await sleep(5000);
 	}
 }
-// TODO: if DB connection fails, retry instead of dying
-await initDB();
+
 await dbCheck();
-await updateData();
-// await addMockData();
+
+// cloud disabled since we aren't wiping it constantly, but useful locally
+if (process.env.LOCAL == 'true') {
+	await initDB();
+	await updateData();
+}
 
 app.get("/trieData", async (req, res) => {
 	const data = await stopsDao.getTrieData();
@@ -431,6 +453,10 @@ app.use("/auth", authRouter);
 app.use("/gateways", gatewayRouter);
 app.use("/towers", towerRouter);
 app.use("/users", userRouter);
+
+app.get("/alive", (req, res) => {
+	res.status(200).json({ ok: true });
+});
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);

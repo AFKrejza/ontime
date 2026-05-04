@@ -8,7 +8,7 @@ import TowerConfig from './pages/TowerConfig';
 import Settings from './pages/Settings';
 import { isAuthenticated } from './api';
 
-function ProtectedRoute({ children }: { children: JSX.Element }) {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? children : <Navigate to="/login" replace />;
 }
 

@@ -3,9 +3,10 @@ import { Line } from "./api";
 export interface TowerConfig {
   id: string;
   towerId: string;
-  gatewayName: string;
+  gatewayName?: string;
   stopName: string;
   stopId: string;
+  stopSlug: string;
   line: Line;
   offset: number;
   createdAt: string;
@@ -37,9 +38,13 @@ export function getTowerConfigs(): TowerConfig[] {
 export function saveTowerConfig(data: {
   id?: string;
   stopName: string;
+  stopSlug: string;
   stopId: string;
+  gatewayName?: string; // TODO: this shouldn't be here
   line: Line;
   offset: number;
+  towerId: string;
+
 }): TowerConfig {
   const configs = getTowerConfigs();
   const now = new Date().toISOString();
@@ -49,11 +54,14 @@ export function saveTowerConfig(data: {
   const savedConfig: TowerConfig = {
     id,
     stopName: data.stopName,
+    stopSlug: data.stopSlug,
     stopId: data.stopId,
+    gatewayName: data.gatewayName,
     line: data.line,
     offset: data.offset,
     createdAt: existingIndex >= 0 ? configs[existingIndex].createdAt : now,
     updatedAt: now,
+    towerId: data.towerId,
   };
 
   if (existingIndex >= 0) {
