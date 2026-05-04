@@ -225,15 +225,20 @@ bool parse_assignments(uint64_t *tower_id)
 		// know it's one of this tower's assignments
 		// assignments are in the same order as previous requests
 
-		char tmp[1];
+		char tmp[2] = {0};
 		i++;
 		extract_field(&i, new.line_number, sizeof(new.line_number));
 		extract_field(&i, new.line_direction, sizeof(new.line_direction));
 		extract_field(&i, new.stop_name, sizeof(new.stop_name));
 		extract_field(&i, new.next_time, sizeof(new.next_time));
 		extract_field(&i, new.leave_in, sizeof(new.leave_in));
+		twr_log_debug("TYPE SECTION");
 		extract_field(&i, tmp, sizeof(tmp));
-		new.type = (uint8_t) strtoul(tmp, NULL, 10);
+		twr_log_debug("tmp: %d", (uint8_t) tmp[0]);
+		// new.type = (uint8_t) strtoul(&tmp, NULL, 10);
+		new.type = (uint8_t) tmp[0] - '0';
+		twr_log_debug("new: %d", new.type);
+		twr_log_debug("END TYPE SECTION");
 
 		if (buffer[i] == assignment_end_char)
 			i++;
@@ -270,6 +275,14 @@ bool parse_assignments(uint64_t *tower_id)
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len)
 {
+	// if (max_len == 1) // get type
+	// {
+	// 	dest[0] = buffer[*i] - '0';
+	// 	twr_log_debug("index: %d", *i);
+	// 	twr_log_debug("type: %c", *dest);
+	// 	(*i)++;
+	// }
+
 	uint16_t j = 0;
 	while (buffer[*i] != delimiter && buffer[*i] != msg_end_char && buffer[*i] != '\0' && j < max_len - 1)
 	{
@@ -297,7 +310,7 @@ void clear_assignments(Assignment assignments[2])
 		memset(&assignments[i].line_number, 0 , LINE_NUMBER_SIZE);
 		memset(&assignments[i].next_time, 0, NEXT_TIME_SIZE);
 		memset(&assignments[i].stop_name, 0, STOP_NAME_SIZE);
-		memset(&assignments[i].type, 0, 1);
+		memset(&assignments[i].type, 0, 2);
 	}
 }
 

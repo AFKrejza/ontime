@@ -1,23 +1,38 @@
-import { useEffect, useMemo, useState } from 'react';
-import { addAssignment, getAllStops, getStopDetails, Line, StopDetails, StopSummary } from '../api';
-import { getTowerConfigs, saveTowerConfig } from '../towerStorage';
-import type { TowerConfig } from '../towerStorage';
+import { useEffect, useMemo, useState } from "react";
+import {
+  addAssignment,
+  getAllStops,
+  getStopDetails,
+  Line,
+  StopDetails,
+  StopSummary,
+  getUserGateways,
+  authFetch,
+} from "../api";
+import { getTowerConfigs, saveTowerConfig } from "../towerStorage";
+import type { TowerConfig } from "../towerStorage";
 
 function normalize(value: string) {
-  return value.trim().toLowerCase();
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function uniqueTypes(details: StopDetails | null): string[] {
   if (!details) return [];
-  return Object.keys(details.lines).filter((type) => details.lines[type]?.length > 0);
+  return Object.keys(details.lines).filter(
+    (type) => details.lines[type]?.length > 0,
+  );
 }
 
 export default function TowerConfig() {
   const [stops, setStops] = useState<StopSummary[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [selectedStop, setSelectedStop] = useState<StopSummary | null>(null);
   const [stopDetails, setStopDetails] = useState<StopDetails | null>(null);
-  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>("");
   const [selectedLine, setSelectedLine] = useState<Line | null>(null);
   const [walkingOffset, setWalkingOffset] = useState(5);
   const [loading, setLoading] = useState(false);
@@ -27,6 +42,11 @@ export default function TowerConfig() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [availableTowers, setAvailableTowers] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [selectedTowerId, setSelectedTowerId] = useState<string>("");
+
   useEffect(() => {
     setSavedConfigs(getTowerConfigs());
 
@@ -35,9 +55,36 @@ export default function TowerConfig() {
         setLoading(true);
         const data = await getAllStops();
         setStops(data);
+
+        const gateways = await getUserGateways();
+        const allGatewaysStatus = await Promise.all(
+          gateways.map(async (gw: any) => {
+            try {
+              const res = await authFetch(`/gateways/${gw.id}/status`);
+              return await res.json();
+            } catch (e) {
+              console.error(
+                `Unabled to load status for gateway: ${gw.gatewayId}`,
+                e,
+              );
+              return null;
+            }
+          }),
+        );
+
+        const towers = allGatewaysStatus
+          .filter((status) => status !== null)
+          .flatMap((status: any) =>
+            (status.towers || []).map((t: any) => ({
+              id: t.towerId,
+              name: `${status.gatewayName} — ${t.towerName}`,
+            })),
+          );
+        setAvailableTowers(towers);
+        if (towers.length > 0) setSelectedTowerId(towers[0].id);
       } catch (err) {
         console.error(err);
-        setError('Unable to load stop list from backend.');
+        setError("Unable to load stop list from backend.");
       } finally {
         setLoading(false);
       }
@@ -49,7 +96,9 @@ export default function TowerConfig() {
   const filteredStops = useMemo(() => {
     if (!query.trim()) return [];
     const normalizedQuery = normalize(query);
-    return stops.filter((stop) => normalize(stop.name).includes(normalizedQuery)).slice(0, 20);
+    return stops
+      .filter((stop) => normalize(stop.name).includes(normalizedQuery))
+      .slice(0, 20);
   }, [stops, query]);
 
   const handleSelectStop = async (stop: StopSummary) => {
@@ -58,7 +107,7 @@ export default function TowerConfig() {
     setError(null);
     setSuccessMessage(null);
     setStopDetails(null);
-    setSelectedType('');
+    setSelectedType("");
     setSelectedLine(null);
 
     try {
@@ -66,13 +115,13 @@ export default function TowerConfig() {
       const details = await getStopDetails(stop.slug);
       setStopDetails(details);
       const types = uniqueTypes(details);
-      const firstType = types[0] || 'bus';
+      const firstType = types[0] || "bus";
       setSelectedType(firstType);
       const firstLines = details.lines[firstType] || [];
       setSelectedLine(firstLines[0] || null);
     } catch (err) {
       console.error(err);
-      setError('Unable to load stop details.');
+      setError("Unable to load stop details.");
     } finally {
       setLoading(false);
     }
@@ -91,22 +140,22 @@ export default function TowerConfig() {
       const details = await getStopDetails(config.stopId);
       setStopDetails(details);
     } catch (error) {
-      console.error('Failed to load saved tower stop details:', error);
+      console.error("Failed to load saved tower stop details:", error);
     } finally {
       setLoadingSavedConfig(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedStop || !selectedLine) {
-      setError('Please select a stop and a line to continue.');
+    if (!selectedStop || !selectedLine || !selectedTowerId) {
+      setError("Please select a stop, line and a device to continue.");
       return;
     }
 
     try {
       setError(null);
       setLoading(true);
-      await addAssignment({
+      await addAssignment(selectedTowerId, {
         offset: walkingOffset,
         stopName: selectedStop.name,
         stopId: selectedStop.id,
@@ -122,10 +171,12 @@ export default function TowerConfig() {
       });
       setSavedConfigs(getTowerConfigs());
       setSelectedConfigId(saved.id);
-      setSuccessMessage('Assignment created successfully.');
+      setSuccessMessage("Assignment created successfully.");
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'Failed to create assignment.');
+      setError(
+        err instanceof Error ? err.message : "Failed to create assignment.",
+      );
     } finally {
       setLoading(false);
     }
@@ -140,19 +191,50 @@ export default function TowerConfig() {
         </div>
       </header>
 
+      <section className="card">
+        <h2>Select Device</h2>
+        <div className="formRow">
+          <label>
+            Target Tower
+            <select
+              className="textInput"
+              value={selectedTowerId}
+              onChange={(e) => setSelectedTowerId(e.target.value)}
+            >
+              {availableTowers.length === 0 && (
+                <option>No devices found</option>
+              )}
+              {availableTowers.map((tower) => (
+                <option key={tower.id} value={tower.id}>
+                  {tower.name} ({tower.id})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
       <main className="content">
         {savedConfigs.length > 0 && (
           <section className="card">
-            <h2>Saved Towers</h2>
+            <h2>Saved Assignments</h2>
             <div className="savedTowerList">
               {savedConfigs.map((config) => (
                 <button
                   key={config.id}
-                  className={config.id === selectedConfigId ? 'savedTowerItem selected' : 'savedTowerItem'}
+                  className={
+                    config.id === selectedConfigId
+                      ? "savedTowerItem selected"
+                      : "savedTowerItem"
+                  }
                   onClick={() => handleSelectSavedConfig(config)}
                 >
-                  <div className="savedTowerTitle">{config.stopName} · {config.line.name}</div>
-                  <div className="savedTowerMeta">{config.line.type} • {config.offset} mins</div>
+                  <div className="savedTowerTitle">
+                    {config.stopName} · {config.line.name}
+                  </div>
+                  <div className="savedTowerMeta">
+                    {config.line.type} • {config.offset} mins
+                  </div>
                 </button>
               ))}
             </div>
@@ -173,7 +255,10 @@ export default function TowerConfig() {
             <ul className="resultList">
               {filteredStops.map((stop) => (
                 <li key={stop.id}>
-                  <button className="linkButton" onClick={() => handleSelectStop(stop)}>
+                  <button
+                    className="linkButton"
+                    onClick={() => handleSelectStop(stop)}
+                  >
                     {stop.name}
                   </button>
                 </li>
@@ -195,7 +280,9 @@ export default function TowerConfig() {
                   {uniqueTypes(stopDetails).map((type) => (
                     <button
                       key={type}
-                      className={type === selectedType ? 'pill selected' : 'pill'}
+                      className={
+                        type === selectedType ? "pill selected" : "pill"
+                      }
                       onClick={() => {
                         setSelectedType(type);
                         const lines = stopDetails.lines[type] || [];
@@ -209,16 +296,22 @@ export default function TowerConfig() {
 
                 {selectedType && (
                   <div className="lineGrid">
-                    {(stopDetails.lines[selectedType] || []).map((line) => (
-                      <button
-                        key={`${line.type}-${line.name}-${line.direction}`}
-                        className={selectedLine?.id === line.id ? 'lineCard selected' : 'lineCard'}
-                        onClick={() => setSelectedLine(line)}
-                      >
-                        <div>{line.name}</div>
-                        <div className="lineMeta">{line.direction}</div>
-                      </button>
-                    ))}
+                    {(stopDetails.lines[selectedType] || []).map(
+                      (line, index) => (
+                        <button
+                          key={`${line.type}-${line.name}-${index}`}
+                          className={
+                            selectedLine?.id === line.id
+                              ? "lineCard selected"
+                              : "lineCard"
+                          }
+                          onClick={() => setSelectedLine(line)}
+                        >
+                          <div>{line.name}</div>
+                          <div className="lineMeta">{line.direction}</div>
+                        </button>
+                      ),
+                    )}
                   </div>
                 )}
               </>
@@ -234,13 +327,19 @@ export default function TowerConfig() {
                   min={0}
                   max={30}
                   value={walkingOffset}
-                  onChange={(event) => setWalkingOffset(Number(event.target.value))}
+                  onChange={(event) =>
+                    setWalkingOffset(Number(event.target.value))
+                  }
                 />
               </label>
             </div>
 
-            <button className="primaryButton" onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Creating assignment…' : 'Create assignment'}
+            <button
+              className="primaryButton"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? "Creating assignment…" : "Create assignment"}
             </button>
           </section>
         )}

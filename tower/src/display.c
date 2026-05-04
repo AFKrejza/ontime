@@ -25,8 +25,8 @@ static inline void send_data(void *source, void *destination, size_t length);
 
 static void draw_line_direction(char direction[LINE_DIRECTION_SIZE], uint16_t box_col_start, uint16_t box_row_start);
 static void draw_line_number(char line_number[LINE_NUMBER_SIZE], uint16_t box_col_start, uint16_t box_row_start);
-static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start);
-static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start);
+static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start, bool language);
+static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start, bool language);
 static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_start, uint16_t box_row_start);
 
 // defines the memory region it'll write to
@@ -233,6 +233,7 @@ void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint
 // used for drawing the 32x32 bus/metro/tram icons
 void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t img_size)
 {
+	twr_log_debug("type: %d", type);
 	const uint8_t (*bitmap)[4] = images_32x32[type];
 	uint32_t buffer_index = 0;
 
@@ -286,6 +287,8 @@ void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_star
 
 void draw_assignments(Assignment assignments[])
 {
+	static bool language = true; // 1 english 0 czech
+
 	const uint16_t box_height = 128;
 	for (uint8_t i = 0; i < 2; i++)
 	{
@@ -305,9 +308,10 @@ void draw_assignments(Assignment assignments[])
 		draw_line_direction(assignments[i].line_direction, box_col_start, box_row_start);
 		draw_line_number(assignments[i].line_number, box_col_start, box_row_start);
 		draw_stop_name(assignments[i].stop_name, box_col_start, box_row_start);
-		draw_next_time(assignments[i].next_time, box_col_start, box_row_start);
-		draw_leave_in(assignments[i].leave_in,   box_col_start, box_row_start);
+		draw_next_time(assignments[i].next_time, box_col_start, box_row_start, language);
+		draw_leave_in(assignments[i].leave_in,   box_col_start, box_row_start, language);
 	}
+	language = language ? false : true;
 }
 
 // e.g. Jizni Mesto
@@ -338,11 +342,13 @@ static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_star
 }
 
 // e.g. leave in x minutes
-static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start)
+static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, uint16_t box_row_start, bool language)
 {
-	char *text = "Leave in";
+	char *czech = "Odejdi za";
+	char *english = "Leave in ";
+	char *text = language ? english : czech;
 	uint8_t size = SIZE_M;
-	uint16_t col_start = box_col_start + 328;
+	uint16_t col_start = box_col_start + 312;
 	uint16_t row_start = box_row_start + 60;
 
 	draw_string(text, strlen(text), col_start, row_start, size);
@@ -354,13 +360,15 @@ static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, 
 }
 
 // e.g. 16:24
-static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start)
+static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_start, uint16_t box_row_start, bool language)
 {
 	uint16_t col_start = box_col_start + 100;
 	uint16_t row_start = box_row_start + 60;
 	uint8_t size = SIZE_M;
 	
-	char *text = "Departure";
+	char *english = "Departure";
+	char *czech = "Odjezd   ";
+	char *text = language ? english : czech;
 	draw_string(text, strlen(text), col_start, row_start, size);
 
 	row_start = row_start + 24;
@@ -368,10 +376,9 @@ static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_star
 	draw_string(next_time, NEXT_TIME_SIZE -1, col_start, row_start, size);
 }
 
-// blue if receiving data, green if connected, red if disconnected? Or maybe arrows instead.
 void draw_status(uint16_t color)
 {
-	draw_rect(16, 48, 272, 304, color);
+	draw_rect(160, 319, SCREEN_HEIGHT - 2, SCREEN_HEIGHT - 1, color);
 }
 
 void draw_gateway_id(char *id_string)

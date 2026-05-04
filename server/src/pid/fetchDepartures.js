@@ -63,7 +63,7 @@ export async function fetchDepartures(input) {
 		// if no bus was found
 		if (!towerAssignments[i].nextTime)
 		{
-			towerAssignments[i].nextTime = `NONE`;
+			towerAssignments[i].nextTime = `----`;
 			towerAssignments[i].leaveIn = `///`;
 		}
 	}

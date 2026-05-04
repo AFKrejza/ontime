@@ -1,31 +1,48 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { signupUser } from "../api";
 
 export default function SignUp() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignUp = () => {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setError('Please fill in all fields.');
+  const handleSignUp = async () => {
+    if (
+      !userName.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !confirmPassword.trim()
+    ) {
+      setError("Please fill in all fields.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < 4) {
+      setError("Password must be at least 6 characters.");
       return;
     }
 
-    setError('');
-    navigate('/device-connect');
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      await signupUser(userName, email, password);
+      navigate("/device-connect");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,6 +57,18 @@ export default function SignUp() {
       <main className="content">
         <section className="card authCard">
           <h2>Sign Up</h2>
+          <div className="formRow">
+            <label>
+              Username
+              <input
+                type="text"
+                value={userName}
+                onChange={(event) => setUserName(event.target.value)}
+                placeholder="e.g., alex"
+                className="textInput"
+              />
+            </label>
+          </div>
           <div className="formRow">
             <label>
               Email Address
@@ -77,11 +106,18 @@ export default function SignUp() {
             </label>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="primaryButton authButton" onClick={handleSignUp}>
-            Create Account
+          <button
+            className="primaryButton authButton"
+            onClick={handleSignUp}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating account…" : "Create Account"}
           </button>
           <div className="divider">or</div>
-          <button className="secondaryButton authButton" onClick={() => navigate('/login')}>
+          <button
+            className="secondaryButton authButton"
+            onClick={() => navigate("/login")}
+          >
             Already have an account? Sign In
           </button>
         </section>

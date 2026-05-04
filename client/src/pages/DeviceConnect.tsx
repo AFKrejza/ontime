@@ -1,43 +1,45 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { registerGateway } from "../api";
 
 export default function DeviceConnect() {
-  const [deviceCode, setDeviceCode] = useState('');
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [deviceCode, setDeviceCode] = useState("");
+  const [deviceName, setDeviceName] = useState("My Gateway");
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleConnect = async () => {
     if (!deviceCode.trim()) {
-      setError('Please enter a device code.');
+      setError("Please enter a device code.");
       return;
     }
-
     try {
       setIsLoading(true);
-      setError('');
-      setSuccessMessage('');
+      setError("");
+      setSuccessMessage("");
 
-      // TODO: Replace with actual device connection API call
-      console.log('Connecting to device with code:', deviceCode);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSuccessMessage(`✓ Connected to device ${deviceCode.toUpperCase()}`);
+      await registerGateway({ gatewayId: deviceCode, gatewayName: deviceName });
+
+      setSuccessMessage(
+        `✓ Registered gateway ${deviceName} with id:${deviceCode}`,
+      );
+
       setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+        navigate("/dashboard");
+      }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect to device.');
+      setError(
+        err instanceof Error ? err.message : "Failed to connect to device.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSkip = () => {
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   return (
@@ -53,7 +55,7 @@ export default function DeviceConnect() {
         <section className="card deviceConnectCard">
           <h2>Device Pairing</h2>
           <p className="stepInfo">Step 3 of 4</p>
-          
+
           <div className="instructionBox">
             <h3>How to find your device code:</h3>
             <ol className="instructionList">
@@ -65,30 +67,43 @@ export default function DeviceConnect() {
 
           <div className="formRow">
             <label>
+              Give your device a name
+              <input
+                type="text"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+                placeholder="e.g., Living Room"
+                className="textInput deviceCodeInput"
+              />
+            </label>
+          </div>
+
+          <div className="formRow">
+            <label>
               Device Code
               <input
                 type="text"
                 value={deviceCode}
-                onChange={(event) => setDeviceCode(event.target.value.toUpperCase())}
+                onChange={(event) => setDeviceCode(event.target.value)}
                 placeholder="e.g., ABC123XYZ789"
                 className="textInput deviceCodeInput"
               />
             </label>
           </div>
-          
+
           {error && <p className="error">{error}</p>}
           {successMessage && <p className="success">{successMessage}</p>}
-          
+
           <div className="buttonGroup">
-            <button 
-              className="primaryButton" 
-              onClick={handleConnect} 
+            <button
+              className="primaryButton"
+              onClick={handleConnect}
               disabled={isLoading}
             >
-              {isLoading ? '⏳ Connecting…' : '🔗 Connect Device'}
+              {isLoading ? "⏳ Connecting…" : "🔗 Connect Device"}
             </button>
-            <button 
-              className="secondaryButton" 
+            <button
+              className="secondaryButton"
               onClick={handleSkip}
               disabled={isLoading}
             >
@@ -99,7 +114,10 @@ export default function DeviceConnect() {
 
         <section className="card infoCard">
           <h3>Don't have a device yet?</h3>
-          <p>You can still use OnTime to configure and manage your settings. You'll be able to connect a device later.</p>
+          <p>
+            You can still use OnTime to configure and manage your settings.
+            You'll be able to connect a device later.
+          </p>
         </section>
       </main>
     </div>

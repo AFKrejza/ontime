@@ -6,6 +6,11 @@ import DeviceConnect from './pages/DeviceConnect';
 import Dashboard from './pages/Dashboard';
 import TowerConfig from './pages/TowerConfig';
 import Settings from './pages/Settings';
+import { isAuthenticated } from './api';
+
+function ProtectedRoute({ children }: { children: JSX.Element }) {
+  return isAuthenticated() ? children : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return (
@@ -14,10 +19,10 @@ export default function App() {
         <Route path="/" element={<Welcome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/device-connect" element={<DeviceConnect />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/tower" element={<TowerConfig />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/device-connect" element={<ProtectedRoute><DeviceConnect /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/tower" element={<ProtectedRoute><TowerConfig /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
