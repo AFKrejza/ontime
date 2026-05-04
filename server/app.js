@@ -31,7 +31,7 @@ async function dbCheck() {
 await initDB();
 await dbCheck();
 await updateData();
-await addMockData();
+// await addMockData();
 
 app.get("/trieData", async (req, res) => {
 	const data = await stopsDao.getTrieData();
