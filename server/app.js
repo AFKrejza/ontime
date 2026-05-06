@@ -8,6 +8,7 @@ import { authRouter } from "./src/auth/auth.js";
 import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
 import { towerRouter } from "./src/towers/towerRouter.js";
 import { userRouter } from "./src/users/userRouter.js";
+import { validationErrorHandler } from "./src/validation/errorHandler.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -431,6 +432,10 @@ app.use("/auth", authRouter);
 app.use("/gateways", gatewayRouter);
 app.use("/towers", towerRouter);
 app.use("/users", userRouter);
+
+// Error-handling middleware MUST be registered after all routes.
+// Catches malformed JSON and any errors forwarded with next(err) from validation.
+app.use(validationErrorHandler);
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);

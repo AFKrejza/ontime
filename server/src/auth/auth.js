@@ -1,17 +1,14 @@
 import express from "express";
-import {authController} from "./authController.js";
+import { authController } from "./authController.js";
 import authMiddleware from "./authMiddleware.js";
+import { validate } from "../validation.js";
 
-const authRouter = express.Router();
+export const authRouter = express.Router();
 
-// userName, email, password
-authRouter.post("/signup", authController.signup);
+// Public routes — validate body before hitting the controller.
+authRouter.post("/signup", validate("signup"), authController.signup);
+authRouter.post("/login",  validate("login"),  authController.login);
 
-// email, password
-authRouter.post("/login", authController.login);
-
-// authRouter.post("/google", authController.googleAuth);
-
-export {
-	authRouter
-};
+// Protected route — JWT auth runs first, sets req.user, then the controller reads it.
+// No body validation needed here since /profile takes no input.
+authRouter.get("/profile", authMiddleware, authController.profile);
