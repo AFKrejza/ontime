@@ -1,4 +1,4 @@
-const API_BASE = "https://ontime-production-aa3e.up.railway.app:8080";
+const API_BASE = "https://ontime-production-aa3e.up.railway.app";
 const TOKEN_KEY = "ontime_jwt";
 const USER_ID_KEY = "ontime_user_id";
 export interface StopSummary {
