@@ -130,7 +130,11 @@ export default function TowerConfig() {
   const handleSelectSavedConfig = async (config: TowerConfig) => {
     setSelectedConfigId(config.id);
     setQuery(config.stopName);
-    setSelectedStop({ id: config.stopId, name: config.stopName }); // TODO: This is broken
+    setSelectedStop({
+      id: config.stopId,
+      name: config.stopName,
+      slug: config.slug,
+    }); // TODO: This is broken
     setSelectedType(config.line.type);
     setSelectedLine(config.line);
     setWalkingOffset(config.offset);
@@ -168,6 +172,8 @@ export default function TowerConfig() {
         stopId: selectedStop.id,
         line: selectedLine,
         offset: walkingOffset,
+        slug: selectedStop.slug,
+        towerId: selectedTowerId,
       });
       setSavedConfigs(getTowerConfigs());
       setSelectedConfigId(saved.id);
