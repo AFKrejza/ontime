@@ -6,11 +6,11 @@ export interface TowerConfig {
   gatewayName?: string;
   stopName: string;
   stopId: string;
-  stopSlug: string;
+  slug: string;
   line: Line;
   offset: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const STORAGE_KEY = "towerConfigs";
@@ -40,11 +40,11 @@ export function saveTowerConfig(data: {
   stopName: string;
   stopSlug: string;
   stopId: string;
-  gatewayName?: string; // TODO: this shouldn't be here
   line: Line;
   offset: number;
-  towerId: string;
-
+  slug?: string;
+  towerId?: string;
+  gatewayName?: string;
 }): TowerConfig {
   const configs = getTowerConfigs();
   const now = new Date().toISOString();
@@ -54,14 +54,14 @@ export function saveTowerConfig(data: {
   const savedConfig: TowerConfig = {
     id,
     stopName: data.stopName,
-    stopSlug: data.stopSlug,
     stopId: data.stopId,
-    gatewayName: data.gatewayName,
     line: data.line,
     offset: data.offset,
     createdAt: existingIndex >= 0 ? configs[existingIndex].createdAt : now,
     updatedAt: now,
-    towerId: data.towerId,
+    slug: data.slug || "",
+    towerId: data.towerId || "",
+    gatewayName: data.gatewayName || "Unknown",
   };
 
   if (existingIndex >= 0) {
