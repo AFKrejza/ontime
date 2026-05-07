@@ -3,7 +3,7 @@ import { Line } from "./api";
 export interface TowerConfig {
   id: string;
   towerId: string;
-  gatewayName: string;
+  gatewayName?: string;
   stopName: string;
   stopId: string;
   slug: string;
@@ -38,6 +38,7 @@ export function getTowerConfigs(): TowerConfig[] {
 export function saveTowerConfig(data: {
   id?: string;
   stopName: string;
+  stopSlug: string;
   stopId: string;
   line: Line;
   offset: number;
