@@ -60,4 +60,5 @@ void draw_status(uint16_t color);
 void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_start, uint8_t text_size);
 void outline_screen(const uint16_t color);
 void paint_screen(uint16_t color);
-void draw_gateway_id(char *id_string);
+void draw_ids(char gateway_id_string[25], char tower_id_string[25]);
+void clear_ids();

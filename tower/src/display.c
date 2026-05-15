@@ -381,7 +381,18 @@ void draw_status(uint16_t color)
 	draw_rect(160, 319, SCREEN_HEIGHT - 2, SCREEN_HEIGHT - 1, color);
 }
 
-void draw_gateway_id(char *id_string)
+void draw_ids(char gateway_id_string[25], char tower_id_string[25])
 {
-	draw_string(id_string, strlen(id_string), 64, 272, 2);
+	uint8_t text_size = SIZE_M;
+	draw_string(gateway_id_string, strlen(gateway_id_string), 32, 32, text_size);
+	draw_string(tower_id_string, strlen(tower_id_string), 32, 70, text_size);
+}
+
+// wipes draw_ids
+void clear_ids()
+{
+	uint8_t text_size = SIZE_M;
+	char *empty = "                        ";
+	draw_string(empty, strlen(empty), 32, 32, text_size);
+	draw_string(empty, strlen(empty), 32, 70, text_size);
 }

@@ -21,6 +21,7 @@ Assignment assignments[2];
 static char buffer[ASSIGNMENTS_SIZE]; // only stores assignments
 static uint32_t boot_time = 0;
 
+static uint64_t gateway_id;
 
 void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
@@ -29,12 +30,11 @@ bool parse_assignments(uint64_t *tower_id);
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param);
-void radio_get_gateway_id_callback(uint64_t *id, const char *topic, void *payload, void *param);
+void display_ids_on_boot(uint64_t gateway_id, uint64_t tower_id);
 void send_battery_charge();
 
 twr_radio_sub_t subscriptions[] = {
-	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL },
-	{ .topic = "gateway_id", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_get_gateway_id_callback, .param = NULL }
+	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
 };
 
 // Application initialization function which is called once after boot
@@ -111,9 +111,14 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 {
 	(void) topic;
 	(void) param;
-	(void) id;
+	
 	uint64_t tower_id = twr_radio_get_my_id();
-	twr_log_debug("tower_id: %llx", tower_id);
+
+	if (!gateway_id) {
+		gateway_id = *id;
+		display_ids_on_boot(gateway_id, tower_id);
+	}
+
 
 	if (payload == NULL)
 	{
@@ -131,7 +136,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		// if there are no assignments:
 		if (strchr((const char *)payload, msg_end_char))
 		{
-			twr_log_debug("Tower has no assignments");
+			twr_log_debug("Gateway has no assignments");
 			clear_assignments(assignments);
 			goto draw;
 		}
@@ -169,6 +174,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	if (updated)
 	{
 		draw:
+		clear_ids();
 		draw_assignments(assignments);
 	}
 
@@ -185,7 +191,6 @@ bool parse_assignments(uint64_t *tower_id)
 	bool is_updated = false;
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", *tower_id);
-	// twr_log_debug("Tower ID: %s", tower_id_string);
 		
 	uint16_t i = 0;
 
@@ -232,13 +237,8 @@ bool parse_assignments(uint64_t *tower_id)
 		extract_field(&i, new.stop_name, sizeof(new.stop_name));
 		extract_field(&i, new.next_time, sizeof(new.next_time));
 		extract_field(&i, new.leave_in, sizeof(new.leave_in));
-		twr_log_debug("TYPE SECTION");
 		extract_field(&i, tmp, sizeof(tmp));
-		twr_log_debug("tmp: %d", (uint8_t) tmp[0]);
-		// new.type = (uint8_t) strtoul(&tmp, NULL, 10);
 		new.type = (uint8_t) tmp[0] - '0';
-		twr_log_debug("new: %d", new.type);
-		twr_log_debug("END TYPE SECTION");
 
 		if (buffer[i] == assignment_end_char)
 			i++;
@@ -336,10 +336,22 @@ void send_battery_charge()
 	twr_radio_pub_string("tower_health", msg);
 }
 
-void radio_get_gateway_id_callback(uint64_t *id, const char *topic, void *payload, void *param)
+// always displays gateway and tower Id for 2 seconds on boot
+void display_ids_on_boot(uint64_t gateway_id, uint64_t tower_id)
 {
-	char id_string[13];
-	snprintf(id_string, sizeof(id_string), "%012llx", *id);
-	twr_log_debug("gateway ID: %lld", *id);
-	draw_gateway_id(id_string);
+	char g_id[13] = {0};
+	char t_id[13] = {0};
+	snprintf(g_id, sizeof(g_id), "%012llx", gateway_id);
+	snprintf(t_id, sizeof(t_id), "%012llx", tower_id);
+	twr_log_debug("gateway ID: %llx", gateway_id);
+
+	char gateway_id_string[25] = "Gateway ID: ";
+	char tower_id_string[25] = "Tower ID:   ";
+
+	strncat(gateway_id_string, g_id, 12);
+	strncat(tower_id_string, t_id, 12);
+	
+	draw_ids(gateway_id_string, tower_id_string);
+	twr_tick_wait(5000);
+	
 }
