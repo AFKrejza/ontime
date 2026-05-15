@@ -11,8 +11,13 @@ import { userRouter } from "./src/users/userRouter.js";
 import { validationErrorHandler } from "./src/validation/errorHandler.js";
 
 dotenv.config();
-const SERVER_PORT = process.env.SERVER_PORT;
-const CLIENT_URL = process.env.CLIENT_URL;
+const SERVER_PORT = process.env.PORT;
+const CLIENT_URL = process.env.LOCAL === 'true' ? process.env.LOCAL_CLIENT_URL : process.env.CLIENT_URL;
+if (process.env.LOCAL === 'true') {
+	console.log('using local environment');
+} else {
+	console.log('cloud deployment');
+}
 
 const app = express();
 app.use(express.json());

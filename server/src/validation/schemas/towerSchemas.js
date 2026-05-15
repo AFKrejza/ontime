@@ -1,7 +1,7 @@
 import { definitions } from "./commonDefinitions.js";
 
 // POST /towers/:towerId/addAssignment
-// Controller reads: req.body.assignment.{ departureOffset, lineId, stopId }
+// Controller reads: req.body.assignment.{ departureOffset, lineId }
 // We point the validator at req.body.assignment.
 export const towerAddAssignmentSchema = {
 	$id: "towerAddAssignment",
@@ -9,21 +9,17 @@ export const towerAddAssignmentSchema = {
 	properties: {
 		departureOffset: definitions.departureOffset,
 		lineId: definitions.positiveInt,
-		stopId: definitions.positiveInt
 	},
-	required: ["departureOffset", "lineId", "stopId"],
-	additionalProperties: false,
+	required: ["departureOffset", "lineId"],
+	additionalProperties: true,
 	errorMessage: {
 		type: "assignment must be a JSON object",
 		required: {
 			departureOffset: "assignment.departureOffset is required",
-			lineId: "assignment.lineId is required",
-			stopId: "assignment.stopId is required"
+			lineId: "assignment.lineId is required"
 		},
-		additionalProperties: "unknown field in assignment is not allowed",
 		properties: {
-			lineId: "assignment.lineId must be a positive integer",
-			stopId: "assignment.stopId must be a positive integer"
+			lineId: "assignment.lineId must be a positive integer"
 		}
 	}
 };

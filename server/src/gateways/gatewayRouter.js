@@ -13,15 +13,6 @@ gatewayRouter.post(
 	gatewayController.register
 );
 
-// gateway checks if it's registered
-// We don't need this! Use the logic in assigntowers
-// NOTE: controller reads req.body.data.gatewayId, so we validate body.data.
-gatewayRouter.post(
-	"/check",
-	validate("gatewayCheck", "body.data"),
-	gatewayController.check
-);
-
 // gateway assigns towers to itself
 gatewayRouter.post(
 	"/assigntowers",

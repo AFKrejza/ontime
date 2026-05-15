@@ -1,7 +1,7 @@
 -- mock data
 
 INSERT INTO users (username, password_hash, email)
-VALUES ('admin', '$2b$10$nLUaNLzX3qiX2XSkEZ92Uug8HaEjhcODk6EQT1qzwLdCd12N694BW', 'admin@gmail.com')
+VALUES ('admin', '$2b$10$D48HJvP/kEKtgGwUI.mR8Oee9U9KsYN9PGL6xPq5D0RlZrex6MRpm', 'admin@gmail.com')
 ON CONFLICT (username) DO NOTHING;
 
 WITH u AS (

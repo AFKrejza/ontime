@@ -77,6 +77,7 @@ Response:
 ```
 
 ## Signup IMPLEMENTED
+Allowed characters: letters, numbers, underscore, hyphen. Min 3, max 50 characters.
 Endpoint: POST `/auth/signup`
 Request body:  
 ```

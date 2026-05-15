@@ -39,6 +39,10 @@ export const authController = {
 			const { email, password } = req.body;
 			let result = await userDao.findByEmail(email);
 			result = result.rows[0];
+
+			if (!result)
+				return res.status(400).json({ message: "Invalid email" });
+
 			const user = {
 				id: result.id,
 				userName: result.username,
@@ -46,8 +50,6 @@ export const authController = {
 				email: result.email
 			};
 	
-			if (!user)
-				return res.status(400).json({ message: "Invalid email" });
 	
 			const checkPassword = await comparePassword(password, user.passwordHash);
 			

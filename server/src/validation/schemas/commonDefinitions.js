@@ -5,10 +5,6 @@
 // 12 lowercase hex chars, e.g. "c1895bf80e2b". Matches the IDs your gateways/towers use.
 export const HEX_ID_PATTERN = "^[0-9a-f]{12}$";
 
-// At least one letter and one number, length enforced separately by minLength/maxLength.
-// Lookaheads only — the actual char set is intentionally permissive (allow symbols).
-export const PASSWORD_PATTERN = "^(?=.*[A-Za-z])(?=.*\\d).+$";
-
 // Letters, numbers, underscore, hyphen.
 export const USERNAME_PATTERN = "^[A-Za-z0-9_-]+$";
 
@@ -39,12 +35,10 @@ export const definitions = {
 		type: "string",
 		minLength: 8,
 		maxLength: 128,
-		pattern: PASSWORD_PATTERN,
 		errorMessage: {
 			type: "password must be a string",
 			minLength: "password must be at least 8 characters",
-			maxLength: "password must be at most 128 characters",
-			pattern: "password must contain at least one letter and one number"
+			maxLength: "password must be at most 128 characters"
 		}
 	},
 

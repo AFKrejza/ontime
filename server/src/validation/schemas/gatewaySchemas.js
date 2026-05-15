@@ -46,11 +46,9 @@ export const gatewayAssignTowersSchema = {
 		towerIds: {
 			type: "array",
 			items: definitions.hexId,
-			minItems: 1,
 			uniqueItems: true,
 			errorMessage: {
 				type: "towerIds must be an array",
-				minItems: "towerIds must contain at least one tower id",
 				uniqueItems: "towerIds must not contain duplicates"
 			}
 		}
@@ -76,11 +74,9 @@ export const gatewayDeparturesSchema = {
 		towerIds: {
 			type: "array",
 			items: definitions.hexId,
-			minItems: 1,
 			uniqueItems: true,
 			errorMessage: {
 				type: "towerIds must be an array",
-				minItems: "towerIds must contain at least one tower id",
 				uniqueItems: "towerIds must not contain duplicates"
 			}
 		}
