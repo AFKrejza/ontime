@@ -80,7 +80,7 @@ export function validate(schemaName, source = "body") {
 
         if (data === undefined || data === null) {
             return res.status(400).json({
-                errors: [{
+                error: [{
                     field: source,
                     message: "expected " + source + " to be present",
                     keyword: "required"

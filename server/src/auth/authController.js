@@ -24,7 +24,6 @@ export const authController = {
 			let user = await userDao.create(data);
 			user = user.rows[0];
 			console.log(`User ${email} registered`);
-			console.log(user);
 			const token = await generateToken({ id: user.id });
 			res.status(201).json({ message: "User registered.", token });
 		} catch (error) {
