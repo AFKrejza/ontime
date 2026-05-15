@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:3000";
+const CLOUD = true; // set to false for local dev
+
+const API_BASE = CLOUD ? "https://ontime-production-aa3e.up.railway.app" : "http://localhost:3000";
 const TOKEN_KEY = "ontime_jwt";
 const USER_ID_KEY = "ontime_user_id";
 export interface StopSummary {

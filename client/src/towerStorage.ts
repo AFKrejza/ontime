@@ -3,13 +3,14 @@ import { Line } from "./api";
 export interface TowerConfig {
   id: string;
   towerId: string;
-  gatewayName: string;
+  gatewayName?: string;
   stopName: string;
   stopId: string;
+  slug: string;
   line: Line;
   offset: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const STORAGE_KEY = "towerConfigs";
@@ -37,9 +38,13 @@ export function getTowerConfigs(): TowerConfig[] {
 export function saveTowerConfig(data: {
   id?: string;
   stopName: string;
+  stopSlug: string;
   stopId: string;
   line: Line;
   offset: number;
+  slug?: string;
+  towerId?: string;
+  gatewayName?: string;
 }): TowerConfig {
   const configs = getTowerConfigs();
   const now = new Date().toISOString();
@@ -54,6 +59,9 @@ export function saveTowerConfig(data: {
     offset: data.offset,
     createdAt: existingIndex >= 0 ? configs[existingIndex].createdAt : now,
     updatedAt: now,
+    slug: data.slug || "",
+    towerId: data.towerId || "",
+    gatewayName: data.gatewayName || "Unknown",
   };
 
   if (existingIndex >= 0) {

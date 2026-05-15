@@ -89,11 +89,11 @@ CREATE OR REPLACE TRIGGER set_updated_at_assignments BEFORE UPDATE ON assignment
 CREATE OR REPLACE TRIGGER set_updated_at_lines BEFORE UPDATE ON lines FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE OR REPLACE TRIGGER set_updated_at_stops BEFORE UPDATE ON stops FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
-CREATE INDEX ON stops (slug);
-CREATE INDEX ON stops_lines (stop_id);
-CREATE INDEX ON stops_lines (line_id);
-CREATE INDEX ON gateways (user_id);
-CREATE INDEX ON towers (gateway_id);
-CREATE INDEX ON assignments (tower_id);
-CREATE INDEX ON assignments (stop_id);
-CREATE INDEX ON assignments (line_id);
+CREATE INDEX IF NOT EXISTS idx_stops_slug ON stops (slug);
+CREATE INDEX IF NOT EXISTS idx_stops_lines_stop_id ON stops_lines (stop_id);
+CREATE INDEX IF NOT EXISTS idx_stops_lines_line_id ON stops_lines (line_id);
+CREATE INDEX IF NOT EXISTS idx_gateways_user_id ON gateways (user_id);
+CREATE INDEX IF NOT EXISTS idx_towers_gateway_id ON towers (gateway_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_tower_id ON assignments (tower_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_stop_id ON assignments (stop_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_line_id ON assignments (line_id);

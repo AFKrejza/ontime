@@ -9,6 +9,7 @@ import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
 import { towerRouter } from "./src/towers/towerRouter.js";
 import { userRouter } from "./src/users/userRouter.js";
 import { validationErrorHandler } from "./src/validation/errorHandler.js";
+import { exec } from "child_process";
 
 dotenv.config();
 const SERVER_PORT = process.env.PORT;
@@ -25,19 +26,34 @@ app.use(cors({
 	origin: CLIENT_URL
 }));
 
+function sleep(milliseconds) {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 async function dbCheck() {
-	try {
-		const result = await pgClient.query(`SELECT NOW()`);
-		console.log(result.rows[0]);
-	} catch (err) {
-		console.error("DB error", err);
+	while (true)
+	{
+		try {
+			const result = await pgClient.query(`SELECT NOW()`);
+			if (result.rows[0]) {
+				console.log("Connected to DB");
+				break;
+			}
+		} catch (err) {
+			console.error("DB error, retrying in 5 seconds");
+			await sleep(5000);
+		}
+		await sleep(5000);
 	}
 }
-// TODO: if DB connection fails, retry instead of dying
-await initDB();
+
 await dbCheck();
-await updateData();
-// await addMockData();
+
+// cloud disabled since we aren't wiping it constantly, but useful locally
+if (process.env.LOCAL == 'true') {
+	await initDB();
+	await updateData();
+}
 
 app.get("/trieData", async (req, res) => {
 	const data = await stopsDao.getTrieData();
@@ -69,7 +85,6 @@ app.get("/bustest", async (req, res) => {
 	res.send(data);
 });
 
-// TODO: integrate with db
 app.get("/stopGroups/:slug", async (req, res) => {
 	try {
 		const slug = req.params.slug;
@@ -441,6 +456,10 @@ app.use("/users", userRouter);
 // Error-handling middleware MUST be registered after all routes.
 // Catches malformed JSON and any errors forwarded with next(err) from validation.
 app.use(validationErrorHandler);
+
+app.get("/alive", (req, res) => {
+	res.status(200).json({ ok: true });
+});
 
 app.listen(SERVER_PORT, () => {
 	console.log(`Server listening on port ${SERVER_PORT}`);
