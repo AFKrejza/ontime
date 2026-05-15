@@ -8,6 +8,7 @@ import { authRouter } from "./src/auth/auth.js";
 import { gatewayRouter } from "./src/gateways/gatewayRouter.js";
 import { towerRouter } from "./src/towers/towerRouter.js";
 import { userRouter } from "./src/users/userRouter.js";
+import { validationErrorHandler } from "./src/validation/errorHandler.js";
 import { exec } from "child_process";
 
 dotenv.config();
@@ -18,7 +19,6 @@ if (process.env.LOCAL === 'true') {
 } else {
 	console.log('cloud deployment');
 }
-
 
 const app = express();
 app.use(express.json());
@@ -85,7 +85,6 @@ app.get("/bustest", async (req, res) => {
 	res.send(data);
 });
 
-// TODO: integrate with db
 app.get("/stopGroups/:slug", async (req, res) => {
 	try {
 		const slug = req.params.slug;
@@ -453,6 +452,10 @@ app.use("/auth", authRouter);
 app.use("/gateways", gatewayRouter);
 app.use("/towers", towerRouter);
 app.use("/users", userRouter);
+
+// Error-handling middleware MUST be registered after all routes.
+// Catches malformed JSON and any errors forwarded with next(err) from validation.
+app.use(validationErrorHandler);
 
 app.get("/alive", (req, res) => {
 	res.status(200).json({ ok: true });

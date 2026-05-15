@@ -1,17 +1,10 @@
 import express from "express";
-import {authController} from "./authController.js";
+import { authController } from "./authController.js";
 import authMiddleware from "./authMiddleware.js";
+import { validate } from "../validation.js";
 
-const authRouter = express.Router();
+export const authRouter = express.Router();
 
-// userName, email, password
-authRouter.post("/signup", authController.signup);
-
-// email, password
-authRouter.post("/login", authController.login);
-
-// authRouter.post("/google", authController.googleAuth);
-
-export {
-	authRouter
-};
+// Public routes — validate body before hitting the controller.
+authRouter.post("/signup", validate("signup"), authController.signup);
+authRouter.post("/login",  validate("login"),  authController.login);
