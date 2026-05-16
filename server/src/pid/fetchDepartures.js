@@ -1,3 +1,5 @@
+import { towerDao } from "../towers/towerDao.js";
+
 export async function fetchDepartures(input) {
 
 	// an array of assignments, each of which also has their towerId, and the index is aligned to the response from PID
@@ -70,8 +72,18 @@ export async function fetchDepartures(input) {
 
 	// everything MUST be a string!!!
 	class Assignment {
-		constructor(towerId, lineNumber, lineDirection, stopName, nextTime, leaveIn, type) {
+		towerId;
+		charge;
+		lineNumber;
+		lineDirection;
+		stopName;
+		nextTime;
+		leaveIn;
+		type;
+
+		constructor(towerId, charge, lineNumber, lineDirection, stopName, nextTime, leaveIn, type) {
 			this.towerId = towerId;
+			this.charge = charge;
 			this.lineNumber = lineNumber;
 			this.lineDirection = lineDirection;
 			this.stopName = stopName;
@@ -110,6 +122,8 @@ export async function fetchDepartures(input) {
 		let stopName;
 		const type = enumTransportTypes[towerAssignments[i].line.type.toLowerCase()];
 
+		const charge = await getBatteryCharge(towerId);
+
 		if (towerAssignments[i].line.name.length > LINE_NUMBER_SIZE) {
 			lineNumber = towerAssignments[i].line.name.substring(0, LINE_NUMBER_SIZE);
 		} else lineNumber = towerAssignments[i].line.name;
@@ -126,6 +140,7 @@ export async function fetchDepartures(input) {
 
 		const assignment = new Assignment(
 			towerId,
+			charge,
 			lineNumber,
 			lineDirection,
 			stopName,
@@ -138,9 +153,12 @@ export async function fetchDepartures(input) {
 
 	// parse it. This is very condensed so that every tower can be on the same topic
 	// final result will be an array of all assignments of towers assigned to that gateway, e.g.:
-	// [{547c65321d0b|B|Zlicin|Kolbenova|17:46|5m}{1547c65321d0b|177|Chodov|Vysocanska|17:52|15m|0}]
+	// [14:25{547c65321d0b|70|B|Zlicin|Kolbenova|17:46|5m|1}{1547c65321d0b|99|177|Chodov|Vysocanska|17:52|15m|0}]
+	/* structure:
+	[time{towerId|charge|lineNumber|lineDirection|stopName|nextTime|leaveIn|type}{...like previous}]
+	*/
 	// If a tower has 2 assignments it must repeat the towerId like above.
-	// The string will never be that long anyway, ~600 bytes.
+	// The string will never be that long anyway, ~600 bytes with 10 assignments.
 
 	const msg_start_char = '[';
 	const msg_end_char = ']';
@@ -151,10 +169,19 @@ export async function fetchDepartures(input) {
 
 	let assignments = "";
 	assignments = assignments.concat(msg_start_char);
+
+	let date = new Date(Date.now());
+	date = date.toString();
+	const time = date.slice(16, 21);
+	assignments = assignments.concat(time);
+	console.log(assignments);
+
 	for (let i = 0; i < towersData.length; i++)
 	{
+		// TODO clean this up. just concats?
 		assignments = assignments.concat(assignment_start_char);
 		assignments = assignments.concat(towersData[i].towerId);
+		assignments = assignments.concat(delimiter, towersData[i].charge);
 		assignments = assignments.concat(delimiter, towersData[i].lineNumber);
 		assignments = assignments.concat(delimiter, towersData[i].lineDirection);
 		assignments = assignments.concat(delimiter, towersData[i].stopName);
@@ -166,4 +193,24 @@ export async function fetchDepartures(input) {
 	assignments = assignments.concat(msg_end_char);
 
 	return assignments;
+}
+
+
+async function getBatteryCharge(towerId) {
+	const tower = await towerDao.findById(towerId);
+	const charge = Number(tower?.battery);
+
+	if (isNaN(charge) || charge === 0) {
+		return "67"; // if it's on it ain't 0, so wait til it updates itself
+	}
+
+	if (!Number.isFinite(charge) || charge < 0) {
+		return "0";
+	}
+
+	if (charge > 100) {
+		return "100";
+	}
+
+	return String(Math.floor(charge));
 }

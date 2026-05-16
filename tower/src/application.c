@@ -9,11 +9,11 @@
 
 #define TOWER_ID_SIZE 13 // includes null byte
 
-const char msg_start_char = '[';
-const char msg_end_char = ']';
-const char delimiter = '|';
-const char assignment_start_char = '{';
-const char assignment_end_char = '}';
+#define msg_start_char '['
+#define msg_end_char ']'
+#define delimiter '|'
+#define assignment_start_char '{'
+#define assignment_end_char '}'
 
 twr_led_t led;
 twr_button_t button;
@@ -21,21 +21,37 @@ Assignment assignments[2];
 static char buffer[ASSIGNMENTS_SIZE]; // only stores assignments
 static uint32_t boot_time = 0;
 
+static uint64_t gateway_id;
+
+char current_time[6] = "00:00";
+char battery_charge[4] = "100";
 
 void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
-bool parse_assignments(uint64_t *tower_id);
+bool parse_payload(uint64_t *tower_id);
+static bool parse_current_time();
+static bool is_digit(char c);
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param);
-void radio_get_gateway_id_callback(uint64_t *id, const char *topic, void *payload, void *param);
+void display_ids_on_boot(uint64_t gateway_id, uint64_t tower_id);
 void send_battery_charge();
 
 twr_radio_sub_t subscriptions[] = {
-	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL },
-	{ .topic = "gateway_id", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_get_gateway_id_callback, .param = NULL }
+	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
 };
+
+// typedef struct {
+// 	bool data;
+// 	bool times;
+// } AssignmentUpdate;
+
+// typedef struct {
+// 	AssignmentUpdate assignment[2];
+// } UpdateResult;
+
+// UpdateResult updated_result;
 
 // Application initialization function which is called once after boot
 void application_init(void)
@@ -49,7 +65,7 @@ void application_init(void)
 	twr_button_set_event_handler(&button, button_event_handler, NULL);
 
 	twr_led_init(&led, TWR_GPIO_LED, false, false);
-	twr_module_battery_init(); // TODO: use to check battery module voltage
+	twr_module_battery_init();
 	
 	twr_radio_init(TWR_RADIO_MODE_NODE_LISTENING);
 	twr_radio_pairing_request("tower-ontime", FW_VERSION);
@@ -85,7 +101,7 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 
 	if (event == TWR_BUTTON_EVENT_CLICK)
 	{
-		twr_log_debug("click");
+		twr_log_debug("reset button clicked");
 		NVIC_SystemReset();
 	}
 }
@@ -111,9 +127,14 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 {
 	(void) topic;
 	(void) param;
-	(void) id;
+
 	uint64_t tower_id = twr_radio_get_my_id();
-	twr_log_debug("tower_id: %llx", tower_id);
+
+	if (!gateway_id)
+	{
+		gateway_id = *id;
+		display_ids_on_boot(gateway_id, tower_id);
+	}
 
 	if (payload == NULL)
 	{
@@ -128,10 +149,11 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	{
 		twr_log_debug("first msg");
 		buffer_index = 0;
-		// if there are no assignments:
+		// if there are no assignments (just []):
 		if (strchr((const char *)payload, msg_end_char))
 		{
-			twr_log_debug("Tower has no assignments");
+			twr_log_info("Gateway has no assignments");
+			twr_log_debug("%s", buffer);
 			clear_assignments(assignments);
 			goto draw;
 		}
@@ -147,13 +169,16 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		// twr_log_debug("last msg");
 		memcpy(buffer + buffer_index, payload, len);
 		buffer_index += len;
+		buffer[buffer_index] = '\0';
 		twr_log_debug("%s", buffer);
+		// TODO: disable radio here
 	}
 	else if (buffer_index > 0)
 	{
 		// twr_log_debug("mid msg");
 		memcpy(buffer + buffer_index, payload, len);
 		buffer_index += len;
+		buffer[buffer_index] = '\0';
 		return;
 	}
 	else
@@ -164,11 +189,12 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		draw_status(BLACK);
 		goto cleanup;
 	}
-
-	bool updated = parse_assignments(&tower_id);
+	bool updated = parse_payload(&tower_id);
 	if (updated)
 	{
 		draw:
+		draw_current_time(current_time);
+		draw_battery_charge(battery_charge);
 		draw_assignments(assignments);
 	}
 
@@ -180,23 +206,23 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	draw_status(GREEN);
 }
 
-bool parse_assignments(uint64_t *tower_id)
+bool parse_payload(uint64_t *tower_id)
 {
 	bool is_updated = false;
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", *tower_id);
-	// twr_log_debug("Tower ID: %s", tower_id_string);
 		
+	parse_current_time();
+
 	uint16_t i = 0;
-
 	uint8_t assignment_index = 0;
-
 	while (i < strlen(buffer))
 	{
-		Assignment new;
 		if (assignment_index >= 2)
 			break;
 
+		Assignment new;
+		
 		// go to the next ID
 		while (buffer[i] != assignment_start_char && buffer[i])
 			i++;
@@ -225,23 +251,25 @@ bool parse_assignments(uint64_t *tower_id)
 		// know it's one of this tower's assignments
 		// assignments are in the same order as previous requests
 
+		char new_battery_charge[4] = {0};
 		char tmp[2] = {0};
 		i++;
+		extract_field(&i, new_battery_charge, sizeof(new_battery_charge));
 		extract_field(&i, new.line_number, sizeof(new.line_number));
 		extract_field(&i, new.line_direction, sizeof(new.line_direction));
 		extract_field(&i, new.stop_name, sizeof(new.stop_name));
 		extract_field(&i, new.next_time, sizeof(new.next_time));
 		extract_field(&i, new.leave_in, sizeof(new.leave_in));
-		twr_log_debug("TYPE SECTION");
 		extract_field(&i, tmp, sizeof(tmp));
-		twr_log_debug("tmp: %d", (uint8_t) tmp[0]);
-		// new.type = (uint8_t) strtoul(&tmp, NULL, 10);
 		new.type = (uint8_t) tmp[0] - '0';
-		twr_log_debug("new: %d", new.type);
-		twr_log_debug("END TYPE SECTION");
 
 		if (buffer[i] == assignment_end_char)
 			i++;
+
+		if (strcmp(battery_charge, new_battery_charge) != 0 )
+		{
+			memcpy(battery_charge, new_battery_charge, 4);
+		}
 
 		if (strcmp(assignments[assignment_index].line_number, new.line_number) != 0 ||
 			strcmp(assignments[assignment_index].line_direction, new.line_direction) != 0 ||
@@ -275,14 +303,6 @@ bool parse_assignments(uint64_t *tower_id)
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len)
 {
-	// if (max_len == 1) // get type
-	// {
-	// 	dest[0] = buffer[*i] - '0';
-	// 	twr_log_debug("index: %d", *i);
-	// 	twr_log_debug("type: %c", *dest);
-	// 	(*i)++;
-	// }
-
 	uint16_t j = 0;
 	while (buffer[*i] != delimiter && buffer[*i] != msg_end_char && buffer[*i] != '\0' && j < max_len - 1)
 	{
@@ -310,7 +330,7 @@ void clear_assignments(Assignment assignments[2])
 		memset(&assignments[i].line_number, 0 , LINE_NUMBER_SIZE);
 		memset(&assignments[i].next_time, 0, NEXT_TIME_SIZE);
 		memset(&assignments[i].stop_name, 0, STOP_NAME_SIZE);
-		memset(&assignments[i].type, 0, 2);
+		memset(&assignments[i].type, 0, sizeof(assignments[i].type));
 	}
 }
 
@@ -336,10 +356,38 @@ void send_battery_charge()
 	twr_radio_pub_string("tower_health", msg);
 }
 
-void radio_get_gateway_id_callback(uint64_t *id, const char *topic, void *payload, void *param)
+// always displays gateway and tower Id for 5 seconds on boot
+void display_ids_on_boot(uint64_t gateway_id, uint64_t tower_id)
 {
-	char id_string[13];
-	snprintf(id_string, sizeof(id_string), "%012llx", *id);
-	twr_log_debug("gateway ID: %lld", *id);
-	draw_gateway_id(id_string);
+	char g_id[13] = {0};
+	char t_id[13] = {0};
+	snprintf(g_id, sizeof(g_id), "%012llx", gateway_id);
+	snprintf(t_id, sizeof(t_id), "%012llx", tower_id);
+
+	char gateway_id_string[25] = "Gateway ID: ";
+	char tower_id_string[25] = "Tower ID:   ";
+
+	strncat(gateway_id_string, g_id, 12);
+	strncat(tower_id_string, t_id, 12);
+	
+	draw_ids(gateway_id_string, tower_id_string);
+	twr_tick_wait(5000);
+	clear_ids();
+}
+
+static bool parse_current_time()
+{
+	uint16_t i = 1;
+	while (buffer[i] && i < 6)
+	{
+		if (i != 3 && !is_digit(buffer[i])) return false;
+		current_time[i - 1] = buffer[i];
+		i++;
+	}
+	return true;
+}
+
+static bool is_digit(char c)
+{
+	return c >= '0' && c <= '9';
 }

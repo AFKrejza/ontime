@@ -381,7 +381,39 @@ void draw_status(uint16_t color)
 	draw_rect(160, 319, SCREEN_HEIGHT - 2, SCREEN_HEIGHT - 1, color);
 }
 
-void draw_gateway_id(char *id_string)
+void draw_ids(char gateway_id_string[25], char tower_id_string[25])
 {
-	draw_string(id_string, strlen(id_string), 64, 272, 2);
+	uint8_t text_size = SIZE_M;
+	draw_string(gateway_id_string, strlen(gateway_id_string), 32, 32, text_size);
+	draw_string(tower_id_string, strlen(tower_id_string), 32, 70, text_size);
+}
+
+// wipes draw_ids
+void clear_ids()
+{
+	uint8_t text_size = SIZE_M;
+	char *empty = "                        ";
+	draw_string(empty, strlen(empty), 32, 32, text_size);
+	draw_string(empty, strlen(empty), 32, 70, text_size);
+}
+
+void draw_current_time(char current_time[6])
+{
+	uint8_t size = SIZE_L;
+	draw_string(current_time, strlen(current_time), 16, SCREEN_HEIGHT - 8 - size * 8, size);
+}
+
+void draw_battery_charge(char battery_charge[4])
+{
+	uint8_t size = SIZE_L;
+	char text[5] = "   %%";
+
+	strncpy(text, battery_charge, 3);
+	uint8_t len = 0;
+	while (len < 3 && text[len])
+		len++;
+
+	text[len++] = '%';
+	text[len] = '\0';
+	draw_string(text, len, SCREEN_WIDTH - 16 - 96, SCREEN_HEIGHT - 8 - size * 8, size);
 }

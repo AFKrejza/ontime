@@ -2,8 +2,6 @@ import { fetchDepartures } from "../pid/fetchDepartures.js";
 import { gatewayService } from "./gatewayService.js";
 import { towerService } from "../towers/towerService.js";
 
-// TODO: add try/catch with error handling
-
 export const gatewayController = {
 	async register(req, res) {
 		try {
