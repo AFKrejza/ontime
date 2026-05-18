@@ -8,11 +8,12 @@
 // Uses RGB 565
 // https://barth-dev.de/online/rgb565-color-picker/
 #define WHITE 0xFFFF
-#define RED   0xF800
+#define RED   0xFB0C
 #define GREEN 0x07E0
 #define BLUE  0x001F
 #define BLACK 0x0000
 #define WHITE 0xFFFF
+#define YELLOW 0xFF4C
 
 #define LINE_NUMBER_SIZE 4 // assuming only 3 digits.
 #define LINE_DIRECTION_SIZE 16 // fits
@@ -61,14 +62,14 @@ typedef struct {
 
 void clear_char(uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
 void display_init();
-void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size);
+void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size, uint16_t new_color);
 void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t size);
 void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_rect(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint16_t row_end, uint16_t color);
 void draw_pixel(uint16_t row, uint16_t col, uint16_t color);
 void draw_assignments(Assignment assignments[], UpdateResult updated_fields);
 void draw_status(uint16_t color);
-void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_start, uint8_t text_size);
+void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_start, uint8_t text_size, uint16_t color);
 void outline_screen(const uint16_t color);
 void paint_screen(uint16_t color);
 void draw_ids(char gateway_id_string[25], char tower_id_string[25]);

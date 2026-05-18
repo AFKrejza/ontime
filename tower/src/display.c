@@ -181,7 +181,7 @@ void draw_pixel(uint16_t row, uint16_t col, uint16_t color)
 
 // only supports up to text size 4 without chunked transfer
 // draws any 8 byte bitmap where each byte is a line
-void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size)
+void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_size, uint16_t new_color)
 {
 	const uint8_t *bitmap = font8x8_basic[c];
 
@@ -195,7 +195,7 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 			uint16_t color;
 			bool bit = bitmap[i / text_size] >> (j / text_size) & 1;
 			if (bit)
-				color = TEXT_COLOR;
+				color = new_color;
 			else
 				color = BG_COLOR;
 
@@ -218,7 +218,7 @@ void draw_char(unsigned char c, uint16_t grid_x, uint16_t grid_y, uint8_t text_s
 
 void clear_char(uint16_t col_start, uint16_t row_start, uint8_t text_size)
 {
-	draw_char(0, col_start, row_start, text_size);
+	draw_char(0, col_start, row_start, text_size, BG_COLOR);
 }
 
 // hollow rectangle
@@ -268,7 +268,7 @@ void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t img_size)
 	}
 }
 
-void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_start, uint8_t text_size)
+void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_start, uint8_t text_size, uint16_t color)
 {
 	uint16_t char_col_start;
 	uint16_t letter_width = text_size * LETTER_EDGE;
@@ -280,7 +280,8 @@ void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_star
 			s[i],
 			char_col_start,
 			row_start,
-			text_size
+			text_size,
+			color
 		);
 	}
 }
@@ -323,7 +324,7 @@ static void draw_line_direction(char direction[LINE_DIRECTION_SIZE], uint16_t bo
 	uint8_t size = SIZE_L;
 	uint16_t col_start = box_col_start + 96;
 	uint16_t row_start = box_row_start + 8;
-	draw_string(direction, LINE_DIRECTION_SIZE -1, col_start, row_start, size);
+	draw_string(direction, LINE_DIRECTION_SIZE -1, col_start, row_start, size, TEXT_COLOR);
 }
 
 // e.g. 136
@@ -332,7 +333,8 @@ static void draw_line_number(char line_number[LINE_NUMBER_SIZE], uint16_t box_co
 	uint8_t size = SIZE_L;
 	uint16_t col_start = box_col_start;
 	uint16_t row_start = box_row_start + 8;
-	draw_string(line_number, LINE_NUMBER_SIZE -1, col_start, row_start, size);
+
+	draw_string(line_number, LINE_NUMBER_SIZE -1, col_start, row_start, size, TEXT_COLOR);
 }
 
 // e.g. Zlicin
@@ -341,7 +343,7 @@ static void draw_stop_name(char stop_name[STOP_NAME_SIZE], uint16_t box_col_star
 	uint8_t size = SIZE_M;
 	uint16_t row_start = box_row_start + 36;
 	uint16_t col_start = box_col_start + 96;
-	draw_string(stop_name, STOP_NAME_SIZE -1, col_start, row_start, size);
+	draw_string(stop_name, STOP_NAME_SIZE -1, col_start, row_start, size, TEXT_COLOR);
 }
 
 // e.g. leave in x minutes
@@ -354,12 +356,27 @@ static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, 
 	uint16_t col_start = box_col_start + 312;
 	uint16_t row_start = box_row_start + 60;
 
-	draw_string(text, strlen(text), col_start, row_start, size);
+	draw_string(text, strlen(text), col_start, row_start, size, TEXT_COLOR);
 	
 	size = SIZE_XL;
 	row_start = row_start + 24;
+
+	uint16_t color;
+	twr_log_debug("leavein0: %c", leave_in[0]);
+	twr_log_debug("leavein1: %c", leave_in[1]);
+	if (leave_in[1] == 'm')
+	{
+		if (leave_in[0] == '1' || leave_in[0] == '2')
+			color = RED;
+		else if (leave_in[0] == '3' || leave_in[0] == '4')
+			color = YELLOW;
+		else
+			color = TEXT_COLOR;
+	} else {
+		color = TEXT_COLOR;
+	}
 	
-	draw_string(leave_in, LEAVE_IN_SIZE -1, col_start, row_start, size);
+	draw_string(leave_in, LEAVE_IN_SIZE -1, col_start, row_start, size, color);
 }
 
 // e.g. 16:24
@@ -372,11 +389,11 @@ static void draw_next_time(char next_time[NEXT_TIME_SIZE], uint16_t box_col_star
 	char *english = "Departure";
 	char *czech = "Odjezd   ";
 	char *text = language ? english : czech;
-	draw_string(text, strlen(text), col_start, row_start, size);
+	draw_string(text, strlen(text), col_start, row_start, size, TEXT_COLOR);
 
 	row_start = row_start + 24;
 	size = SIZE_XL;
-	draw_string(next_time, NEXT_TIME_SIZE -1, col_start, row_start, size);
+	draw_string(next_time, NEXT_TIME_SIZE -1, col_start, row_start, size, TEXT_COLOR);
 }
 
 void draw_status(uint16_t color)
@@ -387,8 +404,8 @@ void draw_status(uint16_t color)
 void draw_ids(char gateway_id_string[25], char tower_id_string[25])
 {
 	uint8_t text_size = SIZE_M;
-	draw_string(gateway_id_string, strlen(gateway_id_string), 32, 32, text_size);
-	draw_string(tower_id_string, strlen(tower_id_string), 32, 70, text_size);
+	draw_string(gateway_id_string, strlen(gateway_id_string), 32, 32, text_size, TEXT_COLOR);
+	draw_string(tower_id_string, strlen(tower_id_string), 32, 70, text_size, TEXT_COLOR);
 }
 
 // wipes draw_ids
@@ -396,14 +413,14 @@ void clear_ids()
 {
 	uint8_t text_size = SIZE_M;
 	char *empty = "                        ";
-	draw_string(empty, strlen(empty), 32, 32, text_size);
-	draw_string(empty, strlen(empty), 32, 70, text_size);
+	draw_string(empty, strlen(empty), 32, 32, text_size, TEXT_COLOR);
+	draw_string(empty, strlen(empty), 32, 70, text_size, TEXT_COLOR);
 }
 
 void draw_current_time(char current_time[6])
 {
 	uint8_t size = SIZE_L;
-	draw_string(current_time, strlen(current_time), 16, SCREEN_HEIGHT - 8 - size * 8, size);
+	draw_string(current_time, strlen(current_time), 16, SCREEN_HEIGHT - 8 - size * 8, size, TEXT_COLOR);
 }
 
 void draw_battery_charge(char battery_charge[4])
@@ -418,5 +435,5 @@ void draw_battery_charge(char battery_charge[4])
 
 	text[len++] = '%';
 	text[len] = '\0';
-	draw_string(text, len, SCREEN_WIDTH - 16 - 96, SCREEN_HEIGHT - 8 - size * 8, size);
+	draw_string(text, len, SCREEN_WIDTH - 16 - 96, SCREEN_HEIGHT - 8 - size * 8, size, TEXT_COLOR);
 }
