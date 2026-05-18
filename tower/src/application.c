@@ -28,9 +28,10 @@ char battery_charge[4] = "100";
 
 void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
-bool parse_payload(uint64_t *tower_id);
+UpdateResult parse_payload(uint64_t *tower_id);
 static bool parse_current_time();
 static bool is_digit(char c);
+static void refresh_display(UpdateResult updated_fields);
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param);
 void radio_event_handler(twr_radio_event_t event, void *param);
@@ -41,17 +42,6 @@ void send_battery_charge();
 twr_radio_sub_t subscriptions[] = {
 	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
 };
-
-// typedef struct {
-// 	bool data;
-// 	bool times;
-// } AssignmentUpdate;
-
-// typedef struct {
-// 	AssignmentUpdate assignment[2];
-// } UpdateResult;
-
-// UpdateResult updated_result;
 
 // Application initialization function which is called once after boot
 void application_init(void)
@@ -155,7 +145,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 			twr_log_info("Gateway has no assignments");
 			twr_log_debug("%s", buffer);
 			clear_assignments(assignments);
-			goto draw;
+			goto draw; // to wipe the screen
 		}
 		else
 		{
@@ -189,14 +179,9 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		draw_status(BLACK);
 		goto cleanup;
 	}
-	bool updated = parse_payload(&tower_id);
-	if (updated)
-	{
-		draw:
-		draw_current_time(current_time);
-		draw_battery_charge(battery_charge);
-		draw_assignments(assignments);
-	}
+	UpdateResult updated_fields = parse_payload(&tower_id);
+	draw:
+	refresh_display(updated_fields);
 
 	// prevent garbage
 	cleanup:
@@ -206,13 +191,14 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	draw_status(GREEN);
 }
 
-bool parse_payload(uint64_t *tower_id)
+UpdateResult parse_payload(uint64_t *tower_id)
 {
-	bool is_updated = false;
+	UpdateResult updated_fields = {0}; // for partial updating
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", *tower_id);
 		
 	parse_current_time();
+	updated_fields.current_time = true;
 
 	uint16_t i = 0;
 	uint8_t assignment_index = 0;
@@ -263,12 +249,16 @@ bool parse_payload(uint64_t *tower_id)
 		extract_field(&i, tmp, sizeof(tmp));
 		new.type = (uint8_t) tmp[0] - '0';
 
+		twr_log_debug("    battery_charge: %s", battery_charge);
+		twr_log_debug("new_battery_charge: %s", new_battery_charge);
 		if (buffer[i] == assignment_end_char)
 			i++;
 
-		if (strcmp(battery_charge, new_battery_charge) != 0 )
+		if (new_battery_charge[0] && strcmp(battery_charge, new_battery_charge) != 0)
 		{
+			twr_log_debug("meow");
 			memcpy(battery_charge, new_battery_charge, 4);
+			updated_fields.battery_charge = true;
 		}
 
 		if (strcmp(assignments[assignment_index].line_number, new.line_number) != 0 ||
@@ -279,14 +269,14 @@ bool parse_payload(uint64_t *tower_id)
 			strncpy(assignments[assignment_index].line_direction, new.line_direction, sizeof(assignments[assignment_index].line_direction));
 			strncpy(assignments[assignment_index].stop_name, new.stop_name, sizeof(assignments[assignment_index].stop_name));
 			assignments[assignment_index].type = new.type;
-			is_updated = true;
+			updated_fields.assignment[assignment_index].static_info = true; 
 		}
 		if (strcmp(assignments[assignment_index].next_time, new.next_time) != 0 ||
 			strcmp(assignments[assignment_index].leave_in, new.leave_in) != 0)
 		{
 			strncpy(assignments[assignment_index].next_time, new.next_time, sizeof(assignments[assignment_index].next_time));
 			strncpy(assignments[assignment_index].leave_in, new.leave_in, sizeof(assignments[assignment_index].leave_in));
-			is_updated = true;
+			updated_fields.assignment[assignment_index].times = true;
 		}
 		
 		assignment_index++;
@@ -298,7 +288,7 @@ bool parse_payload(uint64_t *tower_id)
 		// twr_log_debug("Leave in:  %s", new.leave_in);
 		// twr_log_debug("Type:      %d", new.type);
 	}
-	return is_updated;
+	return updated_fields;
 }
 
 void extract_field(uint16_t *i, char *dest, uint16_t max_len)
@@ -390,4 +380,15 @@ static bool parse_current_time()
 static bool is_digit(char c)
 {
 	return c >= '0' && c <= '9';
+}
+
+static void refresh_display(UpdateResult updated_fields)
+{
+	if (updated_fields.current_time == true)
+		draw_current_time(current_time);
+
+	if (updated_fields.battery_charge == true)
+		draw_battery_charge(battery_charge);
+		
+	draw_assignments(assignments, updated_fields);
 }

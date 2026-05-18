@@ -285,7 +285,7 @@ void draw_string(char *s, uint16_t length, uint16_t col_start, uint16_t row_star
 	}
 }
 
-void draw_assignments(Assignment assignments[])
+void draw_assignments(Assignment assignments[], UpdateResult updated_fields)
 {
 	static bool language = true; // 1 english 0 czech
 
@@ -297,17 +297,20 @@ void draw_assignments(Assignment assignments[])
 		const uint16_t box_row_start = 0 + i * box_height;
 		const uint16_t box_row_end = box_height + i * box_height;
 
-		if (assignments[i].stop_name[0] == '\0')
+		if (assignments[i].stop_name[0] == '\0') // wipe
 		{
 			draw_rect(0, SCREEN_WIDTH - 1, box_row_start + i, box_row_end, BG_COLOR);
 			continue;
 		}
 
-		draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
-		draw_image(box_col_start, box_row_start + 40, assignments[i].type, 2);
-		draw_line_direction(assignments[i].line_direction, box_col_start, box_row_start);
-		draw_line_number(assignments[i].line_number, box_col_start, box_row_start);
-		draw_stop_name(assignments[i].stop_name, box_col_start, box_row_start);
+		if (updated_fields.assignment[i].static_info == true)
+		{
+			draw_outline(box_col_start - 8, box_col_end, box_row_start, box_row_end, WHITE);
+			draw_image(box_col_start, box_row_start + 40, assignments[i].type, 2);
+			draw_line_direction(assignments[i].line_direction, box_col_start, box_row_start);
+			draw_line_number(assignments[i].line_number, box_col_start, box_row_start);
+			draw_stop_name(assignments[i].stop_name, box_col_start, box_row_start);
+		}
 		draw_next_time(assignments[i].next_time, box_col_start, box_row_start, language);
 		draw_leave_in(assignments[i].leave_in,   box_col_start, box_row_start, language);
 	}
