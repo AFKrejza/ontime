@@ -47,7 +47,7 @@ twr_radio_sub_t subscriptions[] = {
 void application_init(void)
 {
 	twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
-	twr_log_debug("start init");
+	twr_log_info("start init");
 
 	boot_time = twr_tick_get();
 
@@ -67,7 +67,7 @@ void application_init(void)
 	display_init();
 	paint_screen(BLACK);
 	
-	twr_log_debug("end init");	
+	twr_log_info("end init");	
 }
 
 // Application task function (optional) which is called periodically if scheduled
@@ -77,7 +77,7 @@ void application_task(void)
 	if (now - boot_time >= 3600000) // restart & send health data each hour
 	{
 		send_battery_charge();
-		twr_log_debug("hourly reboot");
+		twr_log_info("hourly reboot");
 		twr_tick_wait(100);
 		NVIC_SystemReset();
 	}
@@ -91,25 +91,48 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 
 	if (event == TWR_BUTTON_EVENT_CLICK)
 	{
-		twr_log_debug("reset button clicked");
+		twr_log_info("reset button clicked");
 		NVIC_SystemReset();
 	}
 }
 
 void radio_event_handler(twr_radio_event_t event, void *param)
 {
-	twr_log_debug("RADIO event: %d", (int)event);
-	if (event == TWR_RADIO_EVENT_ATTACH)
+	twr_log_info("RADIO event: %d", (int)event);
+	switch (event)
 	{
-		twr_log_debug("RADIO: Attached to gateway");
-	}
-	else if (event == TWR_RADIO_EVENT_DETACH)
-	{
-		twr_log_debug("RADIO: Detached from gateway");
-	}
-	else if (event == TWR_RADIO_EVENT_ATTACH_FAILURE)
-	{
-		twr_log_debug("RADIO: Attach failure");
+		case TWR_RADIO_EVENT_INIT_FAILURE:
+			twr_log_error("RADIO: Init failure");
+			break;
+		case TWR_RADIO_EVENT_INIT_DONE:
+			twr_log_info("RADIO: Init done");
+			break;
+		case TWR_RADIO_EVENT_ATTACH:
+			twr_log_info("RADIO: Attached to gateway");
+			break;
+		case TWR_RADIO_EVENT_ATTACH_FAILURE:
+			twr_log_error("RADIO: Attach failure");
+			break;
+		case TWR_RADIO_EVENT_DETACH:
+			twr_log_info("RADIO: Detached from gateway");
+			break;
+		case TWR_RADIO_EVENT_SCAN_FIND_DEVICE:
+			twr_log_info("RADIO: Scanning to find device");
+			break;
+		case TWR_RADIO_EVENT_PAIRED:
+			twr_log_info("RADIO: Paired");
+			break;
+		case TWR_RADIO_EVENT_UNPAIRED:
+			twr_log_info("RADIO: Unpaired");
+			break;
+		case TWR_RADIO_EVENT_TX_DONE:
+			twr_log_info("RADIO: TX Done");
+			break;
+		case TWR_RADIO_EVENT_TX_ERROR:
+			twr_log_error("RADIO: TX Error");
+			break;
+		default:
+			break;
 	}
 }
 
@@ -128,7 +151,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 
 	if (payload == NULL)
 	{
-		twr_log_debug("Empty payload");
+		twr_log_info("Empty payload");
 		return;
 	}
 	draw_status(BLUE);
@@ -137,13 +160,12 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	static size_t buffer_index = 0;
 	if (*(const char *)payload == msg_start_char)
 	{
-		twr_log_debug("first msg");
+		twr_log_info("first msg");
 		buffer_index = 0;
 		// if there are no assignments (just []):
 		if (strchr((const char *)payload, msg_end_char))
 		{
 			twr_log_info("Gateway has no assignments");
-			twr_log_debug("%s", buffer);
 			clear_assignments(assignments);
 			goto draw; // to wipe the screen
 		}
@@ -160,7 +182,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		memcpy(buffer + buffer_index, payload, len);
 		buffer_index += len;
 		buffer[buffer_index] = '\0';
-		twr_log_debug("%s", buffer);
+		twr_log_info("%s", buffer);
 		// TODO: disable radio here
 	}
 	else if (buffer_index > 0)
@@ -173,7 +195,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	}
 	else
 	{
-		twr_log_debug("malformed message / error, clearing buffer");
+		twr_log_warning("malformed message / error, clearing buffer");
 		draw_status(RED); // flash
 		twr_tick_wait(500);
 		draw_status(BLACK);
@@ -249,14 +271,11 @@ UpdateResult parse_payload(uint64_t *tower_id)
 		extract_field(&i, tmp, sizeof(tmp));
 		new.type = (uint8_t) tmp[0] - '0';
 
-		twr_log_debug("    battery_charge: %s", battery_charge);
-		twr_log_debug("new_battery_charge: %s", new_battery_charge);
 		if (buffer[i] == assignment_end_char)
 			i++;
 
 		if (new_battery_charge[0] && strcmp(battery_charge, new_battery_charge) != 0)
 		{
-			twr_log_debug("meow");
 			memcpy(battery_charge, new_battery_charge, 4);
 			updated_fields.battery_charge = true;
 		}
@@ -333,7 +352,7 @@ void send_battery_charge()
 	twr_module_battery_measure();
 	int charge_percentage = -1;
 	twr_module_battery_get_charge_level(&charge_percentage);
-	twr_log_debug("Charge: %d", charge_percentage);
+	twr_log_info("Charge: %d", charge_percentage);
 	char charge_string[4] = {0};
 	snprintf(charge_string, sizeof(charge_string), "%d", charge_percentage);
 
@@ -342,7 +361,7 @@ void send_battery_charge()
 	memcpy(msg, tower_id_string, 12);
 	msg[12] = ',';
 	snprintf(msg + 13, sizeof(msg) - 13, "%s", charge_string);
-	twr_log_debug("%s", msg);
+	twr_log_info("%s", msg);
 	twr_radio_pub_string("tower_health", msg);
 }
 

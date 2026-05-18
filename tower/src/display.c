@@ -233,7 +233,6 @@ void draw_outline(uint16_t col_start, uint16_t col_end, uint16_t row_start, uint
 // used for drawing the 32x32 bus/metro/tram icons
 void draw_image(uint16_t col, uint16_t row , uint8_t type, uint8_t img_size)
 {
-	twr_log_debug("type: %d", type);
 	const uint8_t (*bitmap)[4] = images_32x32[type];
 	uint32_t buffer_index = 0;
 
@@ -362,8 +361,6 @@ static void draw_leave_in(char leave_in[LEAVE_IN_SIZE], uint16_t box_col_start, 
 	row_start = row_start + 24;
 
 	uint16_t color;
-	twr_log_debug("leavein0: %c", leave_in[0]);
-	twr_log_debug("leavein1: %c", leave_in[1]);
 	if (leave_in[1] == 'm')
 	{
 		if (leave_in[0] == '1' || leave_in[0] == '2')
