@@ -174,7 +174,6 @@ export async function fetchDepartures(input) {
 	date = date.toString();
 	const time = date.slice(16, 21);
 	assignments = assignments.concat(time);
-	console.log(assignments);
 
 	for (let i = 0; i < towersData.length; i++)
 	{

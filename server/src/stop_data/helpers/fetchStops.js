@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 
 // fetches PID Open Data's stops.json
 
-// returns 1 if updated, 2 if it's already updated.
+// returns 1 if updated, 2 if the database is already up-to-date.
 export async function fetchStops() {
 	const localPath = `./data/stops.json`;
 	const url = `https://data.pid.cz/stops/json/stops.json`;

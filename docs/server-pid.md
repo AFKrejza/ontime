@@ -68,7 +68,6 @@ the bus 177 Chodov at Vysocanska.
 gtfsId: U474Z6P
 departureOffset: -10
 
-Take the smallest departure offset, in this case -10, and use it as minutesBefore. This increases the probability that you get a useful departure.
 Each gtfsId is inserted into a separate group as the stopId.
 Complete URL:
 https://api.golemio.cz/v2/public/departureboards?stopIds={"0": ["U75Z101P"]}&stopIds={"1": ["U474Z2P"]}&limit=30&minutesAfter=60&minutesBefore=-10

@@ -53,3 +53,15 @@ gatewayRouter.post(
 	validate("gatewayHealth"),
 	gatewayController.updateHealth
 );
+
+gatewayRouter.get(
+	"/:gatewayId/secret",
+	authMiddleware,
+	gatewayController.getSecret
+);
+
+gatewayRouter.post(
+	"/:gatewayId/generateSecret",
+	authMiddleware,
+	gatewayController.generateSecret
+);

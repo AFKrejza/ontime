@@ -1,6 +1,7 @@
 import { fetchDepartures } from "../pid/fetchDepartures.js";
 import { gatewayService } from "./gatewayService.js";
 import { towerService } from "../towers/towerService.js";
+import { HMAC } from "./hmac.js";
 
 export const gatewayController = {
 	async register(req, res) {
@@ -14,7 +15,7 @@ export const gatewayController = {
 			res.status(201).json(newGateway);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
@@ -31,7 +32,7 @@ export const gatewayController = {
 			res.status(200).json(result);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
@@ -44,15 +45,19 @@ export const gatewayController = {
 			res.status(201).json(`${result} towers assigned to ${gatewayId}`);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
 
+	// this endpoint is only for gateways
 	async getDepartures(req, res) {
 		try {
 			const gatewayId = req.body.gatewayId;
 			const towerIds = req.body.towerIds;
+			const signature = req.body.signature;
+			const timestamp = req.body.unixTime;
+			const requestType = req.body.requestType;
 	
 			// check if assigned
 			const result = await gatewayService.check(gatewayId);
@@ -60,6 +65,16 @@ export const gatewayController = {
 				res.status(404).json({ registered: false });
 				return;
 			}
+			
+			if (signature == null) {
+				res.status(400).json({ message: `missing signature` });
+				return;
+			}
+			const hashFields = { timestamp, requestType};
+			const isValidHash = await HMAC.validate(gatewayId, signature, hashFields);
+			
+
+			
 	
 			// assign towers
 			const newTowers = await gatewayService.addTowers(gatewayId, towerIds);
@@ -74,7 +89,7 @@ export const gatewayController = {
 			res.status(200).send(departures);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
@@ -91,13 +106,14 @@ export const gatewayController = {
 			const result = await gatewayService.getGatewayAssignments(gatewayId);
 			const status = {
 				gatewayId: gatewayId,
+				gatewaySecret: gateway.hmac_secret,
 				gatewayName: gateway.name,
 				towers: result
 			}
 			res.status(200).send(status);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
@@ -114,7 +130,7 @@ export const gatewayController = {
 			return res.status(201).json(result);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
@@ -129,7 +145,7 @@ export const gatewayController = {
 			return res.status(200).json(gateways);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
@@ -147,12 +163,13 @@ export const gatewayController = {
 			return res.status(200).json({ deleteCount: rowCount });
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	},
 
 	// TODO: needs some kind of auth
+	// only for gateways
 	async updateHealth(req, res) {
 		try {
 			const gatewayId = req.body.gatewayId;
@@ -168,7 +185,37 @@ export const gatewayController = {
 			return res.status(200).json({ message: result });
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
+			res.status(statusCode).json({ error: err.message });
+		}
+	},
+
+	async getSecret(req, res) {
+		try {
+			const gatewayId = req.params.gatewayId;
+			const userId = req.user.id;
+			const authorized = await gatewayService.authorize(userId, gatewayId);
+			
+			const result = await gatewayService.getSecret(gatewayId);
+			return res.status(200).json({ secret: result });
+		} catch (err) {
+			console.error(err);
+			const statusCode = err.statusCode || 500;
+			res.status(statusCode).json({ error: err.message});
+		}
+	},
+
+	async generateSecret(req, res) {
+		try {
+			const gatewayId = req.params.gatewayId;
+			const userId = req.user.id;
+			const authorized = await gatewayService.authorize(userId, gatewayId);
+
+			const result = await gatewayService.generateSecret(gatewayId);
+			res.status(201).json(result);
+		} catch (err) {
+			console.error(err);
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	}

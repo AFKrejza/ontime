@@ -12,7 +12,7 @@ export const userController = {
 			return res.status(200).json(result);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 
@@ -27,7 +27,7 @@ export const userController = {
 			return res.status(200).json(result);
 		} catch (err) {
 			console.error(err);
-			const statusCode = error.statusCode || 500;
+			const statusCode = err.statusCode || 500;
 			res.status(statusCode).json({ error: err.message });
 		}
 	}

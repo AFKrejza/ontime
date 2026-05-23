@@ -153,13 +153,15 @@ Response:
 
 ## Get one gateway and its tower's statuses IMPLEMENTED
 Warning: A gateway won't register its towers until it's been registered to a user. Only then will you be able to see which towers are registered to it and add assignments to them.  
+The gateway secret is used for HMAC authentication.  
 Endpoint: GET `/gateways/:gatewayId/status`  
 Headers: Authorization: Bearer `jwt-token`  
-Response:
+Response:  
 ```
 {
 	"gatewayId": "737737ffa", 
 	"gatewayName": "Home",
+	"gatewaySecret": "1e62a41efe74bd79234239d2bfa10327" 
 	"towers": [ 
 		{ 
 			"towerId": "838838883", 
@@ -337,6 +339,7 @@ Request:
 }
 ```
 Response:
+```
 {
     "id": "547c65321d0b",
     "gateway_id": "c1895bf80e2b",
@@ -346,6 +349,29 @@ Response:
     "created_at": "2026-04-25T15:35:15.095Z",
     "updated_at": "2026-04-25T15:46:39.769Z"
 }
-
 ```
 
+## Get the current HMAC secret
+The HMAC secret is also returned on `gateway/:gatewayId/status`.  
+Endpoint: GET `/gateways/:gatewayId/secret`  
+Response:  
+```
+{
+	"secret": "abddfff64232354"
+}
+```
+
+## Generate a new HMAC secret
+For generating a new secret. It then has to be inserted into Node-Red manually. It never expires so that's fine.  
+Endpoint: POST `/gateways/:gatewayId/generateSecret`  
+Response:  
+```
+{
+    "id": "c1895bf80e2b",
+    "user_id": 1,
+    "name": "My Gateway",
+    "hmac_secret": "377bd8b6e4e4d1a81c349eade98506a4",
+    "created_at": "2026-05-23T12:58:27.166Z",
+    "updated_at": "2026-05-23T13:43:53.489Z"
+}
+```

@@ -82,7 +82,7 @@ export const gatewayDeparturesSchema = {
 		}
 	},
 	required: ["gatewayId", "towerIds"],
-	additionalProperties: false,
+	additionalProperties: true,
 	errorMessage: {
 		type: "request body must be a JSON object",
 		required: {

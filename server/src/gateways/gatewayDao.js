@@ -35,6 +35,21 @@ export const gatewayDao = {
 		return await pgClient.query(`
 			DELETE FROM gateways WHERE id = $1
 		`, [gatewayId]);
+	},
+
+	async getSecret(gatewayId) {
+		return await pgClient.query(`
+			SELECT hmac_secret FROM gateways WHERE id = $1
+		`, [gatewayId]);
+	},
+
+	async generateSecret(gatewayId, secret) {
+		return await pgClient.query(`
+			UPDATE gateways
+			SET hmac_secret = $2
+			WHERE id = $1
+			RETURNING *
+		`, [gatewayId, secret]);
 	}
 
 };

@@ -1,6 +1,7 @@
 import { gatewayDao } from "./gatewayDao.js";
 import { towerDao } from "../towers/towerDao.js";
 import { assignmentDao } from "../assignments/assignmentDao.js";
+import { HMAC } from "./hmac.js";
 
 // TODO: verify input + sanitize, throw errors
 
@@ -102,5 +103,17 @@ export const gatewayService = {
 	async delete(gatewayId) {
 		const res = await gatewayDao.deleteById(gatewayId);
 		return res.rowCount;
+	},
+
+	async getSecret(gatewayId) {
+		const res = await gatewayDao.findById(gatewayId);
+		return res.rows[0].hmac_secret;
+	},
+
+	async generateSecret(gatewayId) {
+		const newSecret = await HMAC.generateSecret();
+		const res = await gatewayDao.generateSecret(gatewayId, newSecret);
+		return res.rows[0];
 	}
+
 };

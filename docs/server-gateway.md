@@ -1,28 +1,33 @@
-27/04/2026
-
-# OUT OF DATE
-
+23/05/2026
 
 # Server - Gateway
-This API specification covers Tower registration, status updates, and stop data distribution.  
+This spec describes gateway pairing, tower pairing, authentication, departure fetching, and departure distribution.,
 
 
-## Gateway requests stop data from the Server
-This must support up to 5 towers, and each tower can have up to 2 departures.  
-If it has only one departure, set the second departure’s properties as empty strings "" (or NULL it?).  
-If PID didn't return any departures (failed API call / departure not found in the response), set the nextTime and leaveIn as empty strings.  
-displayData is an array containing one entry per tower. Each entry's departures array can contain up to 2 departures.  
-The server must:  
-- Verify that those towers belong to that gateway  
-- read the database to read all of that gateway's tower->stop assignments  
-- make one request to PID, format it, and send the response.  
-It's described a bit better in `./server-pid.md`  
+## Gateway requests stop data from the server
 
-Endpoint: GET `/gateways/{gatewayId}/departures`  
-Headers: Authorization: Bearer gateway-token (23/03 ignore the header for the MVP)  
+This is actually the only endpoint that the gateway uses to interact with the server. Every minute, the gateway calls this endpoint and sends its ID, paired tower IDs, and authentication information.  
+
+The signature, unixTime, and requestType variables relate to HMAC authentication. The server will read the secret stored in the database and generate the signature using the request type, gateway ID, and unix time that the gateway sent, and verify that the signatures match. The secret can be generated on the frontend, and must be copy/pasted to Node_Red by the user.  
+
+Each gateway can have up to 5 towers, and each tower can have up to 2 departures.
+
+Server logic:
+1. Authentication & Verification: It first verifies that the gateway is assigned to a user. If it is, it then verifies the signature.
+2. The server now verifies that each tower has either already been paired to the gateway or is not paired to any gateway. If not, it creates a new entry for each tower in the database.
+3. It then reads all of the gateway's tower's assignments and makes a request to PID to fetch departures for those platforms.
+4. PID returns a list of departures for each of those platforms and a departure that fulfills the criteria (correct line & time) is selected for each assignment.
+5. The assignments are then encoded into the format as described in the Response section along with a timestamp and then sent to the gateway.
+7. The gateway forwards this message to each tower. I decided to keep all towers on the same topic.
+
+Endpoint: POST `/gateways/{gatewayId}/departures`  
 Request Body:
 ```
 {
+	gatewayId: "c1895bf80e2b",
+	unixTime: 1779545488497,
+	signature: "e021913aba2a699622bb00eeb70b8d1aa5379a83ef2de6fa17f78e910bcd7135",
+	requestType: "get_departures",
 	"towerIds": [
 		47774,
 		72727,
@@ -31,26 +36,28 @@ Request Body:
 }
 ```
 
-Response: 
+Response:  
+The final result will be an array of all assignments of towers assigned to that gateway using a custom format. I decided to not use JSON since MQTT can only send 42 bytes at a time. Not having keys means the message size is reduced by roughly half.  
+The charge is duplicated in each assignment to make parsing easier.  
 ```
-{ 
-	"timestamp": "2026-03-12T14:30:00Z", 
-	"displayData": [
+	structure (not json):
+	[
+		time
 		{
-			"towerId": 42345,
-			"departures": [
-				{
-					"lineNumber": "136", // string, length 3
-					"lineDirection": "Jizni Mesto", // string, length 15
-					"stopName": "Vysocanska", // string, length 22, use display_ascii
-					"nextTime": "15:50" // string, length 5
-					"leaveIn": "10m", // string, length 3
-					"type": 0, // The database stores the type as a string, so you gotta convert it to a number: enum from 0 to 5: 0 = bus, 1 = metro, 2 = tram, 3 = trolleybus, 4 = train, 5 = ferry; 
-				}
-			]
+			towerId |
+			charge |
+			lineNumber |
+			lineDirection |
+			stopName |
+			nextTime |
+			leaveIn |
+			type
 		}
+		{...like previous}
 	]
-}
+
+	example:
+	[14:25{547c65321d0b|70|B|Zlicin|Kolbenova|17:46|5m|1}{1547c65321d0b|99|177|Chodov|Vysocanska|17:52|15m|0}]
 ```
 
 ## Gateway registers new towers
@@ -95,31 +102,6 @@ Request Body:
 Response:
 ```
 { 
-  "message": 1 // or 0 if it failed to update
+  "message": 'success' // or error on failure
 } 
-```
-
-## Gateway registers itself to a user IMPLEMENTED
-Endpoint: POST `/gateways/register`  
-Headers: Authorization: Bearer gateway-token  
-Request Body:  
-```
-{
-	"id": "3622662aac" // the radio dongle ID
-} 
-```
-Response:  
-```
-201
-```
-
-## Gateway sends tower health/battery data to the server IMPLEMENTED
-Endpoint: POST `/gateways/health`  
-Request Body:
-```
-{
-	"gatewayId": "4994994",
-	"towerId": 53444bce,
-	"charge": 44 // percentage
-}
 ```

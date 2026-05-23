@@ -10,6 +10,7 @@ import { towerRouter } from "./src/towers/towerRouter.js";
 import { userRouter } from "./src/users/userRouter.js";
 import { validationErrorHandler } from "./src/validation/errorHandler.js";
 import { exec } from "child_process";
+import { HMAC } from "./src/gateways/hmac.js";
 
 dotenv.config();
 const SERVER_PORT = process.env.PORT;
@@ -49,7 +50,7 @@ async function dbCheck() {
 
 await dbCheck();
 
-// cloud disabled since we aren't wiping it constantly, but useful locally
+// useful locally
 if (process.env.LOCAL == 'true') {
 	await initDB();
 	await updateData();
