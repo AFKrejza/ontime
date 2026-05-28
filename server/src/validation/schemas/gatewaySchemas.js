@@ -6,15 +6,17 @@ export const gatewayRegisterSchema = {
 	type: "object",
 	properties: {
 		gatewayId: definitions.hexId,
-		gatewayName: definitions.displayName
+		gatewayName: definitions.displayName,
+		userId: definitions.positiveInt
 	},
-	required: ["gatewayId", "gatewayName"],
+	required: ["gatewayId", "gatewayName", "userId"],
 	additionalProperties: false,
 	errorMessage: {
 		type: "request body must be a JSON object",
 		required: {
 			gatewayId: "gatewayId is required",
-			gatewayName: "gatewayName is required"
+			gatewayName: "gatewayName is required",
+			userId: "userId is required"
 		},
 		additionalProperties: "unknown field is not allowed"
 	}

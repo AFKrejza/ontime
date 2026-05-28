@@ -87,7 +87,7 @@ export async function authFetch(
       if (text) message = text;
     }
     throw new Error(message);
-  } else console.log("erorr idk something aint working");
+  }
 
   return response;
 }
@@ -207,9 +207,17 @@ export async function registerGateway(data: {
   gatewayId: string;
   gatewayName: string;
 }) {
+  const userId = getUserIdFromToken();
+  if (!userId) throw new Error(`Missing token`);
+
+  const reqData = {
+    ...data,
+    userId
+  };
+
   const response = await authFetch("/gateways/register", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(reqData),
   });
 
   if (!response.ok) {
@@ -218,6 +226,7 @@ export async function registerGateway(data: {
   }
   return response.json();
 }
+
 export function getUserIdFromToken(): string | null {
   const token = getStoredToken();
   if (!token) return null;

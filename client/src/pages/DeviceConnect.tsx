@@ -47,7 +47,7 @@ export default function DeviceConnect() {
       <header className="header">
         <div>
           <h1>Connect Your Device</h1>
-          <p>Link your tower device to start monitoring transport lines.</p>
+          <p>Link your gateway to start monitoring transport lines.</p>
         </div>
       </header>
 
@@ -59,15 +59,15 @@ export default function DeviceConnect() {
           <div className="instructionBox">
             <h3>How to find your device code:</h3>
             <ol className="instructionList">
-              <li>Look on the back of your OnTime device</li>
-              <li>Find the 6-12 character alphanumeric code</li>
+              <li>Check your gateway dongle ID in Node-Red</li>
+              <li>Find the 12 character alphanumeric code</li>
               <li>Enter it below to pair with your account</li>
             </ol>
           </div>
 
           <div className="formRow">
             <label>
-              Give your device a name
+              Give your gateway a name
               <input
                 type="text"
                 value={deviceName}
@@ -113,10 +113,10 @@ export default function DeviceConnect() {
         </section>
 
         <section className="card infoCard">
-          <h3>Don't have a device yet?</h3>
+          <h3>Don't have a gateway yet?</h3>
           <p>
             You can still use OnTime to configure and manage your settings.
-            You'll be able to connect a device later.
+            You'll be able to connect a gateway later.
           </p>
         </section>
       </main>

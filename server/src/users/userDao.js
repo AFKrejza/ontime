@@ -18,7 +18,7 @@ export const userDao = {
 		return await pgClient.query(`
 			INSERT INTO users (email, username, password_hash)
 			VALUES ($1, $2, $3)
-			RETURNING (id, email, username, created_at)
+			RETURNING id, email, username, created_at
 		`, [user.email, user.userName, user.passwordHash]);
 	},
 

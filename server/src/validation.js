@@ -79,6 +79,13 @@ export function validate(schemaName, source = "body") {
         const data = resolveSource(req, source);
 
         if (data === undefined || data === null) {
+            console.log({
+                errors: [{
+                    field: source,
+                    message: "expected " + source + " to be present",
+                    keyword: "required"
+                }]
+            });
             return res.status(400).json({
                 errors: [{
                     field: source,
@@ -91,6 +98,7 @@ export function validate(schemaName, source = "body") {
         const ok = validator(data);
         if (ok) return next();
 
+        console.log(formatErrors(validator.errors));
         return res.status(400).json({
             errors: formatErrors(validator.errors)
         });

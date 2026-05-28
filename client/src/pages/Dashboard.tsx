@@ -14,27 +14,6 @@ type DisplayDevice = {
   offset?: number;
 };
 
-const fallbackDevices: DisplayDevice[] = [
-  {
-    name: "home stop",
-    status: "online",
-    battery: "46%",
-    lastSeen: "12:32",
-    lowBattery: false,
-    line: "Line 136",
-    location: "Vysočanská",
-  },
-  {
-    name: "work stop",
-    status: "offline",
-    battery: "22%",
-    lastSeen: "16:03",
-    lowBattery: true,
-    line: "Metro B",
-    location: "Kolbenova",
-  },
-];
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [towerConfigs, setTowerConfigs] = useState<TowerConfig[]>([]);
@@ -83,9 +62,8 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  const devices =
-    towerConfigs.length > 0
-      ? towerConfigs.map((config: any) => ({
+  const devices = 
+          towerConfigs.map((config: any) => ({
           name: config.stopName,
           status: "online",
           battery: config.batteryLevel ? `${config.batteryLevel}%` : "100%",
@@ -97,8 +75,7 @@ export default function Dashboard() {
           line: config.line.name,
           location: `${config.gatewayName} • ${config.towerName}`,
           offset: Math.abs(config.offset),
-        }))
-      : fallbackDevices;
+        }));
 
   const onlineCount = devices.filter((d) => d.status === "online").length;
 
