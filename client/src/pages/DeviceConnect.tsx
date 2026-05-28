@@ -23,12 +23,12 @@ export default function DeviceConnect() {
       await registerGateway({ gatewayId: deviceCode, gatewayName: deviceName });
 
       setSuccessMessage(
-        `✓ Registered gateway ${deviceName} with id:${deviceCode}`,
+        `✓ Registered gateway ${deviceName} with id:${String(deviceCode).toLocaleLowerCase()}`,
       );
 
       setTimeout(() => {
-        navigate("/dashboard");
-      }, 3000);
+        navigate("/gateways");
+      }, 4000);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to connect to device.",
@@ -39,7 +39,7 @@ export default function DeviceConnect() {
   };
 
   const handleSkip = () => {
-    navigate("/dashboard");
+    navigate("/gateways");
   };
 
   return (

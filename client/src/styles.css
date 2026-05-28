@@ -18,7 +18,8 @@ body,
 body {
   margin: 0;
   padding: 0;
-  background: radial-gradient(circle at top left, #eef7ff, transparent 35%),
+  background:
+    radial-gradient(circle at top left, #eef7ff, transparent 35%),
     linear-gradient(180deg, #ffffff, #f3f5f7);
 }
 
@@ -163,7 +164,7 @@ label {
   font-weight: 600;
 }
 
-input[type='number'] {
+input[type="number"] {
   width: 120px;
   padding: 12px 14px;
   border: 1px solid #d1d5db;
@@ -229,6 +230,7 @@ input[type='number'] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   margin-bottom: 16px;
 }
 
@@ -310,7 +312,9 @@ input[type='number'] {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   text-align: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .featureCard:hover {
@@ -391,13 +395,23 @@ input[type='number'] {
   font-size: 1.05rem;
   color: #1f2937;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
 }
 
 .deviceLocation {
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: #64748b;
+  margin-top: 3px;
 }
 
+.assignmentHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .statusBadge {
   display: inline-flex;
   align-items: center;
@@ -406,6 +420,7 @@ input[type='number'] {
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.85rem;
+  margin: 0;
 }
 
 .statusBadge.online {
@@ -558,7 +573,7 @@ input[type='number'] {
 
 .divider::before,
 .divider::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   width: 40%;
@@ -648,7 +663,7 @@ input[type='number'] {
 }
 
 .deviceCodeInput {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1.1rem;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -662,3 +677,131 @@ input[type='number'] {
   cursor: not-allowed;
 }
 
+.deleteButton {
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: "50%";
+  width: 26px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: "all 0.2s ease";
+  opacity: 1;
+}
+
+.gatewayCard {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.gatewayHeader {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.gatewayName {
+  font-size: 1.35rem;
+  font-weight: bold;
+}
+
+.gatewayId {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.towerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.towerHeader {
+  margin: 0 0 10px 0;
+  color: #232323;
+}
+
+.towerCard {
+  background: #f0f4f8;
+  border: 1px solid #cbd5e1;
+  padding: 12px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 10rem;
+  transition: 0.2s;
+}
+
+.towerName {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.towerBattery {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-top: 5px;
+}
+
+.towerId {
+  font-size: 0.85rem;
+  color: #8b99ad;
+  margin-top: 3px;
+}
+
+.menuIcon {
+  width: 1.2rem;
+  height: 1.2rem;
+  object-fit: contain;
+}
+
+.dotsMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #ffffff;
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 100;
+  border: 1px solid #e2e8f0;
+  min-width: 14rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+.dropdownItemStyle {
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: #334155;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 6px;
+  transition: 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.divider {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 4px 0;
+}
+
+.gatewayPageHeader {
+  text-align: center;
+}
