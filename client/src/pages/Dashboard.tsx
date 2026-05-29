@@ -10,6 +10,8 @@ import {
 // @ts-ignore
 import DeleteButton from "../assets/delete.png";
 import BackButton from "../components/BackButton";
+import getBatteryIcon from "../components/batteryLevel";
+import SettingsButton from "../components/SettingsButton";
 
 type DisplayDevice = {
   assignmentId: string;
@@ -146,6 +148,7 @@ export default function Dashboard() {
   return (
     <div className="page">
       <BackButton toPage="/gateways" />
+      <SettingsButton toPage="/settings" />
       <header className="header">
         <div>
           <h1>Tower: {rawTowerInfo.name}</h1>
@@ -157,7 +160,10 @@ export default function Dashboard() {
         <section className="card summarySection">
           <div className="summaryGrid">
             <div className="summaryItem">
-              <div className="summaryValue">🔋 {rawTowerInfo.battery}%</div>
+              <div className="summaryValue">
+                {getBatteryIcon(rawTowerInfo.battery, 40, 40)}
+                {rawTowerInfo.battery}%
+              </div>
               <div className="summaryLabel">Battery Level</div>
             </div>
             <div className="summaryItem">

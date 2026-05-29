@@ -125,8 +125,7 @@ export async function signupUser(
   if (!data.token) {
     throw new Error("Invalid signup response");
   }
-  setToken(data.token);
-  return data;
+  return loginUser(email, password);
 }
 
 export async function fetchProfile(): Promise<userProfile> {

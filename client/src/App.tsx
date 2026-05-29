@@ -25,7 +25,7 @@ export default function App() {
           path="/gateways"
           element={
             <ProtectedRoute>
-              <GatewaysList />{" "}
+              <GatewaysList />
             </ProtectedRoute>
           }
         />

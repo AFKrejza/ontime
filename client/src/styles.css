@@ -356,7 +356,9 @@ input[type="number"] {
 }
 
 .summaryValue {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 2.5rem;
   font-weight: 700;
   color: #1f2937;
@@ -561,7 +563,7 @@ input[type="number"] {
 
 .authButton {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 22px;
 }
 
 .divider {
@@ -666,7 +668,6 @@ input[type="number"] {
   font-family: "Courier New", monospace;
   font-size: 1.1rem;
   letter-spacing: 2px;
-  text-transform: uppercase;
   text-align: center;
 }
 
@@ -749,6 +750,9 @@ input[type="number"] {
   font-size: 0.9rem;
   color: #475569;
   margin-top: 5px;
+  padding-top: 0.2rem;
+  align-items: center;
+  display: flex;
 }
 
 .towerId {
