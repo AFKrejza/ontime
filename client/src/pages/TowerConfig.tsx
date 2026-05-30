@@ -11,6 +11,7 @@ import {
 } from "../api";
 import { getTowerConfigs, saveTowerConfig } from "../towerStorage";
 import type { TowerConfig } from "../towerStorage";
+import BackButton from "../components/BackButton";
 
 function normalize(value: string) {
   return value
@@ -192,6 +193,7 @@ export default function TowerConfig() {
 
   return (
     <div className="page">
+      <BackButton />
       <header className="header">
         <div>
           <h1>Tower Configuration</h1>

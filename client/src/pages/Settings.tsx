@@ -5,6 +5,7 @@ import {
   clearTowerConfigs,
   TowerConfig,
 } from "../towerStorage";
+import BackButton from "../components/BackButton";
 import {
   clearToken,
   authFetch,
@@ -18,42 +19,19 @@ import {
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [towerConfigs, setTowerConfigs] = useState<TowerConfig[]>([]);
   const [profile, setProfile] = useState<userProfile | null>(null);
-  const userId = getUserIdFromToken();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        // getting getaeways from backend
-        const [profileData, gateways] = await Promise.all([
-          fetchProfile(),
-          getUserGateways(),
-        ]);
+        setLoading(true);
+        const profileData = await fetchProfile();
         setProfile(profileData);
-
-        const allData = await Promise.all(
-          gateways.map(async (gt: any) => {
-            const res = await authFetch(`/gateways/${gt.id}/status`);
-            return res.json();
-          }),
-        );
-
-        const combined: any[] = allData.flatMap((gwStatus: any) =>
-          gwStatus.towers.flatMap((tower: any) =>
-            tower.assignments.map((ass: any) => ({
-              id: String(ass.assignmentId),
-              towerId: tower.towerId,
-              stopName: ass.stop.name,
-              line: ass.line,
-              offset: ass.departureOffset,
-              gatewayName: gwStatus.gatewayName,
-            })),
-          ),
-        );
-        setTowerConfigs(combined);
       } catch (error) {
         console.error("Unable to load data from DB: ", error);
+      } finally {
+        setLoading(false);
       }
     }
     loadData();
@@ -64,39 +42,17 @@ export default function Settings() {
     navigate("/");
   };
 
-  const handleDeleteOne = async (towerId: string, assignmentId: string) => {
-    if (!window.confirm("Delete this assignment?")) return;
-
-    try {
-      await deleteAssignment(towerId, assignmentId);
-      setTowerConfigs((prev) => prev.filter((c) => c.id !== assignmentId));
-    } catch (err) {
-      alert("Failed to delete from server");
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete ALL assignments? This cannot be undone.",
-      )
-    )
-      return;
-    try {
-      const uniqueTowerIds = Array.from(
-        new Set(towerConfigs.map((c) => c.towerId)),
-      );
-      await Promise.all(uniqueTowerIds.map((id) => deleteAllAssignments(id)));
-      setTowerConfigs([]);
-      alert("All tower settings have been cleared.");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to clear assignments from server.");
-    }
-  };
+  if (loading) {
+    return (
+      <div className="page" style={{ padding: "20px" }}>
+        Loading settings...
+      </div>
+    );
+  }
 
   return (
     <div className="page">
+      <BackButton />
       <header className="header">
         <div>
           <h1>Settings</h1>
@@ -135,48 +91,6 @@ export default function Settings() {
         </section>
 
         <section className="card">
-          <h2>Your Assignments</h2>
-          <p>Currently monitoring {towerConfigs.length} transport lines.</p>
-          <button
-            className="primaryButton gatewayButton"
-            onClick={() => navigate("/tower")}
-          >
-            Add New Device
-          </button>
-          {towerConfigs.length > 0 && (
-            <div className="settingsList">
-              {towerConfigs.map((config) => (
-                <div key={config.id} className="settingItem">
-                  <span>
-                    <strong>{config.stopName}</strong> • {config.line.name}
-                    <br />
-                    <small style={{ color: "#888" }}>
-                      Device: {config.gatewayName}
-                    </small>
-                  </span>
-                  <span className="settingValue">Offset {config.offset}m</span>
-                  <button
-                    className="linkButton"
-                    style={{ color: "#ff4444", width: "10%" }}
-                    onClick={() => handleDeleteOne(config.towerId, config.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {towerConfigs.length > 0 && (
-            <button
-              className="secondaryButton gatewayButton"
-              onClick={handleDeleteAll}
-            >
-              Clear All Assignments
-            </button>
-          )}
-        </section>
-
-        <section className="card">
           <h2>ℹ️ About</h2>
           <div className="aboutInfo">
             <p>
@@ -193,7 +107,7 @@ export default function Settings() {
         <section className="card">
           <button
             className="secondaryButton gatewayButton"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate(-1)}
           >
             ← Back to Dashboard
           </button>

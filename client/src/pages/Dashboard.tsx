@@ -1,89 +1,130 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getTowerConfigs, TowerConfig } from "../towerStorage";
-import { getTowerStatus, authFetch, getUserGateways } from "../api";
+import {
+  getTowerStatus,
+  authFetch,
+  getUserGateways,
+  deleteAssignment,
+} from "../api";
+// @ts-ignore
+import DeleteButton from "../assets/delete.png";
+import BackButton from "../components/BackButton";
 
 type DisplayDevice = {
+  assignmentId: string;
   name: string;
   status: string;
-  battery: string;
   lastSeen: string;
-  lowBattery: boolean;
   line: string;
+  type: string;
   location: string;
-  offset?: number;
+  offset: number;
+  battery: number;
 };
 
+interface TowerInfo {
+  id: string;
+  name: string;
+  battery: number;
+  lastSeen: string;
+  assignments: any[];
+}
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { towerId } = useParams<{ towerId: string }>();
   const [towerConfigs, setTowerConfigs] = useState<TowerConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rawTowerInfo, setRawTowerInfo] = useState<TowerInfo>();
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        // getting gateways list info from backend
-        const gateways = await getUserGateways();
 
-        // for each gateway get its status: towers, assignments
-        const allTowersData = await Promise.all(
-          gateways.map(async (gw: any) => {
-            const statusRes = await authFetch(`/gateways/${gw.id}/status`);
-            return statusRes.json();
+        const getTowers = await authFetch(`/towers/${towerId}`);
+        const tower: TowerInfo = await getTowers.json();
+
+        const realConfigs: TowerConfig[] = tower.assignments.map(
+          (ass: any) => ({
+            id: String(ass.assignmentId),
+            towerId: tower.id,
+            towerName: tower.name,
+            stopName: ass.stop.name,
+            stopId: ass.stopId,
+            slug: ass.stop.slug,
+            line: ass.line,
+            offset: ass.departureOffset,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           }),
         );
 
-        const realConfigs: TowerConfig[] = allTowersData.flatMap(
-          (gwStatus: any) =>
-            gwStatus.towers.flatMap((tower: any) =>
-              tower.assignments.map((ass: any) => ({
-                id: String(ass.assignmentId),
-                stopName: ass.stop.name,
-                stopId: String(ass.stopId),
-                line: ass.line,
-                offset: ass.departureOffset,
-                createdAt: new Date().toISOString(),
-                updatedAt: tower.lastSeen || new Date().toISOString(),
-                gatewayName: gwStatus.gatewayName,
-                towerName: tower.towerName,
-                batteryLevel: tower.battery,
-              })),
-            ),
-        );
-        //
         setTowerConfigs(realConfigs);
+        setRawTowerInfo(tower);
       } catch (error) {
         console.error("Unable to load data from DB: ", error);
       } finally {
         setLoading(false);
       }
     }
-    loadData();
-  }, []);
+    if (towerId) loadData();
+  }, [towerId]);
 
-  const devices = 
-          towerConfigs.map((config: any) => ({
-          name: config.stopName,
-          status: "online",
-          battery: config.batteryLevel ? `${config.batteryLevel}%` : "100%",
-          lastSeen: new Date(config.updatedAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          lowBattery: false,
-          line: config.line.name,
-          location: `${config.gatewayName} • ${config.towerName}`,
-          offset: Math.abs(config.offset),
-        }));
+  const devices = towerConfigs.map((config: any) => {
+    let transportType = config.line.type;
+    if (transportType === "metro") {
+      transportType = "Metro Line";
+    } else if (transportType === "tram") {
+      transportType = "Tram";
+    } else if (transportType === "bus") {
+      transportType = "Bus";
+    }
+    return {
+      assignmentId: config.id,
+      name: config.stopName,
+      status: "online",
+      battery: config.batteryLevel ? `${config.batteryLevel}%` : "100%",
+      lastSeen: new Date(config.updatedAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      line: config.line.name,
+      type: transportType,
+      location: `${config.line.direction}`,
+      offset: Math.abs(config.offset),
+    };
+  });
 
-  const onlineCount = devices.filter((d) => d.status === "online").length;
+  // if data is still loading in useEffect, then show Loader:
+  if (loading || !rawTowerInfo) {
+    return (
+      <div className="page" style={{ padding: "20px" }}>
+        Loading tower data...
+      </div>
+    );
+  }
 
+  async function handleDeleteAssignment(assignmentId: string) {
+    const userCode = window.prompt("To delete assignment, type 'delete': ");
+
+    if (userCode?.toLocaleLowerCase() !== "delete") {
+      alert("Delete canceled.");
+      return;
+    }
+    try {
+      await deleteAssignment(rawTowerInfo!.id, assignmentId);
+      setTowerConfigs((prev) => prev.filter((c) => c.id !== assignmentId));
+    } catch (err) {
+      alert("Failed to delete from server");
+    }
+  }
   return (
     <div className="page">
+      <BackButton toPage="/gateways" />
       <header className="header">
         <div>
-          <h1>Dashboard</h1>
+          <h1>Tower: {rawTowerInfo.name}</h1>
           <p>Monitor your connected devices and tower assignments.</p>
         </div>
       </header>
@@ -92,63 +133,99 @@ export default function Dashboard() {
         <section className="card summarySection">
           <div className="summaryGrid">
             <div className="summaryItem">
-              <div className="summaryValue">{onlineCount}</div>
-              <div className="summaryLabel">Online Devices</div>
+              <div className="summaryValue">🔋 {rawTowerInfo.battery}%</div>
+              <div className="summaryLabel">Battery Level</div>
             </div>
             <div className="summaryItem">
               <div className="summaryValue">{devices.length}</div>
-              <div className="summaryLabel">Total Towers</div>
+              <div className="summaryLabel">Active Assignments</div>
             </div>
           </div>
         </section>
 
         <section className="card">
-          <h2>Your Towers</h2>
+          <h2>Your Tower Stops</h2>
           <div className="deviceGrid">
-            {devices.map((device) => (
-              <div key={device.name} className="deviceCard">
-                <div className="deviceHeader">
-                  <div>
-                    <div className="deviceLabel">📍 {device.name}</div>
-                    <div className="deviceLocation">{device.location}</div>
-                  </div>
-                  <div
-                    className={
-                      device.status === "online"
-                        ? "statusBadge online"
-                        : "statusBadge offline"
-                    }
-                  >
-                    {device.status === "online" ? "🟢" : "🔴"} {device.status}
-                  </div>
-                </div>
-
-                <div className="deviceDetails">
-                  <div className="deviceDetailRow">
-                    <span className="detailLabel">Line:</span>
-                    <span className="detailValue">{device.line}</span>
-                  </div>
-                  <div className="deviceDetailRow">
-                    <span className="detailLabel">Battery:</span>
-                    <span
-                      className={`detailValue ${device.lowBattery ? "lowBattery" : ""}`}
-                    >
-                      🔋 {device.battery}
-                    </span>
-                  </div>
-                  {device.offset != null && (
-                    <div className="deviceDetailRow">
-                      <span className="detailLabel">Offset:</span>
-                      <span className="detailValue">{device.offset} mins</span>
+            {devices.length === 0 ? (
+              <p
+                style={{
+                  textAlign: "center",
+                  padding: "4px",
+                  color: "#64748b",
+                }}
+              >
+                No assignments found for this tower. Click the button below to
+                add one!
+              </p>
+            ) : (
+              devices.map((device) => (
+                <div key={device.name} className="deviceCard">
+                  <div className="deviceHeader">
+                    <div>
+                      <div className="deviceLabel">📍 {device.name}</div>
+                      <div className="deviceLocation">{device.location}</div>
                     </div>
-                  )}
-                  <div className="deviceDetailRow">
-                    <span className="detailLabel">Last seen:</span>
-                    <span className="detailValue">{device.lastSeen}</span>
+                    <div className="assignmentHeader">
+                      <div
+                        className={
+                          device.status === "online"
+                            ? "statusBadge online"
+                            : "statusBadge offline"
+                        }
+                      >
+                        {device.status === "online" ? "🟢" : "🔴"}{" "}
+                        {device.status}
+                      </div>
+                      <button
+                        className="deleteButton"
+                        onClick={() =>
+                          handleDeleteAssignment(device.assignmentId)
+                        }
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = "1";
+                          e.currentTarget.style.transform = "scale(1.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                        }}
+                      >
+                        <img
+                          src={DeleteButton}
+                          alt="Back"
+                          style={{
+                            width: "1.65rem",
+                            height: "1.65rem",
+                            objectFit: "contain",
+                          }}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="deviceDetails">
+                    <div className="deviceDetailRow">
+                      <span className="detailLabel">{device.type}:</span>
+                      <span className="detailValue">{device.line}</span>
+                    </div>
+                    <div className="deviceDetailRow">
+                      <span className="detailLabel">Direction:</span>
+                      <span className="detailValue">{device.location}</span>
+                    </div>
+                    {device.offset != null && (
+                      <div className="deviceDetailRow">
+                        <span className="detailLabel">Offset:</span>
+                        <span className="detailValue">
+                          {device.offset} mins
+                        </span>
+                      </div>
+                    )}
+                    <div className="deviceDetailRow">
+                      <span className="detailLabel">Last seen:</span>
+                      <span className="detailValue">{device.lastSeen}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
 

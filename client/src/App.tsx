@@ -6,6 +6,7 @@ import DeviceConnect from "./pages/DeviceConnect";
 import Dashboard from "./pages/Dashboard";
 import TowerConfig from "./pages/TowerConfig";
 import Settings from "./pages/Settings";
+import GatewaysList from "./pages/GatewaysList";
 import { isAuthenticated } from "./api";
 import React, { ReactNode } from "react";
 
@@ -21,6 +22,14 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route
+          path="/gateways"
+          element={
+            <ProtectedRoute>
+              <GatewaysList />{" "}
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/device-connect"
           element={
             <ProtectedRoute>
@@ -29,7 +38,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard"
+          path="/dashboard/:towerId"
           element={
             <ProtectedRoute>
               <Dashboard />

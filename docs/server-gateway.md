@@ -6,7 +6,7 @@ This spec describes gateway pairing, tower pairing, authentication, departure fe
 
 ## Gateway requests stop data from the server
 
-This is actually the only endpoint that the gateway uses to interact with the server. Every minute, the gateway calls this endpoint and sends its ID, paired tower IDs, and authentication information.  
+This is the primary endpoint that the gateway uses to interact with the server. Every minute, the gateway calls this endpoint and sends its ID, paired tower IDs, and authentication information.  
 
 The signature, unixTime, and requestType variables relate to HMAC authentication. The server will read the secret stored in the database and generate the signature using the request type, gateway ID, and unix time that the gateway sent, and verify that the signatures match. The secret can be generated on the frontend, and must be copy/pasted to Node_Red by the user.  
 
@@ -18,7 +18,7 @@ Server logic:
 3. It then reads all of the gateway's tower's assignments and makes a request to PID to fetch departures for those platforms.
 4. PID returns a list of departures for each of those platforms and a departure that fulfills the criteria (correct line & time) is selected for each assignment.
 5. The assignments are then encoded into the format as described in the Response section along with a timestamp and then sent to the gateway.
-7. The gateway forwards this message to each tower. I decided to keep all towers on the same topic.
+7. The gateway forwards this message to each tower. I decided to keep all towers on the same topic aka broadcast the complete string to all towers.
 
 Endpoint: POST `/gateways/{gatewayId}/departures`  
 Request Body:
@@ -58,29 +58,6 @@ The charge is duplicated in each assignment to make parsing easier.
 
 	example:
 	[14:25{547c65321d0b|70|B|Zlicin|Kolbenova|17:46|5m|1}{1547c65321d0b|99|177|Chodov|Vysocanska|17:52|15m|0}]
-```
-
-## Gateway registers new towers
-The gateway must first be assigned to a user via `/gateways/register` in client-server.md.  
-The gateway will repeatedly try to register its towers but the server will only accept it once it exists in the database, meaning once a user has registered it.  
-Endpoint: POST `/gateways/:gatewayId/towers/register`  
-Headers: Authorization: Bearer gateway-token  
-Request Body:  
-```
-{ 
-	"gatewayId": 1222223, 
-	"name": "Living Room", 
-	"towers": [ 
-		77b23727
-	] 
-} 
-```
-Response:  
-```
-{ 
-	"gatewayToken": "eyJhbGciOiJIUzI1NiIs...", 
-	"registeredTowers": [345727], 
-}
 ```
 
 
