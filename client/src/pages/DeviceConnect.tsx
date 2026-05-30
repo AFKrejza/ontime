@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerGateway } from "../api";
+import SettingsButton from "../components/SettingsButton";
 
 export default function DeviceConnect() {
   const [deviceCode, setDeviceCode] = useState("");
@@ -44,6 +45,7 @@ export default function DeviceConnect() {
 
   return (
     <div className="page">
+      <SettingsButton toPage="/settings" />
       <header className="header">
         <div>
           <h1>Connect Your Device</h1>

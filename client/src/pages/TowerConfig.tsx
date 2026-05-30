@@ -12,7 +12,7 @@ import {
 import { getTowerConfigs, saveTowerConfig } from "../towerStorage";
 import type { TowerConfig } from "../towerStorage";
 import BackButton from "../components/BackButton";
-
+import SettingsButton from "../components/SettingsButton";
 function normalize(value: string) {
   return value
     .trim()
@@ -194,6 +194,7 @@ export default function TowerConfig() {
   return (
     <div className="page">
       <BackButton />
+      <SettingsButton toPage="/settings" />
       <header className="header">
         <div>
           <h1>Tower Configuration</h1>

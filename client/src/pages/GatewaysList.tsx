@@ -4,6 +4,9 @@ import { authFetch, getUserGateways } from "../api";
 import DotsMenu from "../assets/dots.png";
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
+import getbatteryIcon from "../components/batteryLevel";
+import getBatteryIcon from "../components/batteryLevel";
+import SettingsButton from "../components/SettingsButton";
 interface Tower {
   towerName: string;
   towerId: string;
@@ -109,11 +112,37 @@ export default function GatewaysList() {
     }
   };
 
+  const handleDeleteTower = async (towerId: string, towerName: string) => {
+    setActiveMenuGwId(null);
+    const userCode = window.prompt(
+      `To delete tower "${towerName}", enter 'delete'`,
+    );
+    if (userCode?.toLocaleLowerCase() !== "delete") {
+      alert("Incorrect code! Deletion canceled.");
+      return;
+    }
+
+    try {
+      await authFetch(`/towers/${towerId}`, {
+        method: "DELETE",
+      });
+      setGateways((prev) =>
+        prev.map((gw) => ({
+          ...gw,
+          towers: gw.towers.filter((t) => t.towerId !== towerId),
+        })),
+      );
+    } catch (err) {
+      alert("Failed to delete tower");
+    }
+  };
+
   if (loading) return <div>Loading your gateways</div>;
 
   return (
     <div>
       <BackButton toPage="/device-connect" />
+      <SettingsButton toPage="/settings" />
       <h2 className="gatewayPageHeader">My Gateways</h2>
       {gateways.length === 0 ? (
         <p>You have not active gateways</p>
@@ -196,10 +225,33 @@ export default function GatewaysList() {
                                   "transparent")
                               }
                             >
-                              🗼 Rename "{tower.towerName}"
+                              ✏️ Rename "{tower.towerName}"
                             </button>
                           ))}
                           <div className="divider" />
+
+                          {gw.towers.map((tower) => (
+                            <button
+                              key={`rename-${tower.towerId}`}
+                              onClick={() =>
+                                handleDeleteTower(
+                                  tower.towerId,
+                                  tower.towerName,
+                                )
+                              }
+                              className="dropdownItemStyle"
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#e9f4ff")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                            >
+                              🗑️ Delete "{tower.towerName}"
+                            </button>
+                          ))}
+
                           <button
                             onClick={() =>
                               handleDeleteGateway(gw.gatewayId, gw.gatewayName)
@@ -241,7 +293,8 @@ export default function GatewaysList() {
                       >
                         <div className="towerName">🗼 {tower.towerName}</div>
                         <div className="towerBattery">
-                          🔋 Battery: {tower.battery}%
+                          {getBatteryIcon(tower.battery, 22, 22)}
+                          Battery: {tower.battery}%
                         </div>
                         <div className="towerId">ID: {tower.towerId}</div>
                       </div>
