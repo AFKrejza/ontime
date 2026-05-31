@@ -49,10 +49,9 @@ async function dbCheck() {
 }
 
 await dbCheck();
+await initDB();
 
-// useful locally
 if (process.env.LOCAL == 'true') {
-	await initDB();
 	await updateData();
 }
 

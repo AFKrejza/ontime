@@ -1,4 +1,4 @@
-const CLOUD = false; // set to false for local dev
+const CLOUD = true; // set to false for local dev
 
 const API_BASE = CLOUD
   ? "https://ontime-production-aa3e.up.railway.app"
