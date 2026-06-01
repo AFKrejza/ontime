@@ -2,9 +2,14 @@ import { useState, useEffect } from "react";
 import { authFetch, getUserGateways } from "../api";
 // @ts-ignore
 import DotsMenu from "../assets/dots.png";
+// @ts-ignore
+import viewIcon from "../assets/view.png";
+// @ts-ignore
+import closedViewIcon from "../assets/closedView.png";
+// @ts-ignore
+import copyIcon from "../assets/copy.png";
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
-import getbatteryIcon from "../components/batteryLevel";
 import getBatteryIcon from "../components/batteryLevel";
 import SettingsButton from "../components/SettingsButton";
 interface Tower {
@@ -15,6 +20,7 @@ interface Tower {
 interface GatewayStatus {
   gatewayId: string;
   gatewayName: string;
+  gatewaySecret: string;
   towers: Tower[];
 }
 export default function GatewaysList() {
@@ -22,6 +28,9 @@ export default function GatewaysList() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [activeMenuGwId, setActiveMenuGwId] = useState<string | null>(null);
+  const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>(
+    {},
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -137,6 +146,40 @@ export default function GatewaysList() {
     }
   };
 
+  const handleToggleSecretVisibility = (gatewayId: string) => {
+    setVisibleSecrets((prev) => ({
+      ...prev,
+      [gatewayId]: !prev[gatewayId],
+    }));
+  };
+
+  const handleCopySecret = (secret: string) => {
+    if (!secret) {
+      alert("No secret available to copy!");
+      return;
+    }
+    navigator.clipboard.writeText(secret);
+  };
+
+  const handleGenerateSecret = async (gatewayId: string) => {
+    try {
+      const res = await authFetch(`/gateways/${gatewayId}/generateSecret`, {
+        method: "POST",
+      });
+      const updatedGate = await res.json();
+      setGateways((prev) =>
+        prev.map((g) =>
+          g.gatewayId === gatewayId
+            ? { ...g, gatewaySecret: updatedGate.hmac_secret }
+            : g,
+        ),
+      );
+      setVisibleSecrets((prev) => ({ ...prev, [gatewayId]: true }));
+    } catch (err) {
+      alert("Failed to generate new secret");
+    }
+  };
+
   if (loading) return <div>Loading your gateways</div>;
 
   return (
@@ -148,162 +191,246 @@ export default function GatewaysList() {
         <p>You have not active gateways</p>
       ) : (
         <div style={{ display: "grid", gap: "20px", marginTop: "20px" }}>
-          {gateways.map((gw) => (
-            <div key={gw.gatewayId} className="gatewayCard">
-              <div className="gatewayHeader">
-                <span className="gatewayName">📟 {gw.gatewayName}</span>
-                <div className="gatewayId">Gateway ID: {gw.gatewayId}</div>
-              </div>
-
-              <div>
-                <div className="towerContainer">
-                  <h4 className="towerHeader">Connected Towers:</h4>
+          {gateways.map((gw) => {
+            const isSecretVisible = !!visibleSecrets[gw.gatewayId];
+            return (
+              <div key={gw.gatewayId} className="gatewayCard">
+                <div className="gatewayHeader">
+                  <span className="gatewayName">📟 {gw.gatewayName}</span>
+                  <div className="gatewayId">Gateway ID: {gw.gatewayId}</div>
                   <div
-                    style={{ position: "relative", display: "inline-block" }}
+                    className="secretSection"
+                    style={{ marginTop: "5px", marginBottom: "5px" }}
                   >
-                    <button
-                      className="deleteButton"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuGwId(
-                          activeMenuGwId === gw.gatewayId ? null : gw.gatewayId,
-                        );
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "scale(1.1)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
+                    <span
+                      className="gatewayId"
+                      style={{
+                        marginRight: "8px",
+                        display: "inline-block",
+                        verticalAlign: "middle",
                       }}
                     >
-                      <img src={DotsMenu} alt="Menu" className="menuIcon" />
-                    </button>
-                    {activeMenuGwId === gw.gatewayId && (
-                      <>
-                        <div
-                          style={{
-                            position: "fixed",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            zIndex: 99,
-                          }}
-                          onClick={() => setActiveMenuGwId(null)}
+                      Gateway Secret:{" "}
+                      <strong className="showSecret">
+                        {isSecretVisible
+                          ? gw.gatewaySecret || "No secret generated yet"
+                          : "••••••••••••••••"}
+                      </strong>
+                    </span>
+
+                    <div className="secretActionsContainer">
+                      <button
+                        className="secretRoundBtn"
+                        onClick={() =>
+                          handleToggleSecretVisibility(gw.gatewayId)
+                        }
+                        title={isSecretVisible ? "Hide Secret" : "View Secret"}
+                      >
+                        <img
+                          src={isSecretVisible ? closedViewIcon : viewIcon}
+                          width={18}
+                          height={18}
+                          alt="toggle visibility"
+                          style={{ display: "block" }}
                         />
-                        <div className="dotsMenu">
-                          <button
-                            onClick={() =>
-                              handleRenameGateway(gw.gatewayId, gw.gatewayName)
-                            }
-                            className="dropdownItemStyle"
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = "#e9f4ff")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "transparent")
-                            }
-                          >
-                            ✏️ Rename Gateway
-                          </button>
+                      </button>
 
-                          {gw.towers.map((tower) => (
-                            <button
-                              key={`rename-${tower.towerId}`}
-                              onClick={() =>
-                                handleRenameTower(
-                                  tower.towerId,
-                                  tower.towerName,
-                                )
-                              }
-                              className="dropdownItemStyle"
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background = "#e9f4ff")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background =
-                                  "transparent")
-                              }
-                            >
-                              ✏️ Rename "{tower.towerName}"
-                            </button>
-                          ))}
-                          <div className="divider" />
+                      <button
+                        className="secretRoundBtn"
+                        onClick={() => handleCopySecret(gw.gatewaySecret)}
+                        disabled={!gw.gatewaySecret}
+                        title="Copy Secret"
+                      >
+                        <img
+                          src={copyIcon}
+                          width={18}
+                          height={18}
+                          alt="Copy"
+                          style={{ display: "block" }}
+                        ></img>
+                      </button>
 
-                          {gw.towers.map((tower) => (
-                            <button
-                              key={`rename-${tower.towerId}`}
-                              onClick={() =>
-                                handleDeleteTower(
-                                  tower.towerId,
-                                  tower.towerName,
-                                )
-                              }
-                              className="dropdownItemStyle"
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background = "#e9f4ff")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background =
-                                  "transparent")
-                              }
-                            >
-                              🗑️ Delete "{tower.towerName}"
-                            </button>
-                          ))}
-
-                          <button
-                            onClick={() =>
-                              handleDeleteGateway(gw.gatewayId, gw.gatewayName)
-                            }
-                            className="dropdownItemStyle"
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = "#d7abab")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "transparent")
-                            }
-                          >
-                            🗑️ Delete Gateway
-                          </button>
-                        </div>
-                      </>
-                    )}
+                      <button
+                        className="regenerateSecretBtn"
+                        onClick={() => handleGenerateSecret(gw.gatewayId)}
+                        title="Regenerate Secret"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#fff0f0";
+                          e.currentTarget.style.borderColor = "#f56565";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "#fff5f5";
+                          e.currentTarget.style.borderColor = "#feb2b2";
+                        }}
+                      >
+                        Regenerate Secret
+                      </button>
+                    </div>
                   </div>
                 </div>
-                {gw.towers.length === 0 ? (
-                  <p style={{ color: "#aaa", fontSize: "14px" }}>
-                    No active towers.
-                  </p>
-                ) : (
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}
-                  >
-                    {gw.towers.map((tower) => (
-                      <div
-                        key={tower.towerId}
-                        onClick={() => navigate(`/dashboard/${tower.towerId}`)}
-                        className="towerCard"
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#e2e8f0")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "#f0f4f8")
-                        }
+
+                <div>
+                  <div className="towerContainer">
+                    <h4 className="towerHeader">Connected Towers:</h4>
+                    <div
+                      style={{ position: "relative", display: "inline-block" }}
+                    >
+                      <button
+                        className="deleteButton"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuGwId(
+                            activeMenuGwId === gw.gatewayId
+                              ? null
+                              : gw.gatewayId,
+                          );
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "scale(1.1)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1)";
+                        }}
                       >
-                        <div className="towerName">🗼 {tower.towerName}</div>
-                        <div className="towerBattery">
-                          {getBatteryIcon(tower.battery, 22, 22)}
-                          Battery: {tower.battery}%
-                        </div>
-                        <div className="towerId">ID: {tower.towerId}</div>
-                      </div>
-                    ))}
+                        <img src={DotsMenu} alt="Menu" className="menuIcon" />
+                      </button>
+                      {activeMenuGwId === gw.gatewayId && (
+                        <>
+                          <div
+                            style={{
+                              position: "fixed",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              zIndex: 99,
+                            }}
+                            onClick={() => setActiveMenuGwId(null)}
+                          />
+                          <div className="dotsMenu">
+                            <button
+                              onClick={() =>
+                                handleRenameGateway(
+                                  gw.gatewayId,
+                                  gw.gatewayName,
+                                )
+                              }
+                              className="dropdownItemStyle"
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#e9f4ff")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                            >
+                              ✏️ Rename Gateway
+                            </button>
+
+                            {gw.towers.map((tower) => (
+                              <button
+                                key={`rename-${tower.towerId}`}
+                                onClick={() =>
+                                  handleRenameTower(
+                                    tower.towerId,
+                                    tower.towerName,
+                                  )
+                                }
+                                className="dropdownItemStyle"
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background = "#e9f4ff")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background =
+                                    "transparent")
+                                }
+                              >
+                                ✏️ Rename "{tower.towerName}"
+                              </button>
+                            ))}
+                            <div className="divider" />
+
+                            {gw.towers.map((tower) => (
+                              <button
+                                key={`delete-${tower.towerId}`}
+                                onClick={() =>
+                                  handleDeleteTower(
+                                    tower.towerId,
+                                    tower.towerName,
+                                  )
+                                }
+                                className="dropdownItemStyle"
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background = "#d7abab")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background =
+                                    "transparent")
+                                }
+                              >
+                                🗑️ Delete "{tower.towerName}"
+                              </button>
+                            ))}
+
+                            <button
+                              onClick={() =>
+                                handleDeleteGateway(
+                                  gw.gatewayId,
+                                  gw.gatewayName,
+                                )
+                              }
+                              className="dropdownItemStyle"
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#d7abab")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                            >
+                              🗑️ Delete Gateway
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
+                  {gw.towers.length === 0 ? (
+                    <p style={{ color: "#aaa", fontSize: "14px" }}>
+                      No active towers.
+                    </p>
+                  ) : (
+                    <div
+                      style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}
+                    >
+                      {gw.towers.map((tower) => (
+                        <div
+                          key={tower.towerId}
+                          onClick={() =>
+                            navigate(`/dashboard/${tower.towerId}`)
+                          }
+                          className="towerCard"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = "#e2e8f0")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = "#f0f4f8")
+                          }
+                        >
+                          <div className="towerName">🗼 {tower.towerName}</div>
+                          <div className="towerBattery">
+                            {getBatteryIcon(tower.battery, 22, 22)}
+                            Battery: {tower.battery}%
+                          </div>
+                          <div className="towerId">ID: {tower.towerId}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
