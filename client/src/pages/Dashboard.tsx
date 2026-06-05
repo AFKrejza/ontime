@@ -46,6 +46,8 @@ export default function Dashboard() {
 
         const getTowers = await authFetch(`/towers/${towerId}`);
         const tower: TowerInfo = await getTowers.json();
+        console.log(`get towers response: ${JSON.stringify(await getTowers.json())}`);
+        console.log(`tower object: ${JSON.stringify(tower)}`);
 
         const realConfigs: TowerConfig[] = tower.assignments.map(
           (ass: any) => ({
