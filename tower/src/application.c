@@ -15,6 +15,8 @@
 #define assignment_start_char '{'
 #define assignment_end_char '}'
 
+static bool has_display = true; // for headless
+
 twr_led_t led;
 twr_button_t button;
 Assignment assignments[2];
@@ -25,6 +27,7 @@ static uint64_t gateway_id;
 
 char current_time[6] = "00:00";
 char battery_charge[4] = "100";
+int charge_percentage = -5;
 
 void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
@@ -37,11 +40,14 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 void radio_event_handler(twr_radio_event_t event, void *param);
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param);
 void display_ids_on_boot(uint64_t gateway_id, uint64_t tower_id);
+void battery_event_handler(twr_module_battery_event_t event, void *param);
 void send_battery_charge();
 
 twr_radio_sub_t subscriptions[] = {
 	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
 };
+
+static bool radio_attached = false;
 
 // Application initialization function which is called once after boot
 void application_init(void)
@@ -49,13 +55,16 @@ void application_init(void)
 	twr_log_init(TWR_LOG_LEVEL_DUMP, TWR_LOG_TIMESTAMP_ABS);
 	twr_log_info("start init");
 
-	boot_time = twr_tick_get();
-
 	twr_button_init(&button, TWR_GPIO_BUTTON, TWR_GPIO_PULL_DOWN, 0);
 	twr_button_set_event_handler(&button, button_event_handler, NULL);
 
-	twr_led_init(&led, TWR_GPIO_LED, false, false);
 	twr_module_battery_init();
+	twr_module_battery_set_event_handler(battery_event_handler, NULL);
+
+	boot_time = twr_tick_get();
+
+
+	twr_led_init(&led, TWR_GPIO_LED, false, false);
 	
 	twr_radio_init(TWR_RADIO_MODE_NODE_LISTENING);
 	twr_radio_pairing_request("tower-ontime", FW_VERSION);
@@ -64,25 +73,77 @@ void application_init(void)
 	twr_radio_set_event_handler(radio_event_handler, NULL);
 	twr_radio_set_subs(subscriptions, sizeof(subscriptions) / sizeof(subscriptions[0]));
 	
-	display_init();
-	paint_screen(BLACK);
-	
+	if (has_display)
+	{
+		display_init();
+		draw_string("OnTime", 6, 200, 140, 3, WHITE);
+		twr_tick_wait(500);
+		paint_screen(BLACK);
+	}
+
+	twr_scheduler_plan_current_from_now(3000);
 	twr_log_info("end init");	
 }
 
 // Application task function (optional) which is called periodically if scheduled
 void application_task(void)
 {
-	uint32_t now = twr_tick_get();
-	if (now - boot_time >= 3600000) // restart & send health data each hour
+    uint32_t now = twr_tick_get();
+    twr_log_info("now: %lu boot: %lu diff: %lu", now, boot_time, now - boot_time);
+    twr_radio_pub_string("tower_health", "meow");
+
+	static bool reset_pending = false;
+
+	if (reset_pending)
 	{
-		send_battery_charge();
-		twr_log_info("hourly reboot");
-		twr_tick_wait(100);
 		NVIC_SystemReset();
 	}
-	twr_scheduler_plan_current_from_now(100000);
+
+	if (now - boot_time >= 20000)
+	{
+		reset_pending = true;
+		send_battery_charge();
+		twr_log_info("hourly reboot");
+		twr_scheduler_plan_current_from_now(3000); // let scheduler run for 3s
+		return; // don't reset yet
+	}
+
+
+    twr_scheduler_plan_current_from_now(5000);
 }
+
+// void application_task(void)
+// {
+// 	uint32_t now = twr_tick_get();
+	
+// 	twr_log_info("task running, now: %lu, boot: %lu", now, boot_time);
+
+//     // trigger measurement 5 seconds before the reset
+//     if (now - boot_time >= 10000 && now - boot_time < 20000)
+//     {
+//         static bool measured = false;
+//         if (!measured)
+//         {
+//             measured = true;
+//             // twr_module_battery_measure();
+//         }
+//     }
+
+// 	twr_radio_pub_string("tower_health", "meow");
+
+// 	if (now - boot_time >= 20000) // restart & send health data each hour
+// 	{
+// 		twr_radio_pub_string("tower_health", "ENTERING");
+// 		send_battery_charge();
+// 		twr_log_info("hourly reboot");
+// 		twr_tick_wait(2000);
+// 		twr_radio_pairing_request("tower-ontime", FW_VERSION);
+// 		twr_tick_wait(1000);
+//         twr_radio_pub_string("tower_health", "EXITING");
+// 		NVIC_SystemReset();
+// 	}
+// 	twr_scheduler_plan_current_from_now(5000);
+// }
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param)
 {
@@ -98,7 +159,7 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 
 void radio_event_handler(twr_radio_event_t event, void *param)
 {
-	twr_log_info("RADIO event: %d", (int)event);
+	// twr_log_info("RADIO event: %d", (int)event);
 	switch (event)
 	{
 		case TWR_RADIO_EVENT_INIT_FAILURE:
@@ -109,12 +170,14 @@ void radio_event_handler(twr_radio_event_t event, void *param)
 			break;
 		case TWR_RADIO_EVENT_ATTACH:
 			twr_log_info("RADIO: Attached to gateway");
+			radio_attached = true;
 			break;
 		case TWR_RADIO_EVENT_ATTACH_FAILURE:
 			twr_log_error("RADIO: Attach failure");
 			break;
 		case TWR_RADIO_EVENT_DETACH:
 			twr_log_info("RADIO: Detached from gateway");
+			radio_attached = false;
 			break;
 		case TWR_RADIO_EVENT_SCAN_FIND_DEVICE:
 			twr_log_info("RADIO: Scanning to find device");
@@ -143,10 +206,13 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 
 	uint64_t tower_id = twr_radio_get_my_id();
 
+	
 	if (!gateway_id)
 	{
 		gateway_id = *id;
-		display_ids_on_boot(gateway_id, tower_id);
+		twr_log_info("  Tower ID: %llx", tower_id);
+		twr_log_info("Gateway ID: %llx", gateway_id);
+		if (has_display) display_ids_on_boot(gateway_id, tower_id);
 	}
 
 	if (payload == NULL)
@@ -154,7 +220,7 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		twr_log_info("Empty payload");
 		return;
 	}
-	draw_status(BLUE);
+	if (has_display) draw_status(BLUE);
 
 	size_t len = strlen((const char *)payload);
 	static size_t buffer_index = 0;
@@ -183,7 +249,6 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 		buffer_index += len;
 		buffer[buffer_index] = '\0';
 		twr_log_info("%s", buffer);
-		// TODO: disable radio here
 	}
 	else if (buffer_index > 0)
 	{
@@ -196,21 +261,21 @@ void radio_string_callback(uint64_t *id, const char *topic, void *payload, void 
 	else
 	{
 		twr_log_warning("malformed message / error, clearing buffer");
-		draw_status(RED); // flash
+		if (has_display) draw_status(RED); // flash
 		twr_tick_wait(500);
-		draw_status(BLACK);
+		if (has_display) draw_status(BLACK);
 		goto cleanup;
 	}
 	UpdateResult updated_fields = parse_payload(&tower_id);
 	draw:
-	refresh_display(updated_fields);
+	if (has_display) refresh_display(updated_fields);
 
 	// prevent garbage
 	cleanup:
 	memset(buffer, 0, sizeof(buffer));
 	buffer_index = 0;
 
-	draw_status(GREEN);
+	if (has_display) draw_status(GREEN);
 }
 
 UpdateResult parse_payload(uint64_t *tower_id)
@@ -224,12 +289,13 @@ UpdateResult parse_payload(uint64_t *tower_id)
 
 	uint16_t i = 0;
 	uint8_t assignment_index = 0;
-	while (i < strlen(buffer))
+	size_t len = strlen(buffer);
+	while (i < len)
 	{
 		if (assignment_index >= 2)
 			break;
 
-		Assignment new;
+		Assignment new = {0};
 		
 		// go to the next ID
 		while (buffer[i] != assignment_start_char && buffer[i])
@@ -300,12 +366,13 @@ UpdateResult parse_payload(uint64_t *tower_id)
 		
 		assignment_index++;
 
-		// twr_log_debug("Number:    %s", new.line_number);
-		// twr_log_debug("Direction: %s", new.line_direction);
-		// twr_log_debug("Name:      %s", new.stop_name);
-		// twr_log_debug("Time:      %s", new.next_time);
-		// twr_log_debug("Leave in:  %s", new.leave_in);
-		// twr_log_debug("Type:      %d", new.type);
+		twr_log_debug("Number:    %s, Direction: %s, Name: %s, Time: %s, Leave in: %s, Type: %d", 
+			new.line_number, 
+			new.line_direction, 
+			new.stop_name, 
+			new.next_time, 
+			new.leave_in, 
+			new.type);
 	}
 	return updated_fields;
 }
@@ -319,7 +386,7 @@ void extract_field(uint16_t *i, char *dest, uint16_t max_len)
 		(*i)++;
 		j++;
 	}
-	// null the rest otherwise there'll be junk values
+	// padding
 	while (j < max_len)
 	{
 		dest[j] = '\0';
@@ -346,15 +413,23 @@ void clear_assignments(Assignment assignments[2])
 // charge: 100 at 3V, 0 at 2V. Tower still works at 2.4V (charge 40)
 void send_battery_charge()
 {
+	twr_radio_pub_string("tower_health", "test 1");
+
 	const uint64_t tower_id = twr_radio_get_my_id();
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", tower_id);
-	twr_module_battery_measure();
-	int charge_percentage = -1;
-	twr_module_battery_get_charge_level(&charge_percentage);
+	// twr_module_battery_measure();
+
+	twr_radio_pub_string("tower_health", "test 2");
+
+	// int charge_percentage = -1;
+	// twr_module_battery_get_charge_level(&charge_percentage);
 	twr_log_info("Charge: %d", charge_percentage);
 	char charge_string[4] = {0};
 	snprintf(charge_string, sizeof(charge_string), "%d", charge_percentage);
+
+	twr_radio_pub_string("tower_health", "test 3");
+
 
 	// id,charge
 	char msg[17] = {0};
@@ -363,6 +438,12 @@ void send_battery_charge()
 	snprintf(msg + 13, sizeof(msg) - 13, "%s", charge_string);
 	twr_log_info("%s", msg);
 	twr_radio_pub_string("tower_health", msg);
+	twr_radio_pub_string("tower_health", "mock health data");
+	twr_log_debug("between publishes");
+	twr_radio_pub_string("tower_health", "ZAMNZAMNZAMNZAMN");
+
+	twr_radio_pub_string("tower_health", "test 4");
+
 }
 
 // always displays gateway and tower Id for 5 seconds on boot
@@ -410,4 +491,14 @@ static void refresh_display(UpdateResult updated_fields)
 		draw_battery_charge(battery_charge);
 		
 	draw_assignments(assignments, updated_fields);
+}
+
+void battery_event_handler(twr_module_battery_event_t event, void *param)
+{
+	if (event == TWR_MODULE_BATTERY_EVENT_UPDATE)
+	{
+		twr_module_battery_get_charge_level(&charge_percentage);
+		snprintf(battery_charge, sizeof(battery_charge), "%d", charge_percentage);
+		twr_log_info("Charge: %d", charge_percentage);
+	}
 }

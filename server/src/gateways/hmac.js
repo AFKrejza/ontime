@@ -10,8 +10,10 @@ export const HMAC = {
 		const hashInput = gatewayId + "|" + timestamp + "|" + requestType;
 		
 		const res = await gatewayDao.getSecret(gatewayId);
+		
+		if (!res.rows[0]) throw new Error("No secret found. Generate one.");
+
 		const secret = res.rows[0].hmac_secret;
-		console.log(secret);
 
 		const hash = crypto.createHmac('sha256', secret).update(hashInput).digest('hex');
 		console.log(hash);
