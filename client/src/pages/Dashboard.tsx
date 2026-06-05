@@ -62,6 +62,7 @@ export default function Dashboard() {
             updatedAt: new Date().toISOString(),
           }),
         );
+        console.log(`tower last Seen: ${tower.lastSeen}`);
 
         setTowerConfigs(realConfigs);
         setRawTowerInfo(tower);
