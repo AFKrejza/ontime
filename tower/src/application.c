@@ -20,7 +20,7 @@ static bool has_display = true; // for headless
 twr_led_t led;
 twr_button_t button;
 Assignment assignments[2];
-static char buffer[ASSIGNMENTS_SIZE]; // only stores assignments
+static char buffer[ASSIGNMENTS_SIZE];
 
 static uint64_t gateway_id;
 
@@ -80,7 +80,7 @@ void application_task(void)
 {
 	send_status();
 
-	twr_scheduler_plan_current_from_now(20000);
+	twr_scheduler_plan_current_from_now(60000);
 }
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param)

@@ -1,7 +1,5 @@
 import { assignmentDao } from "./assignmentDao.js";
 
-// TODO: add input validation
-
 export const assignmentService = {
 	
 	async create(towerId, newAssignment) {

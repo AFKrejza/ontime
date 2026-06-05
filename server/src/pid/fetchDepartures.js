@@ -170,14 +170,17 @@ export async function fetchDepartures(input) {
 	let assignments = "";
 	assignments = assignments.concat(msg_start_char);
 
-	let date = new Date(Date.now());
-	date = date.toString();
-	const time = date.slice(16, 21);
+	const time = new Intl.DateTimeFormat('en-GB', {
+		timeZone: 'Europe/Berlin',
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false,
+	}).format(new Date());
+
 	assignments = assignments.concat(time);
 
 	for (let i = 0; i < towersData.length; i++)
 	{
-		// TODO clean this up. just concats?
 		assignments = assignments.concat(assignment_start_char);
 		assignments = assignments.concat(towersData[i].towerId);
 		assignments = assignments.concat(delimiter, towersData[i].charge);

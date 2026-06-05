@@ -128,9 +128,9 @@ stops (
 
 ## Lines
 **Any possible departure from any stop has its own row.**  
-This table actually contains a separate entry for each individual line in every stop. So if a line goes through 10 stops, there will be 10 lines with one direction and 10 lines with the opposite direction. All 20 lines will have the same `pid_id`, but different `gtfsId`s and `id`s. **TODO: verify**  
+This table actually contains a separate entry for each individual line in every stop. So if a line goes through 10 stops, there will be 10 lines with one direction and 10 lines with the opposite direction. All 20 lines will have the same `pid_id`, but different `gtfsId`s and `id`s.  
 `pid_id` is the id that's in the original data. It is NOT unique, since a line passes through many stops.  
-The combination of `pid_id` and `gtfs_id` should be unique. **TODO: verify**  
+The combination of `pid_id` and `gtfs_id` should be unique.  
 ```
 lines (
 	id SERIAL PRIMARY KEY,

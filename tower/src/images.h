@@ -2,8 +2,6 @@
 
 // generate at https://javl.github.io/image2cpp/
 
-// TODO: make an enum: bus, tram, metro, trolleybus, train, ferry
-
 // 32x32 size.
 const uint8_t images_32x32[6][32][4] = {
 	// bus

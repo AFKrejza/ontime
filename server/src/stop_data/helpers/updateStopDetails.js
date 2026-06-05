@@ -40,7 +40,7 @@ function getLines(stopGroup) {
 	const stops = stopGroup.stops;
 
 	for (let i = 0; i < stops.length; i++) {
-		const gtfsId = stops[i].gtfsIds[0]; // TODO: check the behavior when there are multiple gtfsIds. Test every single stop.
+		const gtfsId = stops[i].gtfsIds[0];
 		const lines = stops[i].lines;
 		for (let j = 0; j < lines.length; j++) {
 			const line = new Line(

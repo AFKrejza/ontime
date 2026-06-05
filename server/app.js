@@ -118,7 +118,7 @@ app.get("/stopGroups/:slug", async (req, res) => {
 		res.send(stopGroup);
 	} catch (err) {
 		console.error(err);
-		res.send(err); // TODO: add status codes and proper errors everywhere
+		res.send(err);
 	}
 });
 

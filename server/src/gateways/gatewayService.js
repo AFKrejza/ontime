@@ -3,8 +3,6 @@ import { towerDao } from "../towers/towerDao.js";
 import { assignmentDao } from "../assignments/assignmentDao.js";
 import { HMAC } from "./hmac.js";
 
-// TODO: verify input + sanitize, throw errors
-
 export const gatewayService = {
 	async register(data) {
 		const response = await gatewayDao.register(data);
