@@ -57,6 +57,7 @@ export default function Dashboard() {
             slug: ass.stop.slug,
             line: ass.line,
             offset: ass.departureOffset,
+            lastSeen: tower.lastSeen,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           }),
@@ -98,8 +99,8 @@ export default function Dashboard() {
     };
   });
 
-  console.log("towerconfigs: " + towerConfigs);
-  console.log("devices: " + devices);
+  console.log("towerconfigs: " + JSON.stringify(towerConfigs));
+  console.log("devices: " + JSON.stringify(devices));
 
   // if data is still loading in useEffect, then show Loader:
   if (loading || !rawTowerInfo) {
