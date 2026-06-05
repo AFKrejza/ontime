@@ -98,6 +98,9 @@ export default function Dashboard() {
     };
   });
 
+  console.log("towerconfigs: " + towerConfigs);
+  console.log("devices: " + devices);
+
   // if data is still loading in useEffect, then show Loader:
   if (loading || !rawTowerInfo) {
     return (
