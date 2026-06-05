@@ -83,6 +83,7 @@ export default function Dashboard() {
     } else if (transportType === "bus") {
       transportType = "Bus";
     }
+    console.log(`last Seen: ${config.lastSeen}`);
     return {
       assignmentId: config.id,
       name: config.stopName,

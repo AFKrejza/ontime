@@ -171,7 +171,7 @@ export default function TowerConfig() {
         id: selectedConfigId || undefined,
         stopSlug: selectedStop.slug,
         towerId: selectedTowerId,
-        gatewayName: undefined, // TODO: Fix this shit
+        gatewayName: undefined,
         stopName: selectedStop.name,
         stopId: selectedStop.id,
         line: selectedLine,
