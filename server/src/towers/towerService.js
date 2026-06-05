@@ -87,13 +87,8 @@ export const towerService = {
 		return result.rows[0];
 	},
 
-	async updateHealth(towerId, batteryCharge) {
-		batteryCharge = Number(batteryCharge);
-		const result = await towerDao.updateHealth(towerId, batteryCharge);
-
-		// if (result.rowCount == 0) {
-		// 	throw new Error(`Error updating tower ${towerId} health data`); // TODO: add the actual error message + try/catch
-		// }
+	async updateHealth(towerId) {
+		const result = await towerDao.updateHealth(towerId);
 
 		return result.rowCount;
 	}
