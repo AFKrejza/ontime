@@ -48,6 +48,8 @@ export default function Dashboard() {
 
         const getTowers = await authFetch(`/towers/${towerId}`);
         const tower: TowerInfo = await getTowers.json();
+        console.log(`get towers response: ${JSON.stringify(getTowers)}`);
+        console.log(`tower object: ${JSON.stringify(tower)}`);
 
         const realConfigs: TowerConfig[] = tower.assignments.map(
           (ass: any) => ({
@@ -103,8 +105,8 @@ export default function Dashboard() {
     };
   });
 
-  console.log("towerconfigs: " + JSON.stringify(towerConfigs));
-  console.log("devices: " + JSON.stringify(devices));
+  console.log(`towerconfigs: ${JSON.stringify(towerConfigs)}`);
+  console.log(`devices: ${JSON.stringify(devices)}`);
 
   // if data is still loading in useEffect, then show Loader:
   if (loading || !rawTowerInfo) {
