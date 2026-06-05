@@ -495,10 +495,6 @@ export default function GatewaysList() {
                             ></img>
                             <div className="towerName">{tower.towerName}</div>
                           </div>
-                          <div className="towerBattery">
-                            {getBatteryIcon(tower.battery, 22, 22)}
-                            Battery: {tower.battery}%
-                          </div>
                           <div className="towerId">ID: {tower.towerId}</div>
                         </div>
                       ))}
