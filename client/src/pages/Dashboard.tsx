@@ -87,7 +87,7 @@ export default function Dashboard() {
       name: config.stopName,
       status: "online",
       battery: config.batteryLevel ? `${config.batteryLevel}%` : "100%",
-      lastSeen: new Date(config.updatedAt).toLocaleTimeString([], {
+      lastSeen: new Date(config.lastSeen).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       }),
