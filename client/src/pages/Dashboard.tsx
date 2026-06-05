@@ -145,10 +145,9 @@ export default function Dashboard() {
           <div className="summaryGrid">
             <div className="summaryItem">
               <div className="summaryValue">
-                {getBatteryIcon(rawTowerInfo.battery, 40, 40)}
-                {rawTowerInfo.battery}%
+                {rawTowerInfo.lastSeen ? new Date(rawTowerInfo.lastSeen).toLocaleTimeString() : "Never"}
               </div>
-              <div className="summaryLabel">Battery Level</div>
+              <div className="summaryLabel">Last seen</div>
             </div>
             <div className="summaryItem">
               <div className="summaryValue">{devices.length}</div>
@@ -232,10 +231,6 @@ export default function Dashboard() {
                         </span>
                       </div>
                     )}
-                    <div className="deviceDetailRow">
-                      <span className="detailLabel">Last seen:</span>
-                      <span className="detailValue">{device.lastSeen}</span>
-                    </div>
                   </div>
                 </div>
               ))
