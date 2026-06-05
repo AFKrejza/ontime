@@ -168,20 +168,17 @@ export const gatewayController = {
 		}
 	},
 
-	// TODO: needs some kind of auth
-	// only for gateways
+	// updates a tower's last seen field.
 	async updateHealth(req, res) {
 		try {
-			const gatewayId = req.body.gatewayId;
-			const batteryCharge = req.body.charge;
 			const towerId = req.body.towerId;
 	
-			const result = await towerService.updateHealth(towerId, batteryCharge);
+			const result = await towerService.updateHealth(towerId);
 			if (!result) {
-				console.log(`failed to update battery for tower ${towerId}`);
+				console.log(`failed to update last_seen for tower ${towerId}`);
 				return res.status(404).json({ message: "Failed to update" });
 			}
-			console.log(`Updated battery for tower ${towerId}`);
+			console.log(`Updated last_seen for tower ${towerId}`);
 			return res.status(200).json({ message: result });
 		} catch (err) {
 			console.error(err);

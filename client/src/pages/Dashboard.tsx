@@ -59,10 +59,12 @@ export default function Dashboard() {
             slug: ass.stop.slug,
             line: ass.line,
             offset: ass.departureOffset,
+            lastSeen: tower.lastSeen,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           }),
         );
+        console.log(`tower last Seen: ${tower.lastSeen}`);
 
         setTowerConfigs(realConfigs);
         setRawTowerInfo(tower);
@@ -84,12 +86,13 @@ export default function Dashboard() {
     } else if (transportType === "bus") {
       transportType = "Bus";
     }
+    console.log(`last Seen: ${config.lastSeen}`);
     return {
       assignmentId: config.id,
       name: config.stopName,
       status: "online",
       battery: config.batteryLevel ? `${config.batteryLevel}%` : "100%",
-      lastSeen: new Date(config.updatedAt).toLocaleTimeString([], {
+      lastSeen: new Date(config.lastSeen).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       }),
@@ -99,6 +102,9 @@ export default function Dashboard() {
       offset: Math.abs(config.offset),
     };
   });
+
+  console.log("towerconfigs: " + JSON.stringify(towerConfigs));
+  console.log("devices: " + JSON.stringify(devices));
 
   // if data is still loading in useEffect, then show Loader:
   if (loading || !rawTowerInfo) {

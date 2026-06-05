@@ -50,7 +50,6 @@ gatewayRouter.delete(
 
 gatewayRouter.post(
 	"/health",
-	validate("gatewayHealth"),
 	gatewayController.updateHealth
 );
 

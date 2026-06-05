@@ -45,13 +45,12 @@ export const towerDao = {
 		`, [towerId, towerName]);
 	},
 
-	async updateHealth(towerId, batteryCharge) {
+	async updateHealth(towerId) {
 		return await pgClient.query(`
 			UPDATE towers 
-			SET battery = $2, 
-			last_seen = NOW() 
+			SET last_seen = NOW() 
 			WHERE id = $1
-		`, [towerId, batteryCharge]);
+		`, [towerId]);
 	}
-
+	
 };
