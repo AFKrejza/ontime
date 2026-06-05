@@ -21,13 +21,12 @@ twr_led_t led;
 twr_button_t button;
 Assignment assignments[2];
 static char buffer[ASSIGNMENTS_SIZE]; // only stores assignments
-static uint32_t boot_time = 0;
 
 static uint64_t gateway_id;
 
 char current_time[6] = "00:00";
-char battery_charge[4] = "100";
-int charge_percentage = -5;
+const char battery_charge[4] = "100";
+const int charge_percentage = 100;
 
 void clear_assignments(Assignment assignments[2]);
 void extract_field(uint16_t *i, char *dest, uint16_t max_len);
@@ -40,8 +39,7 @@ void button_event_handler(twr_button_t *self, twr_button_event_t event, void *pa
 void radio_event_handler(twr_radio_event_t event, void *param);
 void radio_string_callback(uint64_t *id, const char *topic, void *payload, void *param);
 void display_ids_on_boot(uint64_t gateway_id, uint64_t tower_id);
-void battery_event_handler(twr_module_battery_event_t event, void *param);
-void send_battery_charge();
+void send_status();
 
 twr_radio_sub_t subscriptions[] = {
 	{ .topic = "assignment/-/data/set", .type = TWR_RADIO_SUB_PT_STRING, .callback = radio_string_callback, .param = NULL }
@@ -58,18 +56,11 @@ void application_init(void)
 	twr_button_init(&button, TWR_GPIO_BUTTON, TWR_GPIO_PULL_DOWN, 0);
 	twr_button_set_event_handler(&button, button_event_handler, NULL);
 
-	twr_module_battery_init();
-	twr_module_battery_set_event_handler(battery_event_handler, NULL);
-
-	boot_time = twr_tick_get();
-
-
 	twr_led_init(&led, TWR_GPIO_LED, false, false);
 	
 	twr_radio_init(TWR_RADIO_MODE_NODE_LISTENING);
 	twr_radio_pairing_request("tower-ontime", FW_VERSION);
 	twr_led_pulse(&led, 2000);
-	twr_radio_pub_string("tower_health", "mock health data");
 	twr_radio_set_event_handler(radio_event_handler, NULL);
 	twr_radio_set_subs(subscriptions, sizeof(subscriptions) / sizeof(subscriptions[0]));
 	
@@ -85,65 +76,12 @@ void application_init(void)
 	twr_log_info("end init");	
 }
 
-// Application task function (optional) which is called periodically if scheduled
 void application_task(void)
 {
-    uint32_t now = twr_tick_get();
-    twr_log_info("now: %lu boot: %lu diff: %lu", now, boot_time, now - boot_time);
-    twr_radio_pub_string("tower_health", "meow");
+	send_status();
 
-	static bool reset_pending = false;
-
-	if (reset_pending)
-	{
-		NVIC_SystemReset();
-	}
-
-	if (now - boot_time >= 20000)
-	{
-		reset_pending = true;
-		send_battery_charge();
-		twr_log_info("hourly reboot");
-		twr_scheduler_plan_current_from_now(3000); // let scheduler run for 3s
-		return; // don't reset yet
-	}
-
-
-    twr_scheduler_plan_current_from_now(5000);
+	twr_scheduler_plan_current_from_now(20000);
 }
-
-// void application_task(void)
-// {
-// 	uint32_t now = twr_tick_get();
-	
-// 	twr_log_info("task running, now: %lu, boot: %lu", now, boot_time);
-
-//     // trigger measurement 5 seconds before the reset
-//     if (now - boot_time >= 10000 && now - boot_time < 20000)
-//     {
-//         static bool measured = false;
-//         if (!measured)
-//         {
-//             measured = true;
-//             // twr_module_battery_measure();
-//         }
-//     }
-
-// 	twr_radio_pub_string("tower_health", "meow");
-
-// 	if (now - boot_time >= 20000) // restart & send health data each hour
-// 	{
-// 		twr_radio_pub_string("tower_health", "ENTERING");
-// 		send_battery_charge();
-// 		twr_log_info("hourly reboot");
-// 		twr_tick_wait(2000);
-// 		twr_radio_pairing_request("tower-ontime", FW_VERSION);
-// 		twr_tick_wait(1000);
-//         twr_radio_pub_string("tower_health", "EXITING");
-// 		NVIC_SystemReset();
-// 	}
-// 	twr_scheduler_plan_current_from_now(5000);
-// }
 
 void button_event_handler(twr_button_t *self, twr_button_event_t event, void *param)
 {
@@ -342,7 +280,7 @@ UpdateResult parse_payload(uint64_t *tower_id)
 
 		if (new_battery_charge[0] && strcmp(battery_charge, new_battery_charge) != 0)
 		{
-			memcpy(battery_charge, new_battery_charge, 4);
+			// memcpy(battery_charge, new_battery_charge, 4);
 			updated_fields.battery_charge = true;
 		}
 
@@ -410,40 +348,13 @@ void clear_assignments(Assignment assignments[2])
 	}
 }
 
-// charge: 100 at 3V, 0 at 2V. Tower still works at 2.4V (charge 40)
-void send_battery_charge()
+// update last seen
+void send_status()
 {
-	twr_radio_pub_string("tower_health", "test 1");
-
 	const uint64_t tower_id = twr_radio_get_my_id();
 	char tower_id_string[13];
 	snprintf(tower_id_string, sizeof(tower_id_string), "%012llx", tower_id);
-	// twr_module_battery_measure();
-
-	twr_radio_pub_string("tower_health", "test 2");
-
-	// int charge_percentage = -1;
-	// twr_module_battery_get_charge_level(&charge_percentage);
-	twr_log_info("Charge: %d", charge_percentage);
-	char charge_string[4] = {0};
-	snprintf(charge_string, sizeof(charge_string), "%d", charge_percentage);
-
-	twr_radio_pub_string("tower_health", "test 3");
-
-
-	// id,charge
-	char msg[17] = {0};
-	memcpy(msg, tower_id_string, 12);
-	msg[12] = ',';
-	snprintf(msg + 13, sizeof(msg) - 13, "%s", charge_string);
-	twr_log_info("%s", msg);
-	twr_radio_pub_string("tower_health", msg);
-	twr_radio_pub_string("tower_health", "mock health data");
-	twr_log_debug("between publishes");
-	twr_radio_pub_string("tower_health", "ZAMNZAMNZAMNZAMN");
-
-	twr_radio_pub_string("tower_health", "test 4");
-
+	twr_radio_pub_string("tower_health", tower_id_string);
 }
 
 // always displays gateway and tower Id for 5 seconds on boot
@@ -487,18 +398,8 @@ static void refresh_display(UpdateResult updated_fields)
 	if (updated_fields.current_time == true)
 		draw_current_time(current_time);
 
-	if (updated_fields.battery_charge == true)
-		draw_battery_charge(battery_charge);
+	// if (updated_fields.battery_charge == true)
+		// draw_battery_charge(battery_charge);
 		
 	draw_assignments(assignments, updated_fields);
-}
-
-void battery_event_handler(twr_module_battery_event_t event, void *param)
-{
-	if (event == TWR_MODULE_BATTERY_EVENT_UPDATE)
-	{
-		twr_module_battery_get_charge_level(&charge_percentage);
-		snprintf(battery_charge, sizeof(battery_charge), "%d", charge_percentage);
-		twr_log_info("Charge: %d", charge_percentage);
-	}
 }
