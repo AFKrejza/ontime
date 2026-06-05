@@ -44,8 +44,9 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="page" style={{ padding: "20px" }}>
-        Loading settings...
+      <div className="loadingContainer">
+        <div className="loadingSpinner"></div>
+        <p className="loadingText">Loading data, please wait...</p>
       </div>
     );
   }

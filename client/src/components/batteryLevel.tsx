@@ -1,6 +1,4 @@
 // @ts-ignore
-import FullBattery from "../assets/full-battery.png";
-// @ts-ignore
 import MediumBattery from "../assets/medium-battery.png";
 // @ts-ignore
 import LowBattery from "../assets/low-battery.png";

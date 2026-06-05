@@ -44,54 +44,55 @@ export default function TowerConfig() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [availableTowers, setAvailableTowers] = useState<
-    { id: string; name: string }[]
+    { id: string; name: string; gatewayName: string; assignments: any[] }[]
   >([]);
   const [selectedTowerId, setSelectedTowerId] = useState<string>("");
 
-  useEffect(() => {
-    setSavedConfigs(getTowerConfigs());
+  async function loadStops() {
+    try {
+      setLoading(true);
+      const data = await getAllStops();
+      setStops(data);
 
-    async function loadStops() {
-      try {
-        setLoading(true);
-        const data = await getAllStops();
-        setStops(data);
-
-        const gateways = await getUserGateways();
-        const allGatewaysStatus = await Promise.all(
-          gateways.map(async (gw: any) => {
-            try {
-              const res = await authFetch(`/gateways/${gw.id}/status`);
-              return await res.json();
-            } catch (e) {
-              console.error(
-                `Unabled to load status for gateway: ${gw.gatewayId}`,
-                e,
-              );
-              return null;
-            }
-          }),
+      const gateways = await getUserGateways();
+      const allGatewaysStatus = await Promise.all(
+        gateways.map(async (gw: any) => {
+          try {
+            const res = await authFetch(`/gateways/${gw.id}/status`);
+            return await res.json();
+          } catch (e) {
+            console.error(
+              `Unabled to load status for gateway: ${gw.gatewayId}`,
+              e,
+            );
+            return null;
+          }
+        }),
+      );
+      console.log(allGatewaysStatus);
+      const towers = allGatewaysStatus
+        .filter((status) => status !== null)
+        .flatMap((status: any) =>
+          (status.towers || []).map((t: any) => ({
+            id: t.towerId,
+            name: t.towerName,
+            gatewayName: status.gatewayName || "Unknown Gateway",
+            assignments: t.assignments || [],
+          })),
         );
-
-        const towers = allGatewaysStatus
-          .filter((status) => status !== null)
-          .flatMap((status: any) =>
-            (status.towers || []).map((t: any) => ({
-              id: t.towerId,
-              name: `${status.gatewayName} — ${t.towerName}`,
-            })),
-          );
-        setAvailableTowers(towers);
-        if (towers.length > 0) setSelectedTowerId(towers[0].id);
-      } catch (err) {
-        console.error(err);
-        setError("Unable to load stop list from backend.");
-      } finally {
-        setLoading(false);
-      }
+      setAvailableTowers(towers);
+      if (towers.length > 0) setSelectedTowerId(towers[0].id);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load stop list from backend.");
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     loadStops();
+    setSavedConfigs(getTowerConfigs());
   }, []);
 
   const filteredStops = useMemo(() => {
@@ -156,9 +157,10 @@ export default function TowerConfig() {
       setError("Please select a stop, line and a device to continue.");
       return;
     }
-
+    console.log(availableTowers);
     try {
       setError(null);
+      setSuccessMessage(null);
       setLoading(true);
       await addAssignment(selectedTowerId, {
         offset: walkingOffset,
@@ -166,12 +168,14 @@ export default function TowerConfig() {
         stopId: selectedStop.id,
         line: selectedLine,
       });
-
+      const currentTower = availableTowers.find(
+        (t) => String(t.id) === String(selectedTowerId),
+      );
       const saved = saveTowerConfig({
         id: selectedConfigId || undefined,
         stopSlug: selectedStop.slug,
         towerId: selectedTowerId,
-        gatewayName: undefined, // TODO: Fix this shit
+        gatewayName: currentTower?.gatewayName,
         stopName: selectedStop.name,
         stopId: selectedStop.id,
         line: selectedLine,
@@ -179,13 +183,28 @@ export default function TowerConfig() {
         slug: selectedStop.slug,
       });
       setSavedConfigs(getTowerConfigs());
-      setSelectedConfigId(saved.id);
-      setSuccessMessage("Assignment created successfully.");
+      await loadStops();
+      setSuccessMessage("Assignment was created successfully.");
+
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setSelectedConfigId(null);
+        setSelectedStop(null);
+        setStopDetails(null);
+        setQuery("");
+      }, 4000);
     } catch (err) {
       console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Failed to create assignment.",
-      );
+      if (err instanceof Error) {
+        setError(
+          `⚠️ Maximum limit reached: You can only assign up to 2 stops to a single Tower.`,
+        );
+      } else {
+        setError(
+          "⚠️ Maximum limit reached: You can only assign up to 2 stops to a single Tower.",
+        );
+      }
+      setTimeout(() => setError(null), 4000);
     } finally {
       setLoading(false);
     }
@@ -204,25 +223,73 @@ export default function TowerConfig() {
 
       <section className="card">
         <h2>Select Device</h2>
-        <div className="formRow">
-          <label>
-            Target Tower
-            <select
-              className="textInput"
-              value={selectedTowerId}
-              onChange={(e) => setSelectedTowerId(e.target.value)}
-            >
-              {availableTowers.length === 0 && (
-                <option>No devices found</option>
-              )}
-              {availableTowers.map((tower) => (
-                <option key={tower.id} value={tower.id}>
-                  {tower.name} ({tower.id})
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        {availableTowers.length === 0 ? (
+          <p className="status">No devices found</p>
+        ) : (
+          <div className="towerGrid">
+            {availableTowers.map((tower) => {
+              const count = tower.assignments ? tower.assignments.length : 0;
+              const isFull = count >= 2;
+              const isSelected = tower.id === selectedTowerId;
+              let cardClass = "towerCard";
+              if (isSelected) cardClass += " selected";
+              if (isFull && !isSelected) cardClass += " full";
+
+              return (
+                <div
+                  key={tower.id}
+                  className={cardClass}
+                  onClick={() => {
+                    if (!isFull || tower.id === selectedConfigId) {
+                      setSelectedTowerId(tower.id);
+                    }
+                  }}
+                >
+                  <div className="towerCardHeader">
+                    <div className="towerInfo">
+                      <h3>{`${tower.name} (${tower.id})`}</h3>
+                      <span className="gatewayBadge">{tower.gatewayName}</span>
+                    </div>
+                    <div className="slotIndicator">
+                      <span
+                        className={`slotDot ${count >= 1 ? "active" : ""}`}
+                      ></span>
+                      <span
+                        className={`slotDot ${count >= 2 ? "active" : ""}`}
+                      ></span>
+                      <span className="slotText">{count}/2</span>
+                    </div>
+                  </div>
+                  {count > 0 && (
+                    <div className="towerAssignmentsList">
+                      <div className="assignmentsTitle">
+                        Active assignments:
+                      </div>
+                      {tower.assignments.map((asm: any) => (
+                        <div
+                          key={asm.assignmentId}
+                          className="towerAssignmentMiniItem"
+                        >
+                          <span
+                            className="lineBadge"
+                            data-type={asm.line?.type || "bus"}
+                          >
+                            {asm.line?.name}
+                          </span>
+                          <span className="stopMiniName">{asm.stop?.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isFull && (
+                    <div className="fullBadge">🔒 Max Limit Reached</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <main className="content">
@@ -352,13 +419,12 @@ export default function TowerConfig() {
             >
               {loading ? "Creating assignment…" : "Create assignment"}
             </button>
-          </section>
-        )}
-
-        {(error || successMessage) && (
-          <section className="card statusCard">
-            {error && <p className="error">{error}</p>}
-            {successMessage && <p className="success">{successMessage}</p>}
+            {(error || successMessage) && (
+              <section className="card statusCard">
+                {error && <p className="error">{error}</p>}
+                {successMessage && <p className="success">{successMessage}</p>}
+              </section>
+            )}
           </section>
         )}
       </main>

@@ -25,26 +25,23 @@ export default function BackButton({ toPage }: BackButtonProps) {
         left: "10px",
         zIndex: 1000,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "12px",
-        width: "43px",
-        height: "43px",
+        // alignItems: "center",
+        // justifyContent: "center",
+        width: "38px",
+        height: "38px",
         padding: "0",
         backgroundColor: "#ffffff",
-        //color: "#ffffff",
-        border: "5px solid #ffffff",
-        outline: "2px solid rgba(255, 255, 255, 0.9)",
+        outline: "2px solid rgba(255, 255, 255, 0.8)",
+        border: "#ffffff",
         borderRadius: "50%",
         boxShadow: "none",
         cursor: "pointer",
-        fontWeight: "600",
         fontSize: "30px",
-        transition: "transform 0.2s, background-color 0.2s, outline-width 0.2s",
+        transition: "transform 0.2s, background-color 0.2s, outline 0.2s",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.outline = "4px solid rgba(255, 255, 255, 0.9)";
-        e.currentTarget.style.transform = "scale(1.04)";
+        e.currentTarget.style.transform = "scale(1.06)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.outline = "2px solid rgba(255, 255, 255, 0.8)";
@@ -54,7 +51,13 @@ export default function BackButton({ toPage }: BackButtonProps) {
       <img
         src={backIconPng}
         alt="Back"
-        style={{ width: "34px", height: "34px", objectFit: "contain" }}
+        style={{
+          width: "34px",
+          height: "34px",
+          objectFit: "contain",
+          marginTop: "2px",
+          marginLeft: "1px",
+        }}
       />
     </button>
   );
