@@ -8,10 +8,15 @@ import viewIcon from "../assets/view.png";
 import closedViewIcon from "../assets/closedView.png";
 // @ts-ignore
 import copyIcon from "../assets/copy.png";
+// @ts-ignore
+import gatewayIcon from "../assets/gateway.png";
+// @ts-ignore
+import towerIcon from "../assets/tower.png";
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
 import getBatteryIcon from "../components/batteryLevel";
 import SettingsButton from "../components/SettingsButton";
+import ModalWindow from "../components/ModalWindow";
 interface Tower {
   towerName: string;
   towerId: string;
@@ -31,6 +36,12 @@ export default function GatewaysList() {
   const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>(
     {},
   );
+  const [activeModal, setActiveModal] = useState<{
+    type: "regenerate" | "rename" | "delete";
+    id: string;
+    name?: string;
+    onConfirmAction: (inputValue: string) => void | Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -55,11 +66,8 @@ export default function GatewaysList() {
     loadData();
   }, []);
 
-  const handleRenameGateway = async (gatewayId: string, oldName: string) => {
+  const handleRenameGateway = async (gatewayId: string, newName: string) => {
     setActiveMenuGwId(null);
-    const newName = window.prompt("Enter new name for this gateway: ", oldName);
-    if (!newName || newName.trim() === "") return;
-
     try {
       await authFetch(`/gateways/${gatewayId}/rename`, {
         method: "PATCH",
@@ -75,11 +83,8 @@ export default function GatewaysList() {
     }
   };
 
-  const handleRenameTower = async (towerId: string, oldName: string) => {
+  const handleRenameTower = async (towerId: string, newName: string) => {
     setActiveMenuGwId(null);
-    const newName = window.prompt("Enter new name for this tower: ", oldName);
-    if (!newName || newName.trim() === "") return;
-
     try {
       await authFetch(`/towers/${towerId}`, {
         method: "PATCH",
@@ -98,19 +103,8 @@ export default function GatewaysList() {
     }
   };
 
-  const handleDeleteGateway = async (
-    gatewayId: string,
-    gatewayName: string,
-  ) => {
+  const handleDeleteGateway = async (gatewayId: string) => {
     setActiveMenuGwId(null);
-    const userCode = window.prompt(
-      `To delete gateway "${gatewayName}" and ALL its towers, enter 'delete'`,
-    );
-    if (userCode?.toLocaleLowerCase() !== "delete") {
-      alert("Incorrect code! Deletion canceled.");
-      return;
-    }
-
     try {
       await authFetch(`/gateways/${gatewayId}`, {
         method: "DELETE",
@@ -121,16 +115,8 @@ export default function GatewaysList() {
     }
   };
 
-  const handleDeleteTower = async (towerId: string, towerName: string) => {
+  const handleDeleteTower = async (towerId: string) => {
     setActiveMenuGwId(null);
-    const userCode = window.prompt(
-      `To delete tower "${towerName}", enter 'delete'`,
-    );
-    if (userCode?.toLocaleLowerCase() !== "delete") {
-      alert("Incorrect code! Deletion canceled.");
-      return;
-    }
-
     try {
       await authFetch(`/towers/${towerId}`, {
         method: "DELETE",
@@ -180,15 +166,97 @@ export default function GatewaysList() {
     }
   };
 
-  if (loading) return <div>Loading your gateways</div>;
+  // Catch Clicks
+  const handleGenerateClick = (gatewayId: string) => {
+    setActiveModal({
+      type: "regenerate",
+      id: gatewayId,
+      onConfirmAction: () => handleGenerateSecret(gatewayId),
+    });
+  };
+  const handleDeleteTowerClick = (towerId: string, towerName: string) => {
+    setActiveModal({
+      type: "delete",
+      id: towerId,
+      name: towerName,
+      onConfirmAction: () => handleDeleteTower(towerId),
+    });
+  };
+  const handleDeleteGatewayClick = (gatewayId: string, gatewayName: string) => {
+    setActiveModal({
+      type: "delete",
+      id: gatewayId,
+      name: gatewayName,
+      onConfirmAction: () => handleDeleteGateway(gatewayId),
+    });
+  };
+  const handleRenameGatewayClick = (gatewayId: string, oldName: string) => {
+    setActiveModal({
+      type: "rename",
+      id: gatewayId,
+      name: oldName,
+      onConfirmAction: (inputValue) =>
+        handleRenameGateway(gatewayId, inputValue),
+    });
+  };
+  const handleRenameTowerClick = (towerId: string, oldName: string) => {
+    setActiveModal({
+      type: "rename",
+      id: towerId,
+      name: oldName,
+      onConfirmAction: (inputValue) => handleRenameTower(towerId, inputValue),
+    });
+  };
 
+  if (loading) {
+    return (
+      <div className="loadingContainer">
+        <div className="loadingSpinner"></div>
+        <p className="loadingText">Loading data, please wait...</p>
+      </div>
+    );
+  }
   return (
     <div>
       <BackButton toPage="/device-connect" />
       <SettingsButton toPage="/settings" />
+      {activeModal && (
+        <ModalWindow
+          title={
+            activeModal.type === "regenerate"
+              ? "Regenerate Secret Key?"
+              : activeModal.type === "delete"
+                ? `Delete ${activeModal.name}`
+                : `Rename ${activeModal.name}`
+          }
+          description={
+            activeModal.type === "regenerate"
+              ? "Regenerating the secret will immediately disconnect this gateway from Node-RED and all connected towers. You will need to re-configure your hardware dongle manually."
+              : activeModal.type === "delete"
+                ? `You will permanently delete ${activeModal.name}. To confirm, type 'delete' below.`
+                : "Enter new name below."
+          }
+          confirmBtnText={
+            activeModal.type === "delete"
+              ? "Delete permanently"
+              : activeModal.type === "rename"
+                ? "Save Name"
+                : "Yes, Regenerate"
+          }
+          textInput={activeModal.type !== "regenerate"}
+          requiredConfirmWord={
+            activeModal.type === "delete" ? "delete" : undefined
+          }
+          onCancel={() => setActiveModal(null)}
+          onConfirm={async (inputValue) => {
+            await activeModal.onConfirmAction(inputValue);
+            setActiveModal(null);
+          }}
+        />
+      )}
       <h2 className="gatewayPageHeader">My Gateways</h2>
       {gateways.length === 0 ? (
-        <p>You have not active gateways</p>
+        <p className="noGates">You have not active gateways</p>
       ) : (
         <div style={{ display: "grid", gap: "20px", marginTop: "20px" }}>
           {gateways.map((gw) => {
@@ -196,27 +264,25 @@ export default function GatewaysList() {
             return (
               <div key={gw.gatewayId} className="gatewayCard">
                 <div className="gatewayHeader">
-                  <span className="gatewayName">📟 {gw.gatewayName}</span>
+                  <div className="gatewayTitleArea">
+                    <img
+                      src={gatewayIcon}
+                      width={24}
+                      height={24}
+                      alt="Gateway"
+                    ></img>
+                    <span className="gatewayName">{gw.gatewayName}</span>
+                  </div>
                   <div className="gatewayId">Gateway ID: {gw.gatewayId}</div>
-                  <div
-                    className="secretSection"
-                    style={{ marginTop: "5px", marginBottom: "5px" }}
-                  >
-                    <span
-                      className="gatewayId"
-                      style={{
-                        marginRight: "8px",
-                        display: "inline-block",
-                        verticalAlign: "middle",
-                      }}
-                    >
+                  <div className="secretSection">
+                    <div className="gatewaySecret">
                       Gateway Secret:{" "}
                       <strong className="showSecret">
                         {isSecretVisible
                           ? gw.gatewaySecret || "No secret generated yet"
                           : "••••••••••••••••"}
                       </strong>
-                    </span>
+                    </div>
 
                     <div className="secretActionsContainer">
                       <button
@@ -228,8 +294,8 @@ export default function GatewaysList() {
                       >
                         <img
                           src={isSecretVisible ? closedViewIcon : viewIcon}
-                          width={18}
-                          height={18}
+                          width={16}
+                          height={16}
                           alt="toggle visibility"
                           style={{ display: "block" }}
                         />
@@ -243,8 +309,8 @@ export default function GatewaysList() {
                       >
                         <img
                           src={copyIcon}
-                          width={18}
-                          height={18}
+                          width={14}
+                          height={14}
                           alt="Copy"
                           style={{ display: "block" }}
                         ></img>
@@ -252,7 +318,7 @@ export default function GatewaysList() {
 
                       <button
                         className="regenerateSecretBtn"
-                        onClick={() => handleGenerateSecret(gw.gatewayId)}
+                        onClick={() => handleGenerateClick(gw.gatewayId)}
                         title="Regenerate Secret"
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = "#fff0f0";
@@ -276,7 +342,7 @@ export default function GatewaysList() {
                       style={{ position: "relative", display: "inline-block" }}
                     >
                       <button
-                        className="deleteButton"
+                        className="menuButton"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveMenuGwId(
@@ -310,7 +376,7 @@ export default function GatewaysList() {
                           <div className="dotsMenu">
                             <button
                               onClick={() =>
-                                handleRenameGateway(
+                                handleRenameGatewayClick(
                                   gw.gatewayId,
                                   gw.gatewayName,
                                 )
@@ -331,7 +397,7 @@ export default function GatewaysList() {
                               <button
                                 key={`rename-${tower.towerId}`}
                                 onClick={() =>
-                                  handleRenameTower(
+                                  handleRenameTowerClick(
                                     tower.towerId,
                                     tower.towerName,
                                   )
@@ -354,7 +420,7 @@ export default function GatewaysList() {
                               <button
                                 key={`delete-${tower.towerId}`}
                                 onClick={() =>
-                                  handleDeleteTower(
+                                  handleDeleteTowerClick(
                                     tower.towerId,
                                     tower.towerName,
                                   )
@@ -374,7 +440,7 @@ export default function GatewaysList() {
 
                             <button
                               onClick={() =>
-                                handleDeleteGateway(
+                                handleDeleteGatewayClick(
                                   gw.gatewayId,
                                   gw.gatewayName,
                                 )
@@ -410,14 +476,25 @@ export default function GatewaysList() {
                             navigate(`/dashboard/${tower.towerId}`)
                           }
                           className="towerCard"
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background = "#e2e8f0")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "#f0f4f8")
-                          }
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#e2e8f0";
+                            e.currentTarget.style.transform =
+                              "translateY(-4px)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#f0f4f8";
+                            e.currentTarget.style.transform = "translateY(0)";
+                          }}
                         >
-                          <div className="towerName">🗼 {tower.towerName}</div>
+                          <div className="gatewayTitleArea">
+                            <img
+                              src={towerIcon}
+                              width={22}
+                              height={22}
+                              alt="Tower"
+                            ></img>
+                            <div className="towerName">{tower.towerName}</div>
+                          </div>
                           <div className="towerBattery">
                             {getBatteryIcon(tower.battery, 22, 22)}
                             Battery: {tower.battery}%

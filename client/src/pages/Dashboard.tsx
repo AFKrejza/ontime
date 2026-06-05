@@ -12,6 +12,7 @@ import DeleteButton from "../assets/delete.png";
 import BackButton from "../components/BackButton";
 import getBatteryIcon from "../components/batteryLevel";
 import SettingsButton from "../components/SettingsButton";
+import ModalWindow from "../components/ModalWindow";
 
 type DisplayDevice = {
   assignmentId: string;
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const [towerConfigs, setTowerConfigs] = useState<TowerConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [rawTowerInfo, setRawTowerInfo] = useState<TowerInfo>();
+  const [activeModal, setActiveModal] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -109,19 +111,14 @@ export default function Dashboard() {
   // if data is still loading in useEffect, then show Loader:
   if (loading || !rawTowerInfo) {
     return (
-      <div className="page" style={{ padding: "20px" }}>
-        Loading tower data...
+      <div className="loadingContainer">
+        <div className="loadingSpinner"></div>
+        <p className="loadingText">Loading data, please wait...</p>
       </div>
     );
   }
 
   async function handleDeleteAssignment(assignmentId: string) {
-    const userCode = window.prompt("To delete assignment, type 'delete': ");
-
-    if (userCode?.toLocaleLowerCase() !== "delete") {
-      alert("Delete canceled.");
-      return;
-    }
     try {
       await deleteAssignment(rawTowerInfo!.id, assignmentId);
       setTowerConfigs((prev) => prev.filter((c) => c.id !== assignmentId));
@@ -129,8 +126,28 @@ export default function Dashboard() {
       alert("Failed to delete from server");
     }
   }
+
+  const handleDeleteAssignmentClick = (assignmentId: string) => {
+    setActiveModal({ id: assignmentId });
+  };
+
   return (
     <div className="page">
+      {activeModal && (
+        <ModalWindow
+          title="Delete this tower assignment?"
+          description="You will permanently delete this assignment. To confirm, type 'delete' below."
+          confirmBtnText="Delete permanently"
+          textInput={true}
+          requiredConfirmWord="delete"
+          onCancel={() => setActiveModal(null)}
+          onConfirm={async () => {
+            await handleDeleteAssignment(activeModal.id);
+            setActiveModal(null);
+          }}
+        />
+      )}
+
       <BackButton toPage="/gateways" />
       <SettingsButton toPage="/settings" />
       <header className="header">
@@ -192,7 +209,7 @@ export default function Dashboard() {
                       <button
                         className="deleteButton"
                         onClick={() =>
-                          handleDeleteAssignment(device.assignmentId)
+                          handleDeleteAssignmentClick(device.assignmentId)
                         }
                         onMouseEnter={(e) => {
                           e.currentTarget.style.opacity = "1";

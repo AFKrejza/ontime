@@ -15,13 +15,25 @@ export default function DeviceConnect() {
     if (!deviceCode.trim()) {
       setError("Please enter a device code.");
       return;
+    } else if (deviceCode.trim().length !== 12) {
+      setError(
+        "Incorrect code. Dongle ID must consist of exactly 12 characters.",
+      );
+      return;
+    } else if (!deviceName.trim()) {
+      setError("Please enter a device name.");
+      return;
     }
+
     try {
       setIsLoading(true);
       setError("");
       setSuccessMessage("");
 
-      await registerGateway({ gatewayId: deviceCode, gatewayName: deviceName });
+      await registerGateway({
+        gatewayId: deviceCode.trim(),
+        gatewayName: deviceName.trim(),
+      });
 
       setSuccessMessage(
         `✓ Registered gateway ${deviceName} with id:${String(deviceCode).toLocaleLowerCase()}`,
@@ -29,11 +41,21 @@ export default function DeviceConnect() {
 
       setTimeout(() => {
         navigate("/gateways");
-      }, 4000);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to connect to device.",
-      );
+      }, 3000);
+    } catch (err: any) {
+      console.error("Gateway registration error:", err);
+      try {
+        const errorText = err instanceof Error ? err.message : String(err);
+        if (errorText.includes("{")) {
+          const jsonString = errorText.substring(errorText.indexOf("{"));
+          const parsed = JSON.parse(jsonString);
+          setError(parsed.errors[0].message || "Validation failed.");
+        } else {
+          setError(errorText || "Failed to connect to device.");
+        }
+      } catch {
+        setError(err.message || "Failed to connect to device.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +78,7 @@ export default function DeviceConnect() {
       <main className="content">
         <section className="card deviceConnectCard">
           <h2>Device Pairing</h2>
-          <p className="stepInfo">Step 3 of 4</p>
+          <p className="stepInfo">Step 2 of 2</p>
 
           <div className="instructionBox">
             <h3>How to find your device code:</h3>
@@ -75,7 +97,11 @@ export default function DeviceConnect() {
                 value={deviceName}
                 onChange={(e) => setDeviceName(e.target.value)}
                 placeholder="e.g., Living Room"
-                className="textInput deviceCodeInput"
+                className={
+                  deviceName.length > 0
+                    ? "textInput deviceCodeInput"
+                    : "textInput errorInput"
+                }
               />
             </label>
           </div>
@@ -88,7 +114,11 @@ export default function DeviceConnect() {
                 value={deviceCode}
                 onChange={(event) => setDeviceCode(event.target.value)}
                 placeholder="e.g., ABC123XYZ789"
-                className="textInput deviceCodeInput"
+                className={
+                  deviceCode.length === 0 || deviceCode.length === 12
+                    ? "textInput deviceCodeInput"
+                    : "textInput errorInput"
+                }
               />
             </label>
           </div>
