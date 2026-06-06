@@ -70,6 +70,8 @@ void application_init(void)
 		draw_string("OnTime", 6, 200, 140, 3, WHITE);
 		twr_tick_wait(500);
 		paint_screen(BLACK);
+	} else {
+		twr_log_info("Running headless");
 	}
 
 	twr_scheduler_plan_current_from_now(3000);
